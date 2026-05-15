@@ -1,5 +1,23 @@
 ﻿// Manager Dashboard JavaScript - WITH HARDSCAPES FULLY INTEGRATED
 
+function compressImageToBase64(file, maxPx, quality) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            const scale = Math.min(maxPx / img.width, maxPx / img.height, 1);
+            const canvas = document.createElement('canvas');
+            canvas.width  = Math.round(img.width  * scale);
+            canvas.height = Math.round(img.height * scale);
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(url);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+        img.src = url;
+    });
+}
+
 // Default products including hardscapes
 const defaultProducts = [
     // Paths
@@ -678,13 +696,8 @@ function createProductModal(existingProduct = null) {
             
             if (imageFile) {
                 try {
-                    imageData = await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = (e) => resolve(e.target.result);
-                        reader.onerror = (e) => reject(e);
-                        reader.readAsDataURL(imageFile);
-                    });
-                    console.log('Image converted to base64, length:', imageData.length);
+                    imageData = await compressImageToBase64(imageFile, 400, 0.82);
+                    console.log('Image compressed, length:', imageData.length);
                 } catch (error) {
                     alert('Error reading image file. Please try again.');
                     console.error('Image read error:', error);

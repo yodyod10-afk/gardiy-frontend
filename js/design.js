@@ -275,9 +275,16 @@ document.addEventListener('DOMContentLoaded', async function () {
 });
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
+// Keyed by numeric index matching data-pid attribute — avoids putting large
+// base64 strings or unescaped quotes into HTML data attributes.
+const productRegistry = {};
+
 async function loadProductCategories() {
     const products = await getProducts();
     if (!products.length) return;
+
+    // Build registry so click handler can look up full product data by index
+    products.forEach((p, i) => { productRegistry[i] = p; });
 
     const categories = {
         paths:      { name: 'Paths',      icon: '🛤️', products: [] },
@@ -289,10 +296,14 @@ async function loadProductCategories() {
         furniture:  { name: 'Furniture',  icon: '🪑', products: [] },
     };
 
-    products.forEach(p => { if (categories[p.category]) categories[p.category].products.push(p); });
+    products.forEach((p, i) => {
+        if (categories[p.category]) categories[p.category].products.push({ ...p, _pid: i });
+    });
 
     const sidebar = document.querySelector('.design-sidebar');
     if (!sidebar) return;
+
+    const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
     let html = '<h3>🎨 Products</h3><div class="category-list">';
     Object.keys(categories).forEach(key => {
@@ -307,14 +318,12 @@ async function loadProductCategories() {
             <div class="category-items" style="display:none;">`;
         cat.products.forEach(p => {
             const thumb = p.type === 'image'
-                ? `<img src="${p.image}" style="width:40px;height:40px;object-fit:contain;border-radius:8px;">`
-                : `<span style="font-size:32px;">${p.image}</span>`;
-            html += `<div class="product-item"
-                data-name="${p.name}" data-image="${p.image}"
-                data-type="${p.type}" data-category="${p.category}" data-price="${p.price}">
+                ? `<img src="${esc(p.image)}" style="width:40px;height:40px;object-fit:contain;border-radius:8px;">`
+                : `<span style="font-size:32px;">${esc(p.image)}</span>`;
+            html += `<div class="product-item" data-pid="${p._pid}">
                 ${thumb}
                 <div class="product-info">
-                    <div class="product-name">${p.name}</div>
+                    <div class="product-name">${esc(p.name)}</div>
                     <div class="product-price">$${p.price}</div>
                 </div>
             </div>`;
@@ -353,12 +362,15 @@ function setupCanvasClick() {
 document.addEventListener('click', async e => {
     const item = e.target.closest('.product-item');
     if (!item) return;
+    const pid = item.dataset.pid;
+    const p = productRegistry[pid];
+    if (!p) return;
     const canvas = document.getElementById('designCanvas');
     const rect   = canvas.getBoundingClientRect();
     const data   = {
-        name: item.dataset.name, image: item.dataset.image,
-        type: item.dataset.type, category: item.dataset.category,
-        price: parseFloat(item.dataset.price),
+        name: p.name, image: p.image,
+        type: p.type, category: p.category,
+        price: parseFloat(p.price),
     };
     const isMesh = isMeshItem(data.name, data.category);
     const x = isMesh ? rect.width  / 2 - 200 : rect.width  / 2 - 40;
