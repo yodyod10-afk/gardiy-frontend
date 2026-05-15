@@ -696,7 +696,7 @@ function createProductModal(existingProduct = null) {
             
             if (imageFile) {
                 try {
-                    imageData = await compressImageToBase64(imageFile, 400, 0.82);
+                    imageData = await compressImageToBase64(imageFile, 120, 0.70);
                     console.log('Image compressed, length:', imageData.length);
                 } catch (error) {
                     alert('Error reading image file. Please try again.');
