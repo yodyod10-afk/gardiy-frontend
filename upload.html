@@ -1,0 +1,253 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Your Landscape - GarDIY</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/upload.css">
+</head>
+<script>
+// Check if user is logged in and update navigation
+document.addEventListener('DOMContentLoaded', function() {
+    const user = JSON.parse(localStorage.getItem('gardiyUser'));
+    const authBtn = document.getElementById('authBtn');
+    
+    if (authBtn && user && user.loggedIn) {
+        // User is logged in - show their name and link to profile
+        authBtn.textContent = user.name || 'Profile';
+        authBtn.href = 'profile.html';
+    }
+});
+</script>
+<body>
+    <!-- Navigation -->
+   <nav class="navbar">
+    <div class="nav-container">
+        <a href="index.html" class="logo">🌱 GarDIY</a>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="community.html">Community</a></li> <!-- ADD THIS LINE -->
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+        </ul>
+        <div class="nav-actions"> <!-- CHANGE: wrap in div -->
+            <a href="login.html" class="cta-btn" id="authBtn">Sign In</a> <!-- CHANGE: link to login -->
+        </div>
+    </div>
+</nav>
+
+    <!-- Upload Section -->
+    <section class="upload-section" id="uploadSection">
+        <div class="container">
+            <div class="upload-header">
+                <h1>Upload Your Landscape</h1>
+                <p>Take a photo of your outdoor space and let our AI analyze it</p>
+            </div>
+
+            <!-- Upload Area -->
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📤</div>
+                <h3>Drop your photo here</h3>
+                <p>or click to browse</p>
+                <input type="file" id="fileInput" accept="image/*" hidden>
+                <button class="upload-btn" id="uploadBtn">Choose Photo</button>
+                <div class="upload-tips">
+                    <p><strong>Tips for best results:</strong></p>
+                    <ul>
+                        <li>Take photo in daylight</li>
+                        <li>Capture the entire area you want to design</li>
+                        <li>Avoid shadows and obstacles</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Analysis Section (Hidden initially) -->
+    <section class="analysis-section" id="analysisSection" style="display: none;">
+        <div class="container">
+            <div class="analysis-header">
+                <h1>🤖 AI Analysis</h1>
+                <button class="back-btn" id="backToUploadBtn">← Upload Different Photo</button>
+            </div>
+
+            <div class="analysis-container">
+                <!-- Photo Preview -->
+                <div class="photo-preview" id="photoPreview">
+                    <img id="previewImage" alt="Uploaded landscape">
+                    
+                    <!-- Scanning Animation Overlay -->
+                    <div class="scan-overlay" id="scanOverlay" style="display: none;">
+                        <div class="scan-bar"></div>
+                        <div class="scan-grid"></div>
+                        <div class="scan-edges">
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                            <div class="edge-line"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="photo-actions">
+                        <button class="change-photo-btn" id="changePhotoBtn">Change Photo</button>
+                    </div>
+                </div>
+
+                <!-- Analysis Panel -->
+                <div class="analysis-panel">
+                    <!-- Loading State -->
+                    <div class="analysis-loading" id="analysisLoading">
+                        <div class="spinner"></div>
+                        <h3>Analyzing your landscape...</h3>
+                        <p>This will take just a few seconds</p>
+                        <div class="loading-steps">
+                            <div class="loading-step">
+                                <div class="step-dot active"></div>
+                                <span>Detecting boundaries</span>
+                            </div>
+                            <div class="loading-step">
+                                <div class="step-dot"></div>
+                                <span>Calculating dimensions</span>
+                            </div>
+                            <div class="loading-step">
+                                <div class="step-dot"></div>
+                                <span>Analyzing sunlight</span>
+                            </div>
+                            <div class="loading-step">
+                                <div class="step-dot"></div>
+                                <span>Determining climate zone</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results -->
+                    <div class="analysis-results" id="analysisResults" style="display: none;">
+                        <h3>Analysis Complete! ✓</h3>
+                        
+                        <div class="results-grid">
+                            <div class="result-card">
+                                <div class="result-icon">📏</div>
+                                <div class="result-info">
+                                    <span class="result-label">Dimensions</span>
+                                    <span class="result-value" id="dimensions">-</span>
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <div class="result-icon">🌞</div>
+                                <div class="result-info">
+                                    <span class="result-label">Daily Sunlight</span>
+                                    <span class="result-value" id="sunlight">-</span>
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <div class="result-icon">📍</div>
+                                <div class="result-info">
+                                    <span class="result-label">Climate Zone</span>
+                                    <span class="result-value" id="climate">-</span>
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <div class="result-icon">🌱</div>
+                                <div class="result-info">
+                                    <span class="result-label">Soil Type</span>
+                                    <span class="result-value" id="soilType">-</span>
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <div class="result-icon">💧</div>
+                                <div class="result-info">
+                                    <span class="result-label">Irrigation Needs</span>
+                                    <span class="result-value" id="irrigation">-</span>
+                                </div>
+                            </div>
+
+                            <div class="result-card">
+                                <div class="result-icon">🌡️</div>
+                                <div class="result-info">
+                                    <span class="result-label">Temperature Range</span>
+                                    <span class="result-value" id="temperature">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="recommendations">
+                            <h4>💡 Recommendations</h4>
+                            <ul id="recommendationsList">
+                                <!-- Populated by JS -->
+                            </ul>
+                        </div>
+
+                        <div class="action-buttons">
+                            <a href="design.html" class="primary-btn large" id="startDesignBtn">
+                                Start Designing Your Landscape →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>GarDIY</h4>
+                    <p>AI-powered landscape design and ordering platform.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Product</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html#features">Features</a></li>
+                        <li><a href="index.html#pricing">Pricing</a></li>
+                        <li><a href="index.html#how-it-works">How It Works</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="copyright">
+                <p>&copy; 2025 GarDIY. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/upload.js"></script>
+</body>
+</html>

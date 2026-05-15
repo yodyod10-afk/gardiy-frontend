@@ -1,0 +1,297 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - GarDIY</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/checkout.css">
+    <!-- Google Places API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places" defer></script>
+</head>
+<script>
+// Check if user is logged in and update navigation
+document.addEventListener('DOMContentLoaded', function() {
+    const user = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    const authBtn = document.getElementById('authBtn');
+    
+    if (authBtn && user && user.loggedIn) {
+        // User is logged in - show their name and link to profile
+        authBtn.textContent = user.name || 'Profile';
+        authBtn.href = 'profile.html';
+    }
+});
+</script>
+<body>
+    <!-- Navigation -->
+   <nav class="navbar">
+    <div class="nav-container">
+        <a href="index.html" class="logo">🌱 GarDIY</a>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="community.html">Community</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+        </ul>
+        <div class="nav-actions">
+            <a href="login.html" class="cta-btn" id="authBtn">Sign In</a>
+        </div>
+    </div>
+</nav>
+
+    <!-- Checkout Section -->
+    <section class="checkout-section">
+        <div class="checkout-container">
+            <!-- Progress Bar -->
+            <div class="progress-bar">
+                <div class="progress-step completed">
+                    <div class="step-circle">✓</div>
+                    <span>Design</span>
+                </div>
+                <div class="progress-line completed"></div>
+                <div class="progress-step active">
+                    <div class="step-circle">2</div>
+                    <span>Delivery</span>
+                </div>
+                <div class="progress-line"></div>
+                <div class="progress-step">
+                    <div class="step-circle">3</div>
+                    <span>Payment</span>
+                </div>
+            </div>
+
+            <div class="checkout-grid">
+                <!-- Left Column: Forms -->
+                <div class="checkout-left">
+                    <!-- Delivery Address -->
+                    <div class="checkout-card">
+                        <h2>📍 Delivery Address</h2>
+                        <form class="checkout-form" id="addressForm">
+                            <div class="form-group">
+                                <label for="fullName">Full Name *</label>
+                                <input type="text" id="fullName" placeholder="John Doe" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="addressSearch">Street Address *</label>
+                                <input type="text" id="addressSearch" placeholder="Start typing your address..." required>
+                                <p class="form-hint">Start typing and select from suggestions</p>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="city">City *</label>
+                                    <input type="text" id="city" placeholder="Springfield" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="state">State *</label>
+                                    <input type="text" id="state" placeholder="CA" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="zip">ZIP Code *</label>
+                                    <input type="text" id="zip" placeholder="12345" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="phone">Phone Number *</label>
+                                <input type="tel" id="phone" placeholder="(555) 123-4567" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="email">Email Address *</label>
+                                <input type="email" id="email" placeholder="john@example.com" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="notes">Delivery Notes (Optional)</label>
+                                <textarea id="notes" rows="3" placeholder="Gate code, special instructions, etc."></textarea>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Service Selection -->
+                    <div class="checkout-card">
+                        <h2>🔧 Choose Your Service</h2>
+                        <div class="service-options">
+                            <label class="service-card selected" id="diyCard">
+                                <input type="radio" name="service" value="diy" id="diyRadio" checked>
+                                <div class="service-content">
+                                    <div class="service-header">
+                                        <span class="service-icon">🛠️</span>
+                                        <span class="service-title">DIY Delivery</span>
+                                    </div>
+                                    <p class="service-description">All materials delivered to your door. You handle the installation at your own pace.</p>
+                                    <div class="service-price">Materials Only</div>
+                                </div>
+                            </label>
+
+                            <label class="service-card" id="installCard">
+                                <input type="radio" name="service" value="install" id="installRadio">
+                                <div class="service-content">
+                                    <div class="service-header">
+                                        <span class="service-icon">👷</span>
+                                        <span class="service-title">Professional Installation</span>
+                                    </div>
+                                    <p class="service-description">Our expert team delivers and installs everything. Completed in 1-2 days with warranty.</p>
+                                    <!-- CHANGED: From price to "Request Quote" -->
+                                    <div class="service-price">Request Quote for Installation</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Date -->
+                    <div class="checkout-card">
+                        <h2>📅 Delivery Date</h2>
+                        <div class="form-group">
+                            <label for="deliveryDate">Preferred Delivery Date *</label>
+                            <input type="date" id="deliveryDate" required>
+                            <p class="form-hint">Select your preferred date (3-5 business days from today)</p>
+                        </div>
+                    </div>
+
+                    <!-- Payment Section -->
+                    <div class="checkout-card" id="paymentSection">
+                        <h2>💳 Payment Information</h2>
+                        <form class="checkout-form" id="paymentForm">
+                            <div class="form-group">
+                                <label for="cardName">Cardholder Name *</label>
+                                <input type="text" id="cardName" placeholder="John Doe" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="cardNumber">Card Number *</label>
+                                <div class="card-input-wrapper">
+                                    <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                                    <div class="card-icons">
+                                        <span class="card-icon">💳</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="expiry">Expiry Date *</label>
+                                    <input type="text" id="expiry" placeholder="MM/YY" maxlength="5" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cvv">CVV *</label>
+                                    <input type="text" id="cvv" placeholder="123" maxlength="4" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="sameAddress" checked>
+                                    <span>Billing address same as delivery address</span>
+                                </label>
+                            </div>
+
+                            <div class="security-badge">
+                                <span class="security-icon">🔒</span>
+                                <div class="security-text">
+                                    <strong>Secure Payment</strong>
+                                    <p>Your payment information is encrypted and secure</p>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <button class="place-order-btn" id="placeOrderBtn">
+                        <span>Complete Order</span>
+                        <span class="btn-arrow">→</span>
+                    </button>
+                </div>
+
+                <!-- Right Column: Order Summary -->
+                <div class="checkout-right">
+                    <div class="order-summary-card">
+                        <h3>Order Summary</h3>
+                        
+                        <div class="summary-items" id="summaryItems">
+                            <!-- Populated by JS -->
+                        </div>
+
+                        <div class="summary-divider"></div>
+
+                        <div class="summary-row">
+                            <span>Subtotal</span>
+                            <span id="subtotal">$0.00</span>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Delivery Fee</span>
+                            <span id="deliveryFee">$50.00</span>
+                        </div>
+
+                        <!-- CHANGED: Installation row now shows "Quote Required" instead of price -->
+                        <div class="summary-row" id="installationRow" style="display: none;">
+                            <span>Installation Service</span>
+                            <span id="installationFee" style="font-style: italic; color: #667eea;">Quote Required</span>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Tax (8%)</span>
+                            <span id="tax">$0.00</span>
+                        </div>
+
+                        <div class="summary-divider"></div>
+
+                        <div class="summary-total">
+                            <span>Total</span>
+                            <span id="grandTotal">$0.00</span>
+                        </div>
+
+                        <div class="trust-badges">
+                            <div class="trust-badge">✓ Free Returns</div>
+                            <div class="trust-badge">✓ 1 Year Warranty</div>
+                            <div class="trust-badge">✓ Expert Support</div>
+                        </div>
+                    </div>
+
+                    <div class="help-card">
+                        <h4>Need Help?</h4>
+                        <p>Our team is here to assist you with your order.</p>
+                        <a href="#" class="help-link">Contact Support →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Success Modal (Hidden) -->
+    <div class="modal" id="successModal" style="display: none;">
+        <div class="modal-content">
+            <div class="success-icon">✓</div>
+            <h2>Order Confirmed!</h2>
+            <p>Thank you for your order. We've sent a confirmation email to <strong id="confirmEmail"></strong></p>
+            
+            <div class="order-details">
+                <div class="detail-row">
+                    <span>Order Number:</span>
+                    <strong id="orderNumber"></strong>
+                </div>
+                <div class="detail-row">
+                    <span>Delivery Date:</span>
+                    <strong id="confirmDate"></strong>
+                </div>
+                <div class="detail-row">
+                    <span>Total Paid:</span>
+                    <strong id="confirmTotal"></strong>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <a href="index.html" class="modal-btn primary">Back to Home</a>
+                <button class="modal-btn secondary" onclick="window.print()">Print Receipt</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/checkout.js"></script>
+</body>
+</html>

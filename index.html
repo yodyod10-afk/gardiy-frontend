@@ -1,0 +1,295 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GarDIY - Transform Your Landscape with AI</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/home.css">
+</head>
+<script>
+// Check if user is logged in and update navigation
+document.addEventListener('DOMContentLoaded', function() {
+    const user = JSON.parse(localStorage.getItem('gardiyUser'));
+    const authBtn = document.getElementById('authBtn');
+    
+    if (authBtn && user && user.loggedIn) {
+        // User is logged in - show their name and link to profile
+        authBtn.textContent = user.name || 'Profile';
+        authBtn.href = 'profile.html';
+    }
+});
+</script>
+<body>
+    <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+        <a href="index.html" class="logo">🌱 GarDIY</a>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="community.html">Community</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+        </ul>
+        <div class="nav-actions">
+            <a href="login.html" class="cta-btn" id="authBtn">Sign In</a>
+        </div>
+    </div>
+</nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Transform Your Landscape with AI</h1>
+            <p>Upload a photo, design your dream garden, and get everything delivered. From concept to reality in minutes.</p>
+            <div class="hero-buttons">
+                <a href="upload.html" class="primary-btn">Get Started Free</a>
+                <button class="secondary-btn" onclick="scrollToSection('how-it-works')">Watch Demo</button>
+            </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-number">10,000+</span>
+                    <span class="stat-label">Projects Created</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">$2M+</span>
+                    <span class="stat-label">Materials Delivered</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">98%</span>
+                    <span class="stat-label">Satisfaction Rate</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <div class="phone-mockup">
+                <div class="phone-screen">
+                    <div class="mockup-content">
+                        <div class="phone-icon">📸</div>
+                        <h3>Upload Your Space</h3>
+                        <p>AI analyzes dimensions & sunlight instantly</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Powerful Features</h2>
+            <p class="section-subtitle">Everything you need to design, plan, and execute your perfect landscape project</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI-Powered Measurement</h3>
+                    <p>Upload a photo and our AI automatically detects boundaries, calculates dimensions, and analyzes sunlight exposure throughout the day.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Visual Design Tools</h3>
+                    <p>Drag, drop, and arrange plants, paths, furniture, and features with an intuitive design interface. See your vision come to life instantly.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Instant Calculations</h3>
+                    <p>Get accurate quantities for soil, mulch, pavers, plants, and more. Real-time pricing updates as you design.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🌞</div>
+                    <h3>Climate Analysis</h3>
+                    <p>AI considers your geographical location and climate to recommend optimal plants that will thrive in your yard.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🛒</div>
+                    <h3>One-Click Ordering</h3>
+                    <p>Choose DIY delivery or professional installation. All materials bundled and ready to transform your space.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Transparent Pricing</h3>
+                    <p>See costs in real-time with regional pricing, delivery fees, and optional installation services. No hidden fees.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">From photo to finished landscape in four simple steps</p>
+            
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Upload Photo</h3>
+                        <p>Take a picture of your outdoor space and upload it to GarDIY. Our AI will handle the rest.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>AI Analyzes</h3>
+                        <p>Automatic measurement, sunlight detection, and climate consideration for your specific location.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Design & Plan</h3>
+                        <p>Use our visual tools to arrange features, plants, and materials. See costs update in real-time.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>Order & Install</h3>
+                        <p>Choose DIY delivery or professional installation. Your dream landscape delivered to your door.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cta-center">
+                <a href="upload.html" class="primary-btn large">Start Your Project Now</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <h2 class="section-title">Simple, Transparent Pricing</h2>
+            <p class="section-subtitle">Choose the plan that works for you</p>
+            
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3>Free Trial</h3>
+                        <div class="price">
+                            <span class="currency">$</span>
+                            <span class="amount">0</span>
+                        </div>
+                        <p class="price-description">Try before you commit</p>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>✓ Save up to 2 designs</li>
+                        <li>✓ Upload 1 photo for AI scan & analysis</li>
+                        <li>✓ Make up to 1 order</li>
+                        <li>✓ AI measurement & calculations</li>
+                        <li>✓ Real-time pricing</li>
+                    </ul>
+                    <a href="upload.html" class="pricing-btn">Start Free Trial</a>
+                </div>
+
+                <div class="pricing-card featured">
+                    <div class="badge">MOST POPULAR</div>
+                    <div class="pricing-header">
+                        <h3>Basic</h3>
+                        <div class="price">
+                            <span class="currency">$</span>
+                            <span class="amount">30</span>
+                            <span class="period">/mo</span>
+                        </div>
+                        <p class="price-description">For homeowners & DIY enthusiasts</p>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>✓ Save unlimited designs</li>
+                        <li>✓ Upload 20 photos for AI scan & analysis</li>
+                        <li>✓ Make up to 5 orders per month</li>
+                        <li>✓ Access community to inspire & be inspired</li>
+                        <li>✓ Share designs with others</li>
+                    </ul>
+                    <a href="upload.html" class="pricing-btn primary">Get Started</a>
+                </div>
+
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3>Pro</h3>
+                        <div class="price">
+                            <span class="currency">$</span>
+                            <span class="amount">250</span>
+                            <span class="period">/mo</span>
+                        </div>
+                        <p class="price-description">For professionals & power users</p>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>✓ Save unlimited designs</li>
+                        <li>✓ Upload unlimited photos for AI scan</li>
+                        <li>✓ Unlimited orders per month</li>
+                        <li>✓ Access community features</li>
+                        <li>✓ Exclusive deals & discounts for large orders</li>
+                        <li>✓ Dedicated sales team support</li>
+                    </ul>
+                    <a href="upload.html" class="pricing-btn">Go Pro</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <h2>Ready to Transform Your Outdoor Space?</h2>
+            <p>Join thousands of homeowners who are revolutionizing garden design</p>
+            <a href="upload.html" class="primary-btn large">Start Your Free Design</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>GarDIY</h4>
+                    <p>AI-powered landscape design and ordering platform.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Product</h4>
+                    <ul class="footer-links">
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#how-it-works">How It Works</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="copyright">
+                <p>&copy; 2025 GarDIY. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/common.js"></script>
+</body>
+</html>

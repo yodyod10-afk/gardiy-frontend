@@ -1,0 +1,326 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - GarDIY</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/profile.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">🌱 GarDIY</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="community.html">Community</a></li>
+                <li><a href="index.html#features">Features</a></li>
+            </ul>
+            <div class="nav-actions">
+                <a href="upload.html" class="cta-btn">+ New Project</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Profile Section -->
+    <section class="profile-section">
+        <div class="container">
+            <div class="profile-layout">
+                <!-- Sidebar -->
+                <div class="profile-sidebar">
+                    <div class="profile-card">
+                        <div class="profile-avatar" id="profileAvatar">JD</div>
+                        <h2 id="profileName">John Doe</h2>
+                        <p id="profileEmail">john@example.com</p>
+                        <div class="profile-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">12</span>
+                                <span class="stat-label">Projects</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">247</span>
+                                <span class="stat-label">Likes</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">48</span>
+                                <span class="stat-label">Followers</span>
+                            </div>
+                        </div>
+                        <button class="edit-profile-btn" id="editProfileBtn">Edit Profile</button>
+                    </div>
+
+                    <div class="menu-card">
+                        <a href="#" class="menu-item active" data-section="projects">
+                            <span class="menu-icon">🎨</span>
+                            <span>My Projects</span>
+                        </a>
+                        <a href="#" class="menu-item" data-section="saved">
+                            <span class="menu-icon">💾</span>
+                            <span>Saved Designs</span>
+                        </a>
+                        <a href="#" class="menu-item" data-section="orders">
+                            <span class="menu-icon">📦</span>
+                            <span>My Orders</span>
+                        </a>
+                        <a href="#" class="menu-item" data-section="settings">
+                            <span class="menu-icon">⚙️</span>
+                            <span>Settings</span>
+                        </a>
+                        <a href="#" class="menu-item logout" id="logoutBtn">
+                            <span class="menu-icon">🚪</span>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="profile-main">
+                    <!-- My Projects Section -->
+                    <div class="content-section active" id="projects-section">
+                        <div class="section-header">
+                            <h2>My Projects</h2>
+                            <a href="upload.html" class="primary-btn">+ Create New</a>
+                        </div>
+
+                        <div class="projects-grid">
+                            <div class="project-item">
+                                <div class="project-thumb">
+                                    <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop" alt="Project">
+                                    <div class="project-status">Published</div>
+                                </div>
+                                <div class="project-details">
+                                    <h3>Modern Minimalist Garden</h3>
+                                    <p class="project-meta">Created: Nov 20, 2024</p>
+                                    <div class="project-actions">
+                                        <button class="action-btn">✏️ Edit</button>
+                                        <button class="action-btn">📤 Share</button>
+                                        <button class="action-btn">🗑️ Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="project-item">
+                                <div class="project-thumb">
+                                    <img src="https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=400&h=300&fit=crop" alt="Project">
+                                    <div class="project-status draft">Draft</div>
+                                </div>
+                                <div class="project-details">
+                                    <h3>Backyard Oasis Design</h3>
+                                    <p class="project-meta">Created: Nov 18, 2024</p>
+                                    <div class="project-actions">
+                                        <button class="action-btn">✏️ Edit</button>
+                                        <button class="action-btn">📤 Share</button>
+                                        <button class="action-btn">🗑️ Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="project-item">
+                                <div class="project-thumb">
+                                    <img src="https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=400&h=300&fit=crop" alt="Project">
+                                    <div class="project-status">Published</div>
+                                </div>
+                                <div class="project-details">
+                                    <h3>English Cottage Garden</h3>
+                                    <p class="project-meta">Created: Nov 15, 2024</p>
+                                    <div class="project-actions">
+                                        <button class="action-btn">✏️ Edit</button>
+                                        <button class="action-btn">📤 Share</button>
+                                        <button class="action-btn">🗑️ Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="new-project-card">
+                                <a href="upload.html">
+                                    <div class="plus-icon">+</div>
+                                    <p>Start New Project</p>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Saved Designs Section -->
+                    <div class="content-section" id="saved-section" style="display: none;">
+                        <div class="section-header">
+                            <h2>Saved Designs</h2>
+                        </div>
+                        <div class="empty-state">
+                            <div class="empty-icon">💾</div>
+                            <h3>No saved designs yet</h3>
+                            <p>Browse the community to find inspiration and save designs you like</p>
+                            <a href="community.html" class="primary-btn">Explore Community</a>
+                        </div>
+                    </div>
+
+                    <!-- Orders Section -->
+                    <div class="content-section" id="orders-section" style="display: none;">
+                        <div class="section-header">
+                            <h2>My Orders</h2>
+                        </div>
+
+                        <div class="orders-list">
+                            <div class="order-item">
+                                <div class="order-header">
+                                    <div>
+                                        <h3>Order #VRT-10234</h3>
+                                        <p class="order-date">Placed on Nov 25, 2024</p>
+                                    </div>
+                                    <span class="order-status delivered">Delivered</span>
+                                </div>
+                                <div class="order-details">
+                                    <p>Modern Minimalist Garden Materials</p>
+                                    <p class="order-total">Total: $2,847.00</p>
+                                </div>
+                                <div class="order-actions">
+                                    <button class="action-btn">View Details</button>
+                                    <button class="action-btn">Reorder</button>
+                                </div>
+                            </div>
+
+                            <div class="order-item">
+                                <div class="order-header">
+                                    <div>
+                                        <h3>Order #VRT-10189</h3>
+                                        <p class="order-date">Placed on Nov 10, 2024</p>
+                                    </div>
+                                    <span class="order-status processing">Processing</span>
+                                </div>
+                                <div class="order-details">
+                                    <p>Cottage Garden Kit + Installation</p>
+                                    <p class="order-total">Total: $3,299.00</p>
+                                </div>
+                                <div class="order-actions">
+                                    <button class="action-btn">Track Order</button>
+                                    <button class="action-btn">Contact Support</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settings Section -->
+                    <div class="content-section" id="settings-section" style="display: none;">
+                        <div class="section-header">
+                            <h2>Account Settings</h2>
+                        </div>
+
+                        <div class="settings-card">
+                            <h3>Personal Information</h3>
+                            <form class="settings-form">
+                                <div class="form-group">
+                                    <label>Full Name</label>
+                                    <input type="text" value="John Doe" id="settingsName">
+                                </div>
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" value="john@example.com" id="settingsEmail" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label>Phone</label>
+                                    <input type="tel" placeholder="(555) 123-4567" id="settingsPhone">
+                                </div>
+                                <button type="submit" class="primary-btn">Save Changes</button>
+                            </form>
+                        </div>
+
+                        <div class="settings-card">
+                            <h3>Change Password</h3>
+                            <form class="settings-form">
+                                <div class="form-group">
+                                    <label>Current Password</label>
+                                    <input type="password" placeholder="Enter current password">
+                                </div>
+                                <div class="form-group">
+                                    <label>New Password</label>
+                                    <input type="password" placeholder="Enter new password">
+                                </div>
+                                <div class="form-group">
+                                    <label>Confirm New Password</label>
+                                    <input type="password" placeholder="Confirm new password">
+                                </div>
+                                <button type="submit" class="primary-btn">Update Password</button>
+                            </form>
+                        </div>
+
+                        <div class="settings-card">
+                            <h3>Notifications</h3>
+                            <div class="settings-toggle">
+                                <div>
+                                    <strong>Email Notifications</strong>
+                                    <p>Receive updates about your orders and projects</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="settings-toggle">
+                                <div>
+                                    <strong>Community Updates</strong>
+                                    <p>Get notified about new community projects</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="danger-zone">
+                            <h3>Danger Zone</h3>
+                            <p>Once you delete your account, there is no going back.</p>
+                            <button class="danger-btn">Delete Account</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>GarDIY</h4>
+                    <p>AI-powered landscape design and ordering platform.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Product</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html#features">Features</a></li>
+                        <li><a href="index.html#pricing">Pricing</a></li>
+                        <li><a href="community.html">Community</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="copyright">
+                <p>&copy; 2025 GarDIY. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/common.js"></script>
+    <script src="js/profile.js"></script>
+</body>
+</html>

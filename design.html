@@ -1,0 +1,99 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Your Landscape - GarDIY</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/design.css">
+</head>
+<body>
+    <!-- Navigation Header -->
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <a href="index.html" class="logo-text">GarDIY</a>
+            </div>
+            <nav class="main-nav">
+                <a href="index.html">Home</a>
+                <a href="design.html" class="active">Design</a>
+                <!-- REMOVED: Products link - not relevant for users -->
+            </nav>
+            <div class="header-actions">
+                <button class="upload-photo-btn" id="backToUploadBtn">
+                    📷 Change Photo
+                </button>
+                <span class="user-badge">👤 Guest</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Design Section -->
+    <section class="design-section">
+        <div class="design-container">
+            <!-- Sidebar -->
+            <div class="design-sidebar">
+                <h3>🎨 Products</h3>
+                <div class="category-list">
+                    <!-- Categories will be populated by JavaScript -->
+                    <!-- Includes: Paths, Grass, Hardscapes (🪨), Plants, Trees, Flowers, Furniture -->
+                </div>
+            </div>
+
+            <!-- Design Canvas - FIXED: Now stays in place when scrolling -->
+            <div class="design-canvas" id="designCanvas">
+                <img id="canvasImage" alt="Your landscape">
+                <div class="canvas-hint" id="canvasHint">
+                    <p>👈 Click items from the sidebar to start designing</p>
+                </div>
+            </div>
+
+            <!-- Materials Panel -->
+            <div class="materials-panel">
+                <h3>📋 Materials List</h3>
+
+                <!-- Total area input for SF calculations -->
+                <div id="areaInputRow" style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:8px 10px;background:#f0fdf4;border:1px solid #6ee7b7;border-radius:8px;">
+                    <span style="font-size:13px;white-space:nowrap;color:#065f46;font-weight:600;">📐 Total area:</span>
+                    <input id="manualAreaInput" type="number" min="1" placeholder="e.g. 450"
+                        style="width:80px;padding:4px 6px;border:1px solid #a7f3d0;border-radius:6px;font-size:13px;text-align:right;">
+                    <span style="font-size:12px;color:#6b7280;">sq ft</span>
+                </div>
+
+                <div id="materialsList" class="materials-list">
+                    <p class="empty-message">Add items to see your shopping list</p>
+                </div>
+                <div class="total-section">
+                    <div class="total-cost">
+                        <span>Total:</span>
+                        <span id="totalCost">$0.00</span>
+                    </div>
+                    <!-- FIXED: Checkout button now works properly -->
+                    <button class="checkout-main-btn" id="checkoutMainBtn">
+                        Proceed to Checkout →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/design.js"></script>
+    
+    <script>
+        // Handle "Change Photo" button
+        document.getElementById('backToUploadBtn')?.addEventListener('click', () => {
+            if (confirm('Go back to photo upload? Your current design will be saved.')) {
+                // Save current design
+                const saveBtn = document.getElementById('saveDesignBtn');
+                if (saveBtn) saveBtn.click();
+                
+                // Go to upload page or landing
+                window.location.href = 'index.html#upload';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,346 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GarDIY - Migrate to Database</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .status-box {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .status-value {
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge-warning {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+
+        .badge-error {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .log-box {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .log-box.show {
+            display: block;
+        }
+
+        .log-line {
+            margin-bottom: 5px;
+        }
+
+        .icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #bee3f8;
+            color: #2c5282;
+        }
+
+        .alert-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Database Migration</h1>
+        <p class="subtitle">Upgrade to unlimited storage with MongoDB backend</p>
+
+        <div id="backendStatus" class="alert alert-info">
+            <strong>Checking backend connection...</strong>
+        </div>
+
+        <div class="status-box">
+            <div class="status-item">
+                <span class="status-label">Backend Status</span>
+                <span id="backendStatusBadge" class="status-badge badge-warning">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Products in localStorage</span>
+                <span id="productsCount" class="status-value">0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Design in localStorage</span>
+                <span id="designStatus" class="status-value">None</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Landscape Image</span>
+                <span id="imageStatus" class="status-value">None</span>
+            </div>
+        </div>
+
+        <button id="migrateBtn" class="btn btn-primary" disabled>
+            <span class="icon">📦</span> Migrate to Database
+        </button>
+
+        <button id="skipBtn" class="btn btn-secondary">
+            <span class="icon">⏭️</span> Skip Migration (Continue with localStorage)
+        </button>
+
+        <div id="logBox" class="log-box"></div>
+    </div>
+
+   <script src="js/api.js"></script>
+    <script>
+        let backendConnected = false;
+
+        async function checkStatus() {
+            log('Checking backend connection...');
+            
+            // Check backend
+            backendConnected = await MigrationHelper.checkConnection();
+            
+            const statusEl = document.getElementById('backendStatusBadge');
+            const alertEl = document.getElementById('backendStatus');
+            
+            if (backendConnected) {
+                statusEl.textContent = 'Connected ✅';
+                statusEl.className = 'status-badge badge-success';
+                alertEl.className = 'alert alert-success';
+                alertEl.innerHTML = '<strong>✅ Backend connected!</strong> Ready to migrate your data.';
+                document.getElementById('migrateBtn').disabled = false;
+                log('✅ Backend is ready!');
+            } else {
+                statusEl.textContent = 'Offline ❌';
+                statusEl.className = 'status-badge badge-error';
+                alertEl.className = 'alert alert-info';
+                alertEl.innerHTML = '<strong>⚠️ Backend not running</strong><br>Make sure to run: <code>npm run dev</code> in GarDIY-backend folder';
+                log('❌ Backend is not running');
+            }
+
+            // Check localStorage data
+            const products = localStorage.getItem('gardiyProducts');
+            const design = localStorage.getItem('gardiyDesign');
+            const image = localStorage.getItem('gardiyLandscapeImage');
+
+            if (products) {
+                const count = JSON.parse(products).length;
+                document.getElementById('productsCount').textContent = `${count} products`;
+                log(`Found ${count} products in localStorage`);
+            }
+
+            if (design) {
+                const designData = JSON.parse(design);
+                const itemCount = designData.items ? designData.items.length : 0;
+                document.getElementById('designStatus').textContent = `${itemCount} items`;
+                log(`Found design with ${itemCount} items`);
+            }
+
+            if (image) {
+                const sizeKB = (image.length / 1024).toFixed(2);
+                document.getElementById('imageStatus').textContent = `${sizeKB} KB`;
+                log(`Found image (${sizeKB} KB)`);
+            }
+        }
+
+        async function migrate() {
+            if (!backendConnected) {
+                alert('Backend is not connected! Please start the backend first.');
+                return;
+            }
+
+            const btn = document.getElementById('migrateBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="icon">⏳</span> Migrating...';
+            
+            showLog();
+
+            try {
+                // Migrate products
+                log('');
+                log('📦 Starting product migration...');
+                const productResult = await MigrationHelper.migrateProducts();
+                if (productResult.success) {
+                    log(`✅ Migrated ${productResult.count || 0} products`);
+                }
+
+                // Migrate design
+                log('');
+                log('📐 Starting design migration...');
+                const designResult = await MigrationHelper.migrateDesign();
+                if (designResult.success) {
+                    log('✅ Design migrated successfully');
+                }
+
+                // Success!
+                log('');
+                log('🎉 Migration complete!');
+                log('You can now use GarDIY with unlimited storage!');
+                
+                btn.innerHTML = '<span class="icon">✅</span> Migration Complete!';
+                btn.className = 'btn btn-primary badge-success';
+
+                setTimeout(() => {
+                    window.location.href = 'design.html';
+                }, 2000);
+
+            } catch (error) {
+                log('❌ Error during migration: ' + error.message);
+                btn.innerHTML = '<span class="icon">❌</span> Migration Failed';
+                btn.disabled = false;
+                alert('Migration failed! Check the log for details.');
+            }
+        }
+
+        function showLog() {
+            document.getElementById('logBox').classList.add('show');
+        }
+
+        function log(message) {
+            const logBox = document.getElementById('logBox');
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logBox.appendChild(line);
+            logBox.scrollTop = logBox.scrollHeight;
+            console.log(message);
+        }
+
+        // Event listeners
+        document.getElementById('migrateBtn').addEventListener('click', migrate);
+        document.getElementById('skipBtn').addEventListener('click', () => {
+            if (confirm('Skip migration? You\'ll continue using localStorage (5MB limit).')) {
+                window.location.href = 'design.html';
+            }
+        });
+
+        // Check status on load
+        checkStatus();
+    </script>
+</body>
+</html>

@@ -1,0 +1,462 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Dashboard - GarDIY</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/manager.css">
+    <script src="js/api.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">🌱 GarDIY Manager</a>
+            <div class="nav-actions">
+                <span class="user-badge">👤 Admin</span>
+                <a href="index.html" class="back-btn">← Exit Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard Section -->
+    <section class="dashboard-section">
+        <div class="dashboard-container">
+            <!-- Sidebar -->
+            <div class="dashboard-sidebar">
+                <h3>📊 Dashboard</h3>
+                <ul class="dashboard-menu">
+                    <li class="menu-item active" data-tab="overview">
+                        <span class="menu-icon">📈</span>
+                        <span>Overview</span>
+                    </li>
+                    <li class="menu-item" data-tab="orders">
+                        <span class="menu-icon">📦</span>
+                        <span>Orders</span>
+                        <span class="badge">12</span>
+                    </li>
+                    <li class="menu-item" data-tab="products">
+                        <span class="menu-icon">🛍️</span>
+                        <span>Products</span>
+                    </li>
+                    <li class="menu-item" data-tab="designs">
+                        <span class="menu-icon">🎨</span>
+                        <span>Design Submissions</span>
+                        <span class="badge" id="designsBadge">0</span>
+                    </li>
+                    <li class="menu-item" data-tab="customers">
+                        <span class="menu-icon">👥</span>
+                        <span>Customers</span>
+                    </li>
+                    <li class="menu-item" data-tab="settings">
+                        <span class="menu-icon">⚙️</span>
+                        <span>Settings</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="dashboard-main">
+                <!-- Overview Tab -->
+                <div class="tab-content active" id="overview-tab">
+                    <h1>Dashboard Overview</h1>
+                    
+                    <!-- Stats Cards -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">💰</div>
+                            <div class="stat-info">
+                                <span class="stat-label">Total Revenue</span>
+                                <span class="stat-value">$45,230</span>
+                                <span class="stat-change positive">+12.5% from last month</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">📦</div>
+                            <div class="stat-info">
+                                <span class="stat-label">Total Orders</span>
+                                <span class="stat-value">328</span>
+                                <span class="stat-change positive">+8.2% from last month</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">👥</div>
+                            <div class="stat-info">
+                                <span class="stat-label">New Customers</span>
+                                <span class="stat-value">156</span>
+                                <span class="stat-change positive">+15.3% from last month</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">⭐</div>
+                            <div class="stat-info">
+                                <span class="stat-label">Avg Rating</span>
+                                <span class="stat-value">4.8</span>
+                                <span class="stat-change positive">+0.3 from last month</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="recent-section">
+                        <h2>Recent Activity</h2>
+                        <div class="activity-list">
+                            <div class="activity-item">
+                                <div class="activity-icon">🎨</div>
+                                <div class="activity-info">
+                                    <strong>New design created</strong>
+                                    <span>John Doe created a garden design</span>
+                                    <span class="activity-time">5 minutes ago</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">💳</div>
+                                <div class="activity-info">
+                                    <strong>Order placed</strong>
+                                    <span>Order #GarDIY-12345678 - $450.00</span>
+                                    <span class="activity-time">12 minutes ago</span>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">👤</div>
+                                <div class="activity-info">
+                                    <strong>New customer</strong>
+                                    <span>Sarah Smith signed up</span>
+                                    <span class="activity-time">1 hour ago</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Orders Tab -->
+                <div class="tab-content" id="orders-tab">
+                    <div class="tab-header">
+                        <h1>Orders Management</h1>
+                        <div class="tab-actions">
+                            <input type="search" class="search-input" placeholder="Search orders...">
+                            <select class="filter-select">
+                                <option>All Orders</option>
+                                <option>Pending</option>
+                                <option>Processing</option>
+                                <option>Completed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Items</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody">
+                                <tr>
+                                    <td>#GarDIY-12345</td>
+                                    <td>John Doe</td>
+                                    <td>Dec 1, 2025</td>
+                                    <td>5 items</td>
+                                    <td>$450.00</td>
+                                    <td><span class="status-badge pending">Pending</span></td>
+                                    <td>
+                                        <button class="action-btn">View</button>
+                                        <button class="action-btn">Edit</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>#GarDIY-12344</td>
+                                    <td>Sarah Smith</td>
+                                    <td>Nov 30, 2025</td>
+                                    <td>3 items</td>
+                                    <td>$320.00</td>
+                                    <td><span class="status-badge processing">Processing</span></td>
+                                    <td>
+                                        <button class="action-btn">View</button>
+                                        <button class="action-btn">Edit</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>#GarDIY-12343</td>
+                                    <td>Mike Johnson</td>
+                                    <td>Nov 29, 2025</td>
+                                    <td>8 items</td>
+                                    <td>$680.00</td>
+                                    <td><span class="status-badge completed">Completed</span></td>
+                                    <td>
+                                        <button class="action-btn">View</button>
+                                        <button class="action-btn">Edit</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Products Tab -->
+                <div class="tab-content" id="products-tab">
+                    <div class="tab-header">
+                        <h1>Products Management</h1>
+                        <button class="primary-btn" id="addProductBtn">+ Add Product</button>
+                    </div>
+
+                    <div class="products-grid" id="productsGrid">
+                        <!-- Products will be populated here by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Customers Tab -->
+                <div class="tab-content" id="customers-tab">
+                    <div class="tab-header">
+                        <h1>Customers</h1>
+                        <input type="search" class="search-input" placeholder="Search customers...">
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Orders</th>
+                                    <th>Total Spent</th>
+                                    <th>Joined</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>John Doe</td>
+                                    <td>john@example.com</td>
+                                    <td>(555) 123-4567</td>
+                                    <td>3</td>
+                                    <td>$1,240.00</td>
+                                    <td>Oct 15, 2025</td>
+                                </tr>
+                                <tr>
+                                    <td>Sarah Smith</td>
+                                    <td>sarah@example.com</td>
+                                    <td>(555) 234-5678</td>
+                                    <td>1</td>
+                                    <td>$320.00</td>
+                                    <td>Nov 20, 2025</td>
+                                </tr>
+                                <tr>
+                                    <td>Mike Johnson</td>
+                                    <td>mike@example.com</td>
+                                    <td>(555) 345-6789</td>
+                                    <td>5</td>
+                                    <td>$2,180.00</td>
+                                    <td>Sep 5, 2025</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Design Submissions Tab -->
+                <div class="tab-content" id="designs-tab">
+                    <div class="tab-header">
+                        <h1>Design Submissions</h1>
+                    </div>
+                    <div id="designsGrid">
+                        <!-- Designs will load here -->
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div class="tab-content" id="settings-tab">
+                    <h1>Settings</h1>
+                    
+                    <div class="settings-section">
+                        <h2>🔧 General Settings</h2>
+                        <form class="settings-form">
+                            <div class="form-group">
+                                <label>Business Name</label>
+                                <input type="text" value="GarDIY Landscape Design">
+                            </div>
+                            <div class="form-group">
+                                <label>Support Email</label>
+                                <input type="email" value="support@gardiy.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="tel" value="(555) 000-0000">
+                            </div>
+                            <button type="submit" class="primary-btn">Save Changes</button>
+                        </form>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2>💰 Pricing Settings</h2>
+                        <form class="settings-form">
+                            <div class="form-group">
+                                <label>Delivery Fee</label>
+                                <input type="number" value="50">
+                            </div>
+                            <div class="form-group">
+                                <label>Tax Rate (%)</label>
+                                <input type="number" value="8" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>Installation Fee Multiplier</label>
+                                <input type="number" value="0.4" step="0.05">
+                            </div>
+                            <button type="submit" class="primary-btn">Save Changes</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- JavaScript -->
+    <script src="js/manager.js"></script>
+    
+    <script>
+        // Load designs from localStorage
+        function loadDesigns() {
+            const designsGrid = document.getElementById('designsGrid');
+            const designsBadge = document.getElementById('designsBadge');
+            
+            // Get all keys from localStorage that start with 'design_'
+            const designs = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('design_')) {
+                    try {
+                        const design = JSON.parse(localStorage.getItem(key));
+                        designs.push({...design, key: key});
+                    } catch (e) {
+                        console.error('Error parsing design:', e);
+                    }
+                }
+            }
+            
+            console.log('🎨 Designs found:', designs.length);
+            designsBadge.textContent = designs.length;
+            
+            if (designs.length === 0) {
+                designsGrid.innerHTML = '<p style="text-align: center; color: #718096; padding: 40px;">No designs submitted yet</p>';
+            } else {
+                designsGrid.innerHTML = '';
+                designs.forEach(design => {
+                    const html = `
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1.5rem;">
+                            <!-- DESIGN SCREENSHOT -->
+                            <div style="width: 100%; height: 250px; background: #f7fafc; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+                                ${design.designScreenshot
+                                    ? `<img src="${design.designScreenshot}" onclick="openDesignLightbox(this.src)" style="width: 100%; height: 100%; object-fit: contain; background: #f0fdf4; cursor: zoom-in;" title="Click to view full size">`
+                                    : `<span style="color: #cbd5e0; font-size: 48px;">🎨</span>`
+                                }
+                            </div>
+                            
+                            <!-- DESIGN INFO -->
+                            <div style="padding: 1.5rem;">
+                                <div style="font-weight: 600; font-size: 16px; color: #2d3748; margin-bottom: 0.5rem;">${design.customerName}</div>
+                                <div style="font-size: 13px; color: #718096; margin-bottom: 1rem;">${design.customerEmail}</div>
+                                
+                                <!-- DETAILS -->
+                                <div style="background: #f7fafc; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 12px; color: #718096;">
+                                    <div style="margin-bottom: 0.5rem;">📦 <strong>${design.totalItems} items</strong> | 💰 <strong>$${design.estimatedTotal.toFixed(2)}</strong></div>
+                                    <div style="margin-bottom: 0.5rem;">📱 ${design.customerPhone}</div>
+                                </div>
+                                
+                                <!-- STATUS BADGE -->
+                                <div style="background: #fed7d7; color: #c53030; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; margin-bottom: 1rem;">
+                                    ${design.status.replace('_', ' ').toUpperCase()}
+                                </div>
+                                
+                                <!-- BUTTONS -->
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button onclick="viewDesignDetails('${design.key}')" style="flex: 1; padding: 0.5rem; background: #4299e1; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;">View</button>
+                                    <button onclick="addDesignQuote('${design.key}')" style="flex: 1; padding: 0.5rem; background: #ed8936; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;">Quote</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    designsGrid.innerHTML += html;
+                });
+            }
+        }
+
+        // View design details
+        function viewDesignDetails(key) {
+            const design = JSON.parse(localStorage.getItem(key));
+            if (!design) return;
+            
+            const items = design.items.map(i => `• ${i.name} - $${i.price.toFixed(2)}`).join('\n');
+            alert(`
+📋 DESIGN DETAILS
+━━━━━━━━━━━━━━━━━
+Customer: ${design.customerName}
+Email: ${design.customerEmail}
+
+📦 Items (${design.totalItems}):
+${items}
+
+💰 Total: $${design.estimatedTotal.toFixed(2)}
+            `);
+        }
+
+        // Add quote to design
+        function addDesignQuote(key) {
+            const design = JSON.parse(localStorage.getItem(key));
+            if (!design) return;
+            
+            const notes = prompt(`Add notes for ${design.customerName}:`, design.notes || '');
+            if (notes === null) return;
+            
+            const quote = prompt('Enter quoted price:');
+            if (quote === null) return;
+            
+            design.notes = notes;
+            design.quotedPrice = parseFloat(quote) || 0;
+            design.status = 'quoted';
+            
+            localStorage.setItem(key, JSON.stringify(design));
+            loadDesigns();
+            
+            alert(`✅ Quote saved!\nPrice: $${design.quotedPrice.toFixed(2)}`);
+        }
+
+        // Load designs when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDesigns();
+        });
+
+        // Lightbox for design screenshots
+        function openDesignLightbox(src) {
+            const lb = document.getElementById('designLightbox');
+            document.getElementById('lightboxImg').src = src;
+            lb.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDesignLightbox() {
+            document.getElementById('designLightbox').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeDesignLightbox();
+        });
+    </script>
+
+    <!-- Lightbox Modal -->
+    <div id="designLightbox" onclick="closeDesignLightbox()" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.88); align-items:center; justify-content:center; cursor:zoom-out;">
+        <img id="lightboxImg" src="" onclick="event.stopPropagation()" style="max-width:92vw; max-height:92vh; object-fit:contain; border-radius:8px; box-shadow:0 8px 48px rgba(0,0,0,0.6);">
+        <button onclick="closeDesignLightbox()" style="position:fixed; top:18px; right:22px; background:rgba(255,255,255,0.15); border:none; color:white; font-size:28px; line-height:1; width:44px; height:44px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">&times;</button>
+    </div>
+</body>
+</html>

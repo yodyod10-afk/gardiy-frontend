@@ -1,0 +1,391 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Projects - GarDIY</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/community.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">🌱 GarDIY</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="community.html" class="active">Community</a></li>
+                <li><a href="index.html#features">Features</a></li>
+                <li><a href="index.html#pricing">Pricing</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="share-btn" id="shareProjectBtn">📤 Share Your Project</button>
+                <a href="login.html" class="cta-btn">Sign In</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="community-hero">
+        <div class="container">
+            <h1>🌍 Community Projects</h1>
+            <p>Get inspired by thousands of landscape designs from our community</p>
+            
+            <!-- Search and Filters -->
+            <div class="search-filters">
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Search projects...">
+                    <button class="search-btn">🔍</button>
+                </div>
+                
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="modern">Modern</button>
+                    <button class="filter-btn" data-filter="traditional">Traditional</button>
+                    <button class="filter-btn" data-filter="tropical">Tropical</button>
+                    <button class="filter-btn" data-filter="minimalist">Minimalist</button>
+                    <button class="filter-btn" data-filter="cottage">Cottage</button>
+                </div>
+
+                <div class="sort-dropdown">
+                    <select id="sortSelect">
+                        <option value="recent">Most Recent</option>
+                        <option value="popular">Most Popular</option>
+                        <option value="likes">Most Liked</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Grid -->
+    <section class="projects-section">
+        <div class="container">
+            <div class="projects-grid" id="projectsGrid">
+                <!-- Project Card 1 -->
+                <div class="project-card" data-category="modern">
+                    <div class="project-image">
+                        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop" alt="Modern Minimalist Garden">
+                        <div class="project-overlay">
+                            <button class="view-btn">View Design</button>
+                        </div>
+                    </div>
+                    <div class="project-info">
+                        <div class="project-header">
+                            <h3>Modern Minimalist Garden</h3>
+                            <button class="like-btn" data-likes="247">
+                                <span class="heart">🤍</span>
+                                <span class="like-count">247</span>
+                            </button>
+                        </div>
+                        <p class="project-description">Clean lines with native grasses and geometric pavers</p>
+                        <div class="project-details">
+                            <span class="detail">📏 450 sq ft</span>
+                            <span class="detail">💰 $2,800</span>
+                            <span class="detail">⏱️ 2 days</span>
+                        </div>
+                        <div class="project-footer">
+                            <div class="author-info">
+                                <div class="author-avatar">SJ</div>
+                                <span class="author-name">Sarah Johnson</span>
+                            </div>
+                            <span class="project-date">2 days ago</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Card 2 -->
+                <div class="project-card" data-category="tropical">
+                    <div class="project-image">
+                        <img src="https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800&h=600&fit=crop" alt="Tropical Paradise">
+                        <div class="project-overlay">
+                            <button class="view-btn">View Design</button>
+                        </div>
+                    </div>
+                    <div class="project-info">
+                        <div class="project-header">
+                            <h3>Tropical Paradise Backyard</h3>
+                            <button class="like-btn" data-likes="189">
+                                <span class="heart">🤍</span>
+                                <span class="like-count">189</span>
+                            </button>
+                        </div>
+                        <p class="project-description">Lush palms, colorful flowers, and natural stone pathways</p>
+                        <div class="project-details">
+                            <span class="detail">📏 680 sq ft</span>
+                            <span class="detail">💰 $4,200</span>
+                            <span class="detail">⏱️ 3 days</span>
+                        </div>
+                        <div class="project-footer">
+                            <div class="author-info">
+                                <div class="author-avatar">MR</div>
+                                <span class="author-name">Mike Rodriguez</span>
+                            </div>
+                            <span class="project-date">5 days ago</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Card 3 -->
+                <div class="project-card" data-category="cottage">
+                    <div class="project-image">
+                        <img src="https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=800&h=600&fit=crop" alt="Cottage Garden">
+                        <div class="project-overlay">
+                            <button class="view-btn">View Design</button>
+                        </div>
+                    </div>
+                    <div class="project-info">
+                        <div class="project-header">
+                            <h3>English Cottage Garden</h3>
+                            <button class="like-btn" data-likes="312">
+                                <span class="heart">🤍</span>
+                                <span class="like-count">312</span>
+                            </button>
+                        </div>
+                        <p class="project-description">Roses, lavender, and winding brick pathways</p>
+                        <div class="project-details">
+                            <span class="detail">📏 520 sq ft</span>
+                            <span class="detail">💰 $3,100</span>
+                            <span class="detail">⏱️ 2 days</span>
+                        </div>
+                        <div class="project-footer">
+                            <div class="author-info">
+                                <div class="author-avatar">EB</div>
+                                <span class="author-name">Emily Brown</span>
+                            </div>
+                            <span class="project-date">1 week ago</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Card 4 -->
+                <div class="project-card" data-category="minimalist">
+                    <div class="project-image">
+                        <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop" alt="Zen Garden">
+                        <div class="project-overlay">
+                            <button class="view-btn">View Design</button>
+                        </div>
+                    </div>
+                    <div class="project-info">
+                        <div class="project-header">
+                            <h3>Zen Meditation Space</h3>
+                            <button class="like-btn" data-likes="156">
+                                <span class="heart">🤍</span>
+                                <span class="like-count">156</span>
+                            </button>
+                        </div>
+                        <p class="project-description">Gravel, bamboo, and a peaceful water feature</p>
+                        <div class="project-details">
+                            <span class="detail">📏 380 sq ft</span>
+                            <span class="detail">💰 $2,200</span>
+                            <span class="detail">⏱️ 1 day</span>
+                        </div>
+                        <div class="project-footer">
+                            <div class="author-info">
+                                <div class="author-avatar">DL</div>
+                                <span class="author-name">David Lee</span>
+                            </div>
+                            <span class="project-date">1 week ago</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Card 5 -->
+                <div class="project-card" data-category="traditional">
+                    <div class="project-image">
+                        <img src="https://images.unsplash.com/photo-1592928302636-c83cf1e1c887?w=800&h=600&fit=crop" alt="Classic Garden">
+                        <div class="project-overlay">
+                            <button class="view-btn">View Design</button>
+                        </div>
+                    </div>
+                    <div class="project-info">
+                        <div class="project-header">
+                            <h3>Classic Symmetrical Garden</h3>
+                            <button class="like-btn" data-likes="201">
+                                <span class="heart">🤍</span>
+                                <span class="like-count">201</span>
+                            </button>
+                        </div>
+                        <p class="project-description">Formal layout with boxwood hedges and perennials</p>
+                        <div class="project-details">
+                            <span class="detail">📏 720 sq ft</span>
+                            <span class="detail">💰 $3,900</span>
+                            <span class="detail">⏱️ 3 days</span>
+                        </div>
+                        <div class="project-footer">
+                            <div class="author-info">
+                                <div class="author-avatar">JW</div>
+                                <span class="author-name">Jennifer White</span>
+                            </div>
+                            <span class="project-date">2 weeks ago</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Card 6 -->
+                <div class="project-card" data-category="modern">
+                    <div class="project-image">
+                        <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop" alt="Contemporary Oasis">
+                        <div class="project-overlay">
+                            <button class="view-btn">View Design</button>
+                        </div>
+                    </div>
+                    <div class="project-info">
+                        <div class="project-header">
+                            <h3>Contemporary Urban Oasis</h3>
+                            <button class="like-btn" data-likes="278">
+                                <span class="heart">🤍</span>
+                                <span class="like-count">278</span>
+                            </button>
+                        </div>
+                        <p class="project-description">Vertical gardens, deck, and modern outdoor furniture</p>
+                        <div class="project-details">
+                            <span class="detail">📏 550 sq ft</span>
+                            <span class="detail">💰 $5,600</span>
+                            <span class="detail">⏱️ 4 days</span>
+                        </div>
+                        <div class="project-footer">
+                            <div class="author-info">
+                                <div class="author-avatar">TC</div>
+                                <span class="author-name">Tom Chen</span>
+                            </div>
+                            <span class="project-date">2 weeks ago</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Load More Button -->
+            <div class="load-more-section">
+                <button class="load-more-btn" id="loadMoreBtn">
+                    Load More Projects
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Share Modal (Hidden) -->
+    <div class="modal" id="shareModal" style="display: none;">
+        <div class="modal-content large">
+            <button class="modal-close" id="closeShareModal">×</button>
+            
+            <div class="modal-header">
+                <h2>📤 Share Your Project</h2>
+                <p>Inspire others with your landscape design</p>
+            </div>
+
+            <form class="share-form" id="shareForm">
+                <div class="form-section">
+                    <h3>Project Photos</h3>
+                    <div class="upload-zone" id="uploadZone">
+                        <div class="upload-icon">📷</div>
+                        <p>Click or drag photos here</p>
+                        <input type="file" id="projectPhotos" accept="image/*" multiple hidden>
+                    </div>
+                    <div class="photo-preview-grid" id="photoPreviewGrid"></div>
+                </div>
+
+                <div class="form-section">
+                    <h3>Project Details</h3>
+                    
+                    <div class="form-group">
+                        <label for="projectTitle">Project Title *</label>
+                        <input type="text" id="projectTitle" placeholder="Give your project a catchy name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="projectDescription">Description *</label>
+                        <textarea id="projectDescription" rows="4" placeholder="Describe your design, plants used, challenges overcome..." required></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="projectSize">Size (sq ft) *</label>
+                            <input type="number" id="projectSize" placeholder="450" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="projectCost">Total Cost *</label>
+                            <input type="number" id="projectCost" placeholder="2800" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="projectDuration">Duration (days) *</label>
+                            <input type="number" id="projectDuration" placeholder="2" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="projectCategory">Style Category *</label>
+                        <select id="projectCategory" required>
+                            <option value="">Select a style...</option>
+                            <option value="modern">Modern</option>
+                            <option value="traditional">Traditional</option>
+                            <option value="tropical">Tropical</option>
+                            <option value="minimalist">Minimalist</option>
+                            <option value="cottage">Cottage</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="projectTags">Tags (comma-separated)</label>
+                        <input type="text" id="projectTags" placeholder="modern, drought-tolerant, low-maintenance">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="secondary-btn" id="cancelShare">Cancel</button>
+                    <button type="submit" class="primary-btn">
+                        Publish Project
+                        <span class="btn-arrow">→</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>GarDIY</h4>
+                    <p>AI-powered landscape design and ordering platform.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Product</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html#features">Features</a></li>
+                        <li><a href="index.html#pricing">Pricing</a></li>
+                        <li><a href="index.html#how-it-works">How It Works</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="copyright">
+                <p>&copy; 2025 GarDIY. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/common.js"></script>
+    <script src="js/community.js"></script>
+</body>
+</html>
