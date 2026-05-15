@@ -1,7 +1,7 @@
 ﻿// GarDIY API Handler - Connects frontend to backend
 // Replace localStorage with backend database storage
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://gardiy-backend-production.up.railway.app/api';
 
 // Returns Authorization header if a session token exists
 const getAuthHeader = () => {
@@ -270,7 +270,7 @@ const MigrationHelper = {
   // Check backend connection
   async checkConnection() {
     try {
-      const response = await fetch('http://localhost:5000/health');
+      const response = await fetch('https://gardiy-backend-production.up.railway.app/health');
       const data = await response.json();
       
       if (data.status === 'healthy' && data.database === 'connected') {

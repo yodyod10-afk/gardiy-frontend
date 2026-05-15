@@ -194,7 +194,7 @@ async function simulateAIAnalysis() {
         const imageData = previewImage.src;
         const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
         const authHeader = session.token ? { 'Authorization': `Bearer ${session.token}` } : {};
-        const res  = await fetch('http://localhost:5000/api/analyze-image', {
+        const res  = await fetch('https://gardiy-backend-production.up.railway.app/api/analyze-image', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json', ...authHeader },
             body:    JSON.stringify({ imageData })

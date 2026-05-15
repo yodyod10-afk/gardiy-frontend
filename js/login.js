@@ -1,5 +1,5 @@
 ﻿// Login Page JavaScript
-const API = 'http://localhost:5000';
+const API = 'https://gardiy-backend-production.up.railway.app';
 
 document.addEventListener('DOMContentLoaded', function () {
     // ── Tab switching ──────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', e => {
             e.preventDefault();
             const popup = window.open(
-                'http://localhost:5000/api/auth/google',
+                'https://gardiy-backend-production.up.railway.app/api/auth/google',
                 'google-auth',
                 'width=520,height=620,left=' + (screen.width/2 - 260) + ',top=' + (screen.height/2 - 310)
             );
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Listen for postMessage from the Google OAuth popup
     // CRITICAL: always validate e.origin — any page can call postMessage otherwise
-    const BACKEND = 'http://localhost:5000';
+    const BACKEND = 'https://gardiy-backend-production.up.railway.app';
     window.addEventListener('message', e => {
         if (e.origin !== BACKEND) return;  // reject messages from any other origin
         if (e.data?.type === 'GOOGLE_AUTH') {
