@@ -138,52 +138,34 @@ async function getProducts() {
 
 async function saveProducts(products) {
     console.log('Saving products:', products.length);
-    
+
     if (window.MigrationHelper && window.ProductAPI) {
         try {
             const isConnected = await MigrationHelper.checkConnection();
             if (isConnected) {
-                console.log('💾 Saving to backend database...');
-                
-                try {
-                    const result = await ProductAPI.bulkImport(products);
-                    console.log('✅ Bulk save result:', result);
+                const result = await ProductAPI.bulkImport(products);
+                if (result && result.success) {
+                    console.log('✅ Products saved to backend');
                     window.dispatchEvent(new CustomEvent('productsUpdated', { detail: products }));
-                    console.log('✅ Products saved to backend database!');
                     return;
-                } catch (apiError) {
-                    console.error('Backend API error:', apiError);
-                    throw apiError;
                 }
+                // Auth failure or other backend error
+                if (result && result.message && result.message.toLowerCase().includes('auth')) {
+                    showMessage('⚠️ You must be logged in to save products. Please log in first.', 'error');
+                    throw new Error('Not authenticated');
+                }
+                throw new Error(result?.message || 'Backend save failed');
             }
         } catch (e) {
-            console.warn('Backend save failed, falling back to localStorage:', e);
-        }
-    } else {
-        console.warn('Backend APIs not available (MigrationHelper or ProductAPI missing)');
-    }
-    
-    try {
-        localStorage.setItem('gardiyProducts', JSON.stringify(products));
-        window.dispatchEvent(new CustomEvent('productsUpdated', { detail: products }));
-        console.log('Saved to localStorage as fallback');
-    } catch (e) {
-        if (e.name === 'QuotaExceededError' || e.code === 22) {
-            console.error('localStorage quota exceeded!');
-            alert('❌ STORAGE FULL!\n\n' +
-                  'Your browser storage is full.\n\n' +
-                  'Backend connection issue detected.\n' +
-                  'Check console for details.\n\n' +
-                  'Make sure:\n' +
-                  '1. Backend is running (npm run dev)\n' +
-                  '2. api.js is loaded in manager.html');
-            throw e;
-        } else {
-            console.error('Error saving products:', e);
-            alert('Error saving products: ' + e.message);
-            throw e;
+            if (e.message === 'Not authenticated') throw e;
+            console.warn('Backend save failed:', e.message);
         }
     }
+
+    // Fallback to localStorage
+    localStorage.setItem('gardiyProducts', JSON.stringify(products));
+    window.dispatchEvent(new CustomEvent('productsUpdated', { detail: products }));
+    console.log('Saved to localStorage (offline fallback)');
 }
 
 async function addProduct(product) {
@@ -269,16 +251,24 @@ async function deleteProduct(productId) {
 
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Manager page loaded');
-    
+
+    // Show auth status in nav
+    const authEl = document.getElementById('authStatus');
+    try {
+        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        if (session.token && session.loggedIn) {
+            if (authEl) { authEl.textContent = '🔒 Logged in as ' + (session.name || session.email); authEl.style.background = '#d1fae5'; authEl.style.color = '#065f46'; }
+        } else {
+            if (authEl) { authEl.textContent = '⚠️ Not logged in — product edits won\'t save'; authEl.style.background = '#fef3c7'; authEl.style.color = '#92400e'; }
+            showMessage('You are not logged in. Product changes cannot be saved. Please log in first.', 'error');
+        }
+    } catch (e) {}
+
     if (window.MigrationHelper) {
         const isConnected = await MigrationHelper.checkConnection();
-        if (isConnected) {
-            console.log('✅ Backend connected - Unlimited storage available!');
-        } else {
-            console.log('⚠️ Backend offline - Using limited localStorage');
-        }
+        console.log(isConnected ? '✅ Backend connected' : '⚠️ Backend offline — using localStorage');
     }
-    
+
     initializeProducts();
     setupTabs();
     loadProductsGrid();

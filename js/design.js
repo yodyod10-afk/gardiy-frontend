@@ -419,10 +419,10 @@ async function addItemToCanvas(itemData, x, y) {
         item.dataset.polyPoints = JSON.stringify(polyPoints);
 
         if (itemData.type === 'image') {
-            // Tile the texture instead of stretching — looks correct for ground cover
             item.style.backgroundImage    = `url("${itemData.image}")`;
-            item.style.backgroundRepeat   = 'repeat';
-            item.style.backgroundSize     = '150px 150px';
+            item.style.backgroundRepeat   = 'no-repeat';
+            item.style.backgroundSize     = 'cover';
+            item.style.backgroundPosition = 'center';
         } else {
             item.style.backgroundColor = 'rgba(120,190,90,0.3)';
             item.innerHTML = `<span style="font-size:64px;opacity:0.7;pointer-events:none;">${itemData.image}</span>`;
