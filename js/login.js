@@ -1,7 +1,32 @@
 ﻿// Login Page JavaScript
 const API = 'https://gardiy-backend-production.up.railway.app';
 
+// Check if this page load is a Google OAuth redirect (token in URL fragment)
+function checkOAuthRedirect() {
+    const hash = window.location.hash;
+    if (hash.startsWith('#oauth=')) {
+        try {
+            const data = JSON.parse(atob(hash.slice(7)));
+            if (data.type === 'GOOGLE_AUTH' && data.token) {
+                saveSession(data);
+                // Clean the token out of the URL, then redirect
+                history.replaceState(null, '', window.location.pathname);
+                showMessage('Signed in with Google! Redirecting…', 'success');
+                setTimeout(() => { window.location.href = 'upload.html'; }, 1000);
+                return true;
+            }
+        } catch (e) { /* invalid token — fall through to normal login */ }
+    }
+    if (hash === '#oauth-error=1') {
+        history.replaceState(null, '', window.location.pathname);
+        showMessage('Google sign-in failed. Please try again.', 'error');
+    }
+    return false;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+    // Handle Google OAuth redirect before rendering the login form
+    if (checkOAuthRedirect()) return;
     // ── Tab switching ──────────────────────────────────────────────────────
     const signinTab  = document.getElementById('signinTab');
     const signupTab  = document.getElementById('signupTab');
@@ -113,20 +138,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Listen for postMessage from the Google OAuth popup
-    // CRITICAL: always validate e.origin — any page can call postMessage otherwise
-    const BACKEND = 'https://gardiy-backend-production.up.railway.app';
-    window.addEventListener('message', e => {
-        if (e.origin !== BACKEND) return;  // reject messages from any other origin
-        if (e.data?.type === 'GOOGLE_AUTH') {
-            saveSession(e.data);
-            showMessage('Signed in with Google! Redirecting…', 'success');
-            setTimeout(() => { window.location.href = 'upload.html'; }, 1200);
-        } else if (e.data?.type === 'GOOGLE_AUTH_ERROR') {
-            showMessage('Google sign-in failed.', 'error');  // don't render server message directly
-            document.querySelectorAll('.google-btn').forEach(b => { b.disabled = false; });
-        }
-    });
+    // Google OAuth now uses a redirect instead of postMessage
+    // (postMessage fails when window.opener is nulled during cross-origin navigation)
+    // Handled in the DOMContentLoaded block above via checkOAuthRedirect()
 
     // ── Apple (placeholder) ────────────────────────────────────────────────
     document.querySelectorAll('.apple-btn').forEach(btn => {
