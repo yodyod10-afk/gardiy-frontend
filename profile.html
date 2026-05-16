@@ -67,7 +67,7 @@
                             <span class="menu-icon">⚙️</span>
                             <span>Settings</span>
                         </a>
-                        <a href="manager.html" class="menu-item" id="managerLink" style="display:none;border-top:1px solid #e2e8f0;margin-top:0.5rem;padding-top:0.75rem;color:#059669;font-weight:700;">
+                        <a href="#" class="menu-item" data-section="manager" id="managerLink" style="display:none;border-top:1px solid #e2e8f0;margin-top:0.5rem;padding-top:0.75rem;color:#059669;font-weight:700;">
                             <span class="menu-icon">⚙️</span>
                             <span>Manager Dashboard</span>
                         </a>
@@ -203,6 +203,64 @@
                         </div>
                     </div>
 
+                    <!-- Manager Section -->
+                    <div class="content-section" id="manager-section" style="display:none;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:0.75rem;">
+                            <h2 style="margin:0;">Manager Dashboard</h2>
+                            <div style="display:flex;gap:0.5rem;">
+                                <button onclick="showManagerTab('overview')" id="mgr-tab-overview" style="padding:6px 16px;border-radius:8px;border:none;background:#10b981;color:white;cursor:pointer;font-weight:600;font-size:13px;">Overview</button>
+                                <button onclick="showManagerTab('products')" id="mgr-tab-products" style="padding:6px 16px;border-radius:8px;border:1px solid #e2e8f0;background:white;color:#4a5568;cursor:pointer;font-weight:600;font-size:13px;">Products</button>
+                                <button onclick="showManagerTab('submissions')" id="mgr-tab-submissions" style="padding:6px 16px;border-radius:8px;border:1px solid #e2e8f0;background:white;color:#4a5568;cursor:pointer;font-weight:600;font-size:13px;">Submissions</button>
+                            </div>
+                        </div>
+
+                        <!-- Overview tab -->
+                        <div id="mgr-overview">
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:2rem;">
+                                <div style="background:linear-gradient(135deg,#10b981,#059669);color:white;border-radius:12px;padding:1.25rem;text-align:center;">
+                                    <div style="font-size:2rem;font-weight:700;" id="stat-products">—</div>
+                                    <div style="font-size:13px;opacity:0.9;">Products</div>
+                                </div>
+                                <div style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;border-radius:12px;padding:1.25rem;text-align:center;">
+                                    <div style="font-size:2rem;font-weight:700;" id="stat-submissions">—</div>
+                                    <div style="font-size:13px;opacity:0.9;">Submissions</div>
+                                </div>
+                                <div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border-radius:12px;padding:1.25rem;text-align:center;">
+                                    <div style="font-size:2rem;font-weight:700;" id="stat-users">—</div>
+                                    <div style="font-size:13px;opacity:0.9;">Users</div>
+                                </div>
+                            </div>
+                            <p style="color:#718096;font-size:14px;text-align:center;">Switch to <strong>Products</strong> to manage your catalog or <strong>Submissions</strong> to review customer designs.</p>
+                        </div>
+
+                        <!-- Products tab -->
+                        <div id="mgr-products" style="display:none;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                                <span id="mgr-product-count" style="color:#718096;font-size:14px;"></span>
+                                <button onclick="showAddProductForm()" style="padding:8px 18px;background:#10b981;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">+ Add Product</button>
+                            </div>
+                            <div id="addProductForm" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;">
+                                <h4 style="margin:0 0 1rem;">New Product</h4>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                                    <div><label style="font-size:13px;font-weight:600;color:#374151;">Name</label><input id="np-name" type="text" placeholder="e.g. River Rock" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;margin-top:4px;box-sizing:border-box;"></div>
+                                    <div><label style="font-size:13px;font-weight:600;color:#374151;">Category</label><select id="np-category" style="width:100%;padding:9px;border:1px solid #d1d5db;border-radius:6px;margin-top:4px;box-sizing:border-box;"><option value="hardscapes">Hardscapes</option><option value="plants">Plants</option><option value="trees">Trees</option><option value="grass">Grass</option><option value="flowers">Flowers</option><option value="paths">Paths</option><option value="furniture">Furniture</option></select></div>
+                                    <div><label style="font-size:13px;font-weight:600;color:#374151;">Price ($)</label><input id="np-price" type="number" placeholder="0.00" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;margin-top:4px;box-sizing:border-box;"></div>
+                                    <div><label style="font-size:13px;font-weight:600;color:#374151;">Image</label><input id="np-image" type="file" accept="image/*" style="width:100%;padding:6px;border:1px solid #d1d5db;border-radius:6px;margin-top:4px;box-sizing:border-box;"></div>
+                                </div>
+                                <div style="display:flex;gap:0.75rem;margin-top:1rem;">
+                                    <button onclick="submitNewProduct()" style="padding:8px 20px;background:#10b981;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Save Product</button>
+                                    <button onclick="document.getElementById('addProductForm').style.display='none'" style="padding:8px 16px;background:white;color:#4a5568;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;">Cancel</button>
+                                </div>
+                            </div>
+                            <div id="mgr-products-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;"></div>
+                        </div>
+
+                        <!-- Submissions tab -->
+                        <div id="mgr-submissions" style="display:none;">
+                            <div id="mgr-submissions-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;"></div>
+                        </div>
+                    </div>
+
                     <!-- Settings Section -->
                     <div class="content-section" id="settings-section" style="display: none;">
                         <div class="section-header">
@@ -324,7 +382,13 @@
         </div>
     </footer>
 
+    <!-- Lightbox for submission images -->
+    <div id="subLightbox" onclick="this.style.display='none';document.body.style.overflow=''" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.88);align-items:center;justify-content:center;cursor:zoom-out;">
+        <img id="subLightboxImg" src="" style="max-width:92vw;max-height:92vh;object-fit:contain;border-radius:8px;">
+    </div>
+
     <script src="js/common.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/profile.js"></script>
 </body>
 </html>
