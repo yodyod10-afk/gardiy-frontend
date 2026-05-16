@@ -61,8 +61,8 @@ function checkUserLogin() {
 function loadOrderSummary() {
     console.log('📦 Loading order summary...');
     
-    // FIXED: Get design from localStorage correctly
-    const savedDesignStr = localStorage.getItem('gardiyDesign');
+    // Read from gardiyCheckout (set by design page on submit) or fall back to gardiyDesign
+    const savedDesignStr = localStorage.getItem('gardiyCheckout') || localStorage.getItem('gardiyDesign');
     console.log('💾 Raw design data:', savedDesignStr ? 'Found' : 'Not found');
     
     if (!savedDesignStr) {
@@ -154,7 +154,7 @@ function updateTotals() {
     console.log('💰 Updating totals...');
     
     // Get design items
-    const savedDesignStr = localStorage.getItem('gardiyDesign');
+    const savedDesignStr = localStorage.getItem('gardiyCheckout') || localStorage.getItem('gardiyDesign');
     let savedDesign = [];
     
     if (savedDesignStr) {
@@ -530,6 +530,7 @@ function processPayment() {
         document.getElementById('successModal').style.display = 'flex';
         
         // Clear saved design data
+        localStorage.removeItem('gardiyCheckout');
         localStorage.removeItem('gardiyDesign');
         console.log('✅ Design data cleared from localStorage');
         

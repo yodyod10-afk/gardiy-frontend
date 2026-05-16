@@ -1187,16 +1187,28 @@ async function submitDesignForCheckout() {
     const depth  = document.getElementById('depth')?.value  || 'Not specified';
 
     try {
-        localStorage.setItem(`design_${user.email}`, JSON.stringify({
-            customerId: user.email, customerName: user.name || user.email.split('@')[0],
-            customerEmail: user.email, customerPhone: user.phone || 'Not provided',
-            items: placedItems.map(i => ({ name: i.name, price: i.price })),
-            totalItems: placedItems.length, estimatedTotal: total,
-            dimensions: { width, height, depth },
-            submittedAt: new Date().toISOString(), status: 'pending_review', notes: '',
-            designScreenshot,
-        }));
-        localStorage.removeItem('gardiyDesign');
+        const checkoutItems = placedItems.map(i => ({ name: i.name, price: i.price || 0 }));
+
+        // Pass items + total to checkout page
+        localStorage.setItem('gardiyCheckout', JSON.stringify({ items: checkoutItems, total }));
+
+        // Save submission to MongoDB (fire-and-forget — don't block redirect)
+        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        fetch('https://gardiy-backend-production.up.railway.app/api/designs', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(session.token ? { 'Authorization': `Bearer ${session.token}` } : {})
+            },
+            body: JSON.stringify({
+                userId: session.id || session.email || 'guest',
+                designName: `${session.name || 'Customer'} – ${new Date().toLocaleDateString()}`,
+                items: placedItems.map(i => ({ id: i.id, name: i.name, emoji: i.emoji, x: i.x, y: i.y, price: i.price || 0 })),
+                totalCost: total,
+                landscapeImageData: designScreenshot,
+            })
+        }).catch(() => {});
+
         placedItems = []; updateMaterialsList();
         window.location.href = 'checkout.html';
     } catch (e) { alert('⚠️ Storage error. Try clearing browser storage.'); }
