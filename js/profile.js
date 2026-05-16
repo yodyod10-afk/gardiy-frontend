@@ -1,6 +1,6 @@
 ﻿// Profile Page JavaScript
 
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', function() {
     // Check if user is logged in
     let user = JSON.parse(localStorage.getItem('gardiyUser'));
 
@@ -9,34 +9,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    // Load user data immediately from cached session
+    // Load user data from cached session
     loadUserData(user);
 
-    // Then fetch fresh data from backend to pick up any permission changes
-    // (e.g. isAdmin set after the cached JWT was issued)
-    try {
-        const res = await fetch('https://gardiy-backend-production.up.railway.app/api/auth/me', {
-            headers: { 'Authorization': `Bearer ${user.token}` }
-        });
-        const data = await res.json();
-        if (data.success && data.user) {
-            // Update cached session if isAdmin changed
-            if (data.user.isAdmin !== user.isAdmin) {
-                user.isAdmin = data.user.isAdmin;
-                localStorage.setItem('gardiyUser', JSON.stringify(user));
-            }
-            if (data.user.name && data.user.name !== user.name) {
-                user.name = data.user.name;
-                loadUserData(user);
-            }
-        }
-    } catch (e) { /* offline or backend unavailable — use cached session */ }
-
-    // Show Manager link for admins (re-check after fresh data)
+    // Show Manager link immediately if session says admin
     if (user.isAdmin) {
         const managerLink = document.getElementById('managerLink');
         if (managerLink) managerLink.style.display = 'flex';
     }
+
+    // Fetch fresh permissions from backend in the background (non-blocking)
+    // This fixes stale sessions where isAdmin was set after the JWT was issued
+    fetchAndApplyAdminStatus(user);
 
     // Menu navigation
     const menuItems = document.querySelectorAll('.menu-item:not(.logout)');
@@ -415,3 +399,22 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Fetches fresh user data from the backend in the background.
+// Updates localStorage and shows the Manager link if isAdmin changed.
+async function fetchAndApplyAdminStatus(user) {
+    try {
+        const res = await fetch('https://gardiy-backend-production.up.railway.app/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${user.token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success || !data.user) return;
+        if (data.user.isAdmin && !user.isAdmin) {
+            user.isAdmin = true;
+            localStorage.setItem('gardiyUser', JSON.stringify(user));
+            const managerLink = document.getElementById('managerLink');
+            if (managerLink) managerLink.style.display = 'flex';
+        }
+    } catch { /* backend unavailable — silently skip */ }
+}
