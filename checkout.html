@@ -6,6 +6,7 @@
     <title>Checkout - GarDIY</title>
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/checkout.css">
+    <link rel="stylesheet" href="css/mobile.css">
     <!-- Google Places API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places" defer></script>
 </head>
@@ -37,6 +38,9 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="nav-actions">
             <a href="login.html" class="cta-btn" id="authBtn">Sign In</a>
         </div>
+        <button class="hamburger" id="hamburger" aria-label="Open menu">
+            <span></span><span></span><span></span>
+        </button>
     </div>
 </nav>
 
@@ -293,5 +297,6 @@ document.addEventListener('DOMContentLoaded', function() {
     <script src="js/api.js"></script>
     <script src="js/common.js"></script>
     <script src="js/checkout.js"></script>
+    <script src="js/mobile.js"></script>
 </body>
 </html>

@@ -1,0 +1,285 @@
+/* =====================================================
+   MOBILE RESPONSIVE — loaded on every page
+   ===================================================== */
+
+/* ── Hamburger button ─────────────────────────────── */
+.hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 8px;
+    transition: background 0.2s;
+    z-index: 1001;
+    flex-shrink: 0;
+}
+.hamburger:hover { background: rgba(0,0,0,0.06); }
+.hamburger span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: #2d3748;
+    border-radius: 2px;
+    transition: transform 0.3s, opacity 0.3s;
+}
+.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── Mobile nav overlay + drawer ─────────────────── */
+.mobile-nav-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.25s;
+}
+.mobile-nav-overlay.open { opacity: 1; }
+
+.mobile-nav-drawer {
+    position: fixed;
+    top: 0;
+    right: -290px;
+    width: 280px;
+    height: 100vh;
+    background: white;
+    z-index: 1000;
+    padding: 80px 20px 24px;
+    box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+    transition: right 0.28s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+}
+.mobile-nav-drawer.open { right: 0; }
+
+.mobile-nav-drawer a {
+    display: block;
+    padding: 13px 16px;
+    color: #2d3748;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 10px;
+    transition: background 0.18s;
+}
+.mobile-nav-drawer a:hover { background: #f0fdf4; color: #10b981; }
+
+.drawer-divider {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 8px 0;
+}
+.drawer-cta {
+    margin-top: 8px;
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    color: white !important;
+    text-align: center;
+    font-weight: 600 !important;
+    border-radius: 12px !important;
+}
+.drawer-cta:hover {
+    background: linear-gradient(135deg, #059669, #047857) !important;
+    color: white !important;
+}
+
+/* ── Design page — bottom tab bar ─────────────────── */
+.mobile-design-tabs {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    z-index: 900;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
+}
+.mobile-design-tabs button {
+    flex: 1;
+    padding: 10px 6px 12px;
+    border: none;
+    background: none;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    transition: color 0.18s, background 0.18s;
+    border-top: 2px solid transparent;
+}
+.mobile-design-tabs button .tab-icon { font-size: 1.25rem; line-height: 1; }
+.mobile-design-tabs button.active {
+    color: #10b981;
+    border-top-color: #10b981;
+    background: #f0fdf4;
+}
+
+/* =====================================================
+   TABLET  (≤ 1024px)
+   ===================================================== */
+@media (max-width: 1024px) {
+    /* checkout form row — already in checkout.css but reinforce */
+    .form-row { grid-template-columns: 1fr !important; }
+}
+
+/* =====================================================
+   MOBILE  (≤ 768px)
+   ===================================================== */
+@media (max-width: 768px) {
+
+    /* ── Navbar ────────────────────────────────────── */
+    .hamburger { display: flex; }
+    .nav-links { display: none !important; }
+    .nav-actions { display: none !important; }
+    /* login page has a back-btn instead of nav-actions */
+    .back-btn { display: none !important; }
+
+    /* ── HOME ──────────────────────────────────────── */
+    .hero {
+        flex-direction: column !important;
+        padding: 3rem 1.2rem 2rem !important;
+        min-height: auto !important;
+        text-align: center;
+    }
+    .hero-content { max-width: 100% !important; }
+    .hero h1 { font-size: 2rem !important; }
+    .hero p { font-size: 1rem !important; max-width: 100% !important; }
+    .hero-buttons { flex-direction: column; gap: 0.75rem; align-items: center; }
+    .hero-stats {
+        flex-direction: row !important;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1.2rem !important;
+    }
+    .hero-visual { margin-top: 2rem; }
+    .phone-mockup { width: 180px !important; height: 360px !important; }
+
+    .features-grid { grid-template-columns: 1fr !important; }
+    .steps         { grid-template-columns: 1fr !important; }
+    .pricing-grid  { grid-template-columns: 1fr !important; }
+    .footer-content { grid-template-columns: 1fr 1fr !important; gap: 1.5rem; }
+
+    /* ── LOGIN ─────────────────────────────────────── */
+    .auth-section { padding: 70px 12px 40px !important; }
+    .benefits-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+    /* ── PROFILE ───────────────────────────────────── */
+    .profile-section { padding: 80px 12px 40px !important; }
+    .profile-layout  { grid-template-columns: 1fr !important; }
+    .profile-sidebar { flex-direction: column !important; }
+    .profile-stats   { grid-template-columns: repeat(3, 1fr) !important; gap: 6px; }
+    .stat-card { padding: 10px 6px !important; }
+    .stat-card .stat-value { font-size: 1.1rem !important; }
+    .menu-card { overflow-x: visible !important; }
+    .profile-main { padding: 20px 0 !important; }
+    .section-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+    .projects-grid { grid-template-columns: 1fr !important; }
+    /* manager stats inside profile */
+    .mgr-stats-grid { grid-template-columns: 1fr 1fr !important; }
+    .mgr-grid { grid-template-columns: 1fr !important; }
+
+    /* ── CHECKOUT ──────────────────────────────────── */
+    .checkout-section {
+        padding-top: 80px !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        padding-bottom: 32px !important;
+    }
+    .checkout-container { padding: 0 !important; }
+    .checkout-grid { grid-template-columns: 1fr !important; }
+    .order-summary-card { position: static !important; }
+    .form-row { grid-template-columns: 1fr !important; }
+    .progress-bar { gap: 0.2rem; }
+    .progress-step span { font-size: 0.62rem; }
+    .progress-line { width: 28px !important; }
+    .checkout-card { padding: 1.1rem !important; }
+    .step-circle { width: 32px !important; height: 32px !important; font-size: 0.8rem !important; }
+    .service-cards { grid-template-columns: 1fr !important; }
+
+    /* ── MANAGER standalone page ───────────────────── */
+    .manager-section { padding-top: 80px !important; }
+    .manager-header { flex-direction: column !important; gap: 12px !important; }
+    .stats-grid { grid-template-columns: 1fr 1fr !important; }
+    .submissions-grid { grid-template-columns: 1fr !important; }
+
+    /* ── DESIGN – tab-based layout ─────────────────── */
+    .mobile-design-tabs { display: flex; }
+
+    .main-header { height: 52px !important; }
+    .header-container { padding: 0 1rem !important; gap: 0.5rem !important; }
+    .main-nav { display: none !important; }
+    .upload-photo-btn { font-size: 0.72rem !important; padding: 0.35rem 0.65rem !important; white-space: nowrap; }
+    .user-badge { font-size: 0.72rem !important; }
+
+    .design-section {
+        padding-top: 52px;
+        height: 100vh;
+        overflow: hidden;
+    }
+    .design-container {
+        display: block !important;
+        height: calc(100vh - 52px - 58px);
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* All three panels hidden by default; JS adds .mobile-active */
+    .design-sidebar,
+    .design-canvas,
+    .materials-panel {
+        display: none !important;
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-height: none !important;
+        top: 0 !important;
+        overflow-y: auto;
+    }
+    .design-sidebar.mobile-active,
+    .design-canvas.mobile-active,
+    .materials-panel.mobile-active {
+        display: block !important;
+    }
+    .design-canvas.mobile-active { overflow: hidden; }
+}
+
+/* =====================================================
+   SMALL PHONE  (≤ 480px)
+   ===================================================== */
+@media (max-width: 480px) {
+    /* HOME */
+    .hero h1 { font-size: 1.65rem !important; }
+    .hero p { font-size: 0.9rem !important; }
+    .phone-mockup { width: 140px !important; height: 280px !important; }
+    .footer-content { grid-template-columns: 1fr !important; }
+
+    /* PROFILE */
+    .profile-stats { grid-template-columns: 1fr 1fr !important; }
+
+    /* CHECKOUT */
+    .progress-line { display: none !important; }
+    .checkout-card h2 { font-size: 1.1rem !important; }
+
+    /* LOGIN */
+    .benefits-grid { grid-template-columns: 1fr !important; }
+    .social-buttons { grid-template-columns: 1fr !important; }
+
+    /* DESIGN header */
+    .header-actions { gap: 0.3rem !important; }
+    .user-badge { display: none !important; }
+}
