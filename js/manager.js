@@ -249,27 +249,84 @@ async function deleteProduct(productId) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('Manager page loaded');
+function managerLogout() {
+    localStorage.removeItem('gardiyUser');
+    location.reload();
+}
 
-    // Show auth status in nav
-    const authEl = document.getElementById('authStatus');
-    try {
-        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
-        if (session.token && session.loggedIn) {
-            if (authEl) { authEl.textContent = '🔒 Logged in as ' + (session.name || session.email); authEl.style.background = '#d1fae5'; authEl.style.color = '#065f46'; }
-        } else {
-            if (authEl) { authEl.textContent = '⚠️ Not logged in — product edits won\'t save'; authEl.style.background = '#fef3c7'; authEl.style.color = '#92400e'; }
-            showMessage('You are not logged in. Product changes cannot be saved. Please log in first.', 'error');
-        }
-    } catch (e) {}
+function openGoogleLogin() {
+    const btn = document.getElementById('googleLoginBtn');
+    const msg = document.getElementById('loginGateMsg');
+    btn.disabled = true;
+    btn.textContent = 'Waiting for Google…';
+    msg.style.display = 'none';
 
-    if (window.MigrationHelper) {
-        const isConnected = await MigrationHelper.checkConnection();
-        console.log(isConnected ? '✅ Backend connected' : '⚠️ Backend offline — using localStorage');
+    const popup = window.open(
+        'https://gardiy-backend-production.up.railway.app/api/auth/google',
+        'google-auth',
+        'width=520,height=620,left=' + (screen.width / 2 - 260) + ',top=' + (screen.height / 2 - 310)
+    );
+
+    if (!popup) {
+        btn.disabled = false;
+        btn.innerHTML = '<img src="https://www.google.com/favicon.ico" width="20" height="20"> Continue with Google';
+        msg.textContent = 'Allow popups for this page to use Google sign-in.';
+        msg.style.display = 'block';
+        return;
     }
 
-    initializeProducts();
+    const timer = setInterval(() => {
+        if (popup.closed) {
+            clearInterval(timer);
+            btn.disabled = false;
+            btn.innerHTML = '<img src="https://www.google.com/favicon.ico" width="20" height="20"> Continue with Google';
+            checkAdminSession();
+        }
+    }, 500);
+}
+
+function checkAdminSession() {
+    try {
+        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        const gate = document.getElementById('loginGate');
+        const authEl = document.getElementById('authStatus');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        if (session.token && session.loggedIn && session.isAdmin) {
+            // Admin confirmed — hide gate, show dashboard
+            if (gate) gate.style.display = 'none';
+            if (authEl) {
+                authEl.textContent = session.name || session.email;
+                authEl.style.background = '#d1fae5';
+                authEl.style.color = '#065f46';
+            }
+            if (logoutBtn) logoutBtn.style.display = 'inline-block';
+            // Load real data now that we're authenticated
+            if (typeof loadSubmissions === 'function') loadSubmissions();
+            if (typeof loadStats === 'function') loadStats();
+            return true;
+        } else if (session.token && session.loggedIn && !session.isAdmin) {
+            // Logged in but not admin
+            const msg = document.getElementById('loginGateMsg');
+            if (msg) { msg.textContent = 'This account does not have manager access.'; msg.style.display = 'block'; }
+        }
+        return false;
+    } catch (e) { return false; }
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+    // Wire up the Google login button on the gate
+    const googleBtn = document.getElementById('googleLoginBtn');
+    if (googleBtn) googleBtn.addEventListener('click', openGoogleLogin);
+
+    // Check if already logged in as admin
+    const isAdmin = checkAdminSession();
+
+    if (!isAdmin) {
+        // Show gate (it's already visible by default)
+        return;  // Don't load dashboard content until authenticated
+    }
+
     setupTabs();
     loadProductsGrid();
     setupAddProductButton();
@@ -292,9 +349,8 @@ function setupTabs() {
                 targetTab.classList.add('active');
             }
             
-            if (tabName === 'products') {
-                loadProductsGrid();
-            }
+            if (tabName === 'products') loadProductsGrid();
+            if (tabName === 'designs' && typeof loadSubmissions === 'function') loadSubmissions();
         });
     });
 }

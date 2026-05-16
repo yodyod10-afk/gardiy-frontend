@@ -15,6 +15,7 @@
             <a href="index.html" class="logo">🌱 GarDIY Manager</a>
             <div class="nav-actions">
                 <span id="authStatus" style="font-size:13px;padding:4px 10px;border-radius:6px;font-weight:600;"></span>
+                <button id="logoutBtn" onclick="managerLogout()" style="font-size:13px;padding:4px 12px;border-radius:6px;font-weight:600;background:#fee2e2;color:#991b1b;border:none;cursor:pointer;display:none;">Logout</button>
                 <a href="index.html" class="back-btn">← Exit Dashboard</a>
             </div>
         </div>
@@ -320,137 +321,83 @@
         </div>
     </section>
 
+    <!-- Admin login gate — covers the page until admin identity is confirmed -->
+    <div id="loginGate" style="position:fixed;inset:0;background:rgba(15,23,42,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:20px;padding:2.5rem 2rem;max-width:380px;width:90%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.4);">
+            <div style="font-size:52px;margin-bottom:0.75rem;">🌱</div>
+            <h2 style="margin:0 0 0.5rem;font-size:1.5rem;color:#1a202c;">Manager Access</h2>
+            <p style="color:#718096;margin-bottom:1.75rem;font-size:0.9rem;line-height:1.5;">Sign in with the admin Google account to access the dashboard.</p>
+            <button id="googleLoginBtn" style="width:100%;padding:0.875rem;background:#fff;border:2px solid #e2e8f0;border-radius:10px;cursor:pointer;font-size:0.95rem;font-weight:600;color:#374151;display:flex;align-items:center;justify-content:center;gap:0.75rem;transition:border-color 0.2s,box-shadow 0.2s;" onmouseover="this.style.borderColor='#94a3b8';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'">
+                <img src="https://www.google.com/favicon.ico" width="20" height="20">
+                Continue with Google
+            </button>
+            <p id="loginGateMsg" style="margin-top:1rem;color:#e53e3e;font-size:0.85rem;min-height:1.2em;"></p>
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <script src="js/manager.js"></script>
     
     <script>
-        // Load designs from localStorage
-        function loadDesigns() {
-            const designsGrid = document.getElementById('designsGrid');
-            const designsBadge = document.getElementById('designsBadge');
-            
-            // Get all keys from localStorage that start with 'design_'
-            const designs = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith('design_')) {
-                    try {
-                        const design = JSON.parse(localStorage.getItem(key));
-                        designs.push({...design, key: key});
-                    } catch (e) {
-                        console.error('Error parsing design:', e);
-                    }
-                }
-            }
-            
-            console.log('🎨 Designs found:', designs.length);
-            designsBadge.textContent = designs.length;
-            
-            if (designs.length === 0) {
-                designsGrid.innerHTML = '<p style="text-align: center; color: #718096; padding: 40px;">No designs submitted yet</p>';
-            } else {
-                designsGrid.innerHTML = '';
-                designs.forEach(design => {
-                    const html = `
-                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1.5rem;">
-                            <!-- DESIGN SCREENSHOT -->
-                            <div style="width: 100%; height: 250px; background: #f7fafc; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
-                                ${design.designScreenshot
-                                    ? `<img src="${design.designScreenshot}" onclick="openDesignLightbox(this.src)" style="width: 100%; height: 100%; object-fit: contain; background: #f0fdf4; cursor: zoom-in;" title="Click to view full size">`
-                                    : `<span style="color: #cbd5e0; font-size: 48px;">🎨</span>`
-                                }
-                            </div>
-                            
-                            <!-- DESIGN INFO -->
-                            <div style="padding: 1.5rem;">
-                                <div style="font-weight: 600; font-size: 16px; color: #2d3748; margin-bottom: 0.5rem;">${design.customerName}</div>
-                                <div style="font-size: 13px; color: #718096; margin-bottom: 1rem;">${design.customerEmail}</div>
-                                
-                                <!-- DETAILS -->
-                                <div style="background: #f7fafc; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 12px; color: #718096;">
-                                    <div style="margin-bottom: 0.5rem;">📦 <strong>${design.totalItems} items</strong> | 💰 <strong>$${design.estimatedTotal.toFixed(2)}</strong></div>
-                                    <div style="margin-bottom: 0.5rem;">📱 ${design.customerPhone}</div>
-                                </div>
-                                
-                                <!-- STATUS BADGE -->
-                                <div style="background: #fed7d7; color: #c53030; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; margin-bottom: 1rem;">
-                                    ${design.status.replace('_', ' ').toUpperCase()}
-                                </div>
-                                
-                                <!-- BUTTONS -->
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <button onclick="viewDesignDetails('${design.key}')" style="flex: 1; padding: 0.5rem; background: #4299e1; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;">View</button>
-                                    <button onclick="addDesignQuote('${design.key}')" style="flex: 1; padding: 0.5rem; background: #ed8936; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;">Quote</button>
-                                </div>
-                            </div>
+        const API = 'https://gardiy-backend-production.up.railway.app/api';
+
+        function getToken() {
+            try { return JSON.parse(localStorage.getItem('gardiyUser') || '{}').token || ''; } catch { return ''; }
+        }
+
+        async function loadSubmissions() {
+            const grid  = document.getElementById('designsGrid');
+            const badge = document.getElementById('designsBadge');
+            grid.innerHTML = '<p style="text-align:center;color:#718096;padding:40px;">Loading submissions…</p>';
+            try {
+                const r = await fetch(`${API}/manager/submissions`, { headers: { Authorization: `Bearer ${getToken()}` } });
+                const data = await r.json();
+                if (!data.success) { grid.innerHTML = '<p style="text-align:center;color:#e53e3e;padding:40px;">Failed to load submissions.</p>'; return; }
+                const designs = data.designs;
+                badge.textContent = designs.length;
+                if (designs.length === 0) { grid.innerHTML = '<p style="text-align:center;color:#718096;padding:40px;">No design submissions yet.</p>'; return; }
+                grid.innerHTML = designs.map(d => {
+                    const date = new Date(d.createdAt).toLocaleDateString();
+                    const items = (d.items || []);
+                    const total = items.reduce((s, i) => s + (i.price * (i.quantity || 1)), 0);
+                    const img = d.landscapeImageData
+                        ? `<img src="${d.landscapeImageData}" onclick="openDesignLightbox(this.src)" style="width:100%;height:100%;object-fit:contain;cursor:zoom-in;">`
+                        : `<span style="color:#cbd5e0;font-size:48px;">🎨</span>`;
+                    return `<div style="background:white;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,0.05);margin-bottom:1.5rem;">
+                        <div style="width:100%;height:220px;background:#f7fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;">${img}</div>
+                        <div style="padding:1.25rem;">
+                            <div style="font-weight:600;font-size:15px;color:#2d3748;margin-bottom:0.25rem;">${d.designName || 'Untitled Design'}</div>
+                            <div style="font-size:12px;color:#718096;margin-bottom:0.75rem;">User: ${d.userId} &bull; ${date}</div>
+                            <div style="font-size:12px;color:#4a5568;">📦 ${items.length} items &bull; Est. $${total.toFixed(2)}</div>
                         </div>
-                    `;
-                    designsGrid.innerHTML += html;
-                });
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                grid.innerHTML = '<p style="text-align:center;color:#e53e3e;padding:40px;">Error loading submissions.</p>';
             }
         }
 
-        // View design details
-        function viewDesignDetails(key) {
-            const design = JSON.parse(localStorage.getItem(key));
-            if (!design) return;
-            
-            const items = design.items.map(i => `• ${i.name} - $${i.price.toFixed(2)}`).join('\n');
-            alert(`
-📋 DESIGN DETAILS
-━━━━━━━━━━━━━━━━━
-Customer: ${design.customerName}
-Email: ${design.customerEmail}
-
-📦 Items (${design.totalItems}):
-${items}
-
-💰 Total: $${design.estimatedTotal.toFixed(2)}
-            `);
+        async function loadStats() {
+            try {
+                const r = await fetch(`${API}/manager/stats`, { headers: { Authorization: `Bearer ${getToken()}` } });
+                const d = await r.json();
+                if (!d.success) return;
+                const vals = document.querySelectorAll('.stat-value');
+                if (vals[1]) vals[1].textContent = d.designCount;  // submissions/orders
+                if (vals[2]) vals[2].textContent = d.userCount;     // customers/users
+            } catch {}
         }
 
-        // Add quote to design
-        function addDesignQuote(key) {
-            const design = JSON.parse(localStorage.getItem(key));
-            if (!design) return;
-            
-            const notes = prompt(`Add notes for ${design.customerName}:`, design.notes || '');
-            if (notes === null) return;
-            
-            const quote = prompt('Enter quoted price:');
-            if (quote === null) return;
-            
-            design.notes = notes;
-            design.quotedPrice = parseFloat(quote) || 0;
-            design.status = 'quoted';
-            
-            localStorage.setItem(key, JSON.stringify(design));
-            loadDesigns();
-            
-            alert(`✅ Quote saved!\nPrice: $${design.quotedPrice.toFixed(2)}`);
-        }
-
-        // Load designs when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            loadDesigns();
-        });
-
-        // Lightbox for design screenshots
         function openDesignLightbox(src) {
-            const lb = document.getElementById('designLightbox');
             document.getElementById('lightboxImg').src = src;
-            lb.style.display = 'flex';
+            document.getElementById('designLightbox').style.display = 'flex';
             document.body.style.overflow = 'hidden';
         }
-
         function closeDesignLightbox() {
             document.getElementById('designLightbox').style.display = 'none';
             document.body.style.overflow = '';
         }
-
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') closeDesignLightbox();
-        });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDesignLightbox(); });
     </script>
 
     <!-- Lightbox Modal -->

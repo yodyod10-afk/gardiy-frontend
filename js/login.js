@@ -9,8 +9,12 @@ function checkOAuthRedirect() {
             const data = JSON.parse(atob(hash.slice(7)));
             if (data.type === 'GOOGLE_AUTH' && data.token) {
                 saveSession(data);
-                // Clean the token out of the URL, then redirect
                 history.replaceState(null, '', window.location.pathname);
+                // If opened as a popup (e.g. from manager page), just close it
+                if (window.opener && !window.opener.closed) {
+                    setTimeout(() => window.close(), 300);
+                    return true;
+                }
                 showMessage('Signed in with Google! Redirecting…', 'success');
                 setTimeout(() => { window.location.href = 'upload.html'; }, 1000);
                 return true;
@@ -159,6 +163,7 @@ function saveSession(data) {
         id:       data.user.id,
         name:     data.user.name,
         email:    data.user.email,
+        isAdmin:  data.user.isAdmin || false,
         loggedIn: true,
         token:    data.token,
         timestamp: new Date().toISOString()
