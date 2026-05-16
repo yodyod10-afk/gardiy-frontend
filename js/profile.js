@@ -1,22 +1,42 @@
 ﻿// Profile Page JavaScript
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // Check if user is logged in
-    const user = JSON.parse(localStorage.getItem('gardiyUser'));
+    let user = JSON.parse(localStorage.getItem('gardiyUser'));
 
     if (!user || !user.loggedIn) {
         window.location.href = 'login.html?next=profile.html';
         return;
     }
 
-    // Show Manager link for admins
+    // Load user data immediately from cached session
+    loadUserData(user);
+
+    // Then fetch fresh data from backend to pick up any permission changes
+    // (e.g. isAdmin set after the cached JWT was issued)
+    try {
+        const res = await fetch('https://gardiy-backend-production.up.railway.app/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${user.token}` }
+        });
+        const data = await res.json();
+        if (data.success && data.user) {
+            // Update cached session if isAdmin changed
+            if (data.user.isAdmin !== user.isAdmin) {
+                user.isAdmin = data.user.isAdmin;
+                localStorage.setItem('gardiyUser', JSON.stringify(user));
+            }
+            if (data.user.name && data.user.name !== user.name) {
+                user.name = data.user.name;
+                loadUserData(user);
+            }
+        }
+    } catch (e) { /* offline or backend unavailable — use cached session */ }
+
+    // Show Manager link for admins (re-check after fresh data)
     if (user.isAdmin) {
         const managerLink = document.getElementById('managerLink');
         if (managerLink) managerLink.style.display = 'flex';
     }
-
-    // Load user data
-    loadUserData(user);
 
     // Menu navigation
     const menuItems = document.querySelectorAll('.menu-item:not(.logout)');
