@@ -127,45 +127,64 @@ function setupEventListeners() {
     }
 }
 
+// Resize and compress an image file to max 1024px on the longest side, JPEG quality 0.85
+function compressImage(file) {
+    return new Promise(function(resolve) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const MAX = 1024;
+                let w = img.width, h = img.height;
+                if (w > MAX || h > MAX) {
+                    if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+                    else       { w = Math.round(w * MAX / h); h = MAX; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 // Handle file upload
-function handleFileUpload(file) {
+async function handleFileUpload(file) {
     if (!file.type.startsWith('image/')) {
         alert('Please upload an image file');
         return;
     }
 
-    const reader = new FileReader();
-    
-    reader.onload = function(e) {
-        const imageDataUrl = e.target.result;
-        console.log('📷 Image loaded, size:', (imageDataUrl.length / 1024).toFixed(2), 'KB');
-        
-        // Save to GarDIYStorage
-        try {
-            window.GarDIYStorage.saveImage(imageDataUrl);
-            console.log('✅ Image saved to GarDIYStorage');
-        } catch (error) {
-            console.error('Error saving image:', error);
-        }
-        
-        // Show analysis section
-        uploadSection.style.display = 'none';
-        analysisSection.style.display = 'block';
-        
-        // Set image
-        previewImage.src = imageDataUrl;
-        console.log('🖼️ Image set to preview');
-        
-        // Wait for image to load
-        previewImage.onload = function() {
-            console.log('Image loaded, starting analysis...');
-            simulateAIAnalysis();
-        };
-        
-        window.scrollTo(0, 0);
+    const imageDataUrl = await compressImage(file);
+    console.log('📷 Image compressed, size:', (imageDataUrl.length / 1024).toFixed(2), 'KB');
+
+    // Save to GarDIYStorage
+    try {
+        window.GarDIYStorage.saveImage(imageDataUrl);
+        console.log('✅ Image saved to GarDIYStorage');
+    } catch (error) {
+        console.error('Error saving image:', error);
+    }
+
+    // Show analysis section
+    uploadSection.style.display = 'none';
+    analysisSection.style.display = 'block';
+
+    // Set image
+    previewImage.src = imageDataUrl;
+    console.log('🖼️ Image set to preview');
+
+    // Wait for image to load
+    previewImage.onload = function() {
+        console.log('Image loaded, starting analysis...');
+        simulateAIAnalysis();
     };
-    
-    reader.readAsDataURL(file);
+
+    window.scrollTo(0, 0);
 }
 
 // Real Claude AI analysis
