@@ -225,14 +225,19 @@
     .upload-photo-btn { font-size: 0.72rem !important; padding: 0.35rem 0.65rem !important; white-space: nowrap; }
     .user-badge { font-size: 0.72rem !important; }
 
+    /* design.css sets margin-top:64px; reset to match mobile header height */
     .design-section {
-        padding-top: 52px;
-        height: 100vh;
+        margin-top: 52px !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        min-height: 0 !important;
+        height: calc(100vh - 52px) !important;
         overflow: hidden;
     }
     .design-container {
         display: block !important;
-        height: calc(100vh - 52px - 58px);
+        height: calc(100vh - 52px - 58px) !important;   /* viewport - header - tab bar */
+        min-height: 0 !important;
         overflow: hidden;
         position: relative;
     }

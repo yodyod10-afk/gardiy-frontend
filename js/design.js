@@ -166,17 +166,18 @@ function getMockProducts() {
 }
 
 async function getProducts() {
-    if (window.ProductAPI && window.MigrationHelper) {
+    // Skip health check — try products directly with a 5s timeout, then fall back
+    if (window.ProductAPI) {
         try {
-            const connected = await MigrationHelper.checkConnection();
-            if (connected) {
-                const result = await ProductAPI.getAll();
-                const products = Array.isArray(result) ? result
-                    : (result?.products && Array.isArray(result.products)) ? result.products
-                    : (result?.data    && Array.isArray(result.data))     ? result.data
-                    : null;
-                if (products?.length) return products;
-            }
+            const result = await Promise.race([
+                ProductAPI.getAll(),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+            ]);
+            const products = Array.isArray(result) ? result
+                : (result?.products && Array.isArray(result.products)) ? result.products
+                : (result?.data    && Array.isArray(result.data))     ? result.data
+                : null;
+            if (products?.length) return products;
         } catch (e) { console.warn('Backend unavailable, using fallback'); }
     }
     const stored = localStorage.getItem('gardiyProducts');
@@ -201,9 +202,9 @@ function isPathItem(n, c) {
 }
 
 // ── DOM ready ─────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async function () {
+document.addEventListener('DOMContentLoaded', function () {
     checkUserStatus();
-    await loadProductCategories();
+    loadProductCategories(); // fire-and-forget — shows "Loading…" then fills in
 
     const savedImage = window.GarDIYStorage?.getImage();
     const canvasImage = document.getElementById('canvasImage');
@@ -280,8 +281,16 @@ document.addEventListener('DOMContentLoaded', async function () {
 const productRegistry = {};
 
 async function loadProductCategories() {
+    // Show loading skeleton immediately so sidebar isn't blank while fetching
+    const sidebarEarly = document.querySelector('.design-sidebar');
+    if (sidebarEarly) sidebarEarly.innerHTML = '<h3>🎨 Products</h3><p style="padding:1rem;color:#6b7280;font-style:italic;">Loading products…</p>';
+
     const products = await getProducts();
-    if (!products.length) return;
+    if (!products.length) {
+        const sb = document.querySelector('.design-sidebar');
+        if (sb) sb.innerHTML = '<h3>🎨 Products</h3><p style="padding:1rem;color:#ef4444;">No products found.</p>';
+        return;
+    }
 
     // Build registry so click handler can look up full product data by index
     products.forEach((p, i) => { productRegistry[i] = p; });

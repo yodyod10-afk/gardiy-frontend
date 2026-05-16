@@ -100,8 +100,54 @@
         showTab('canvas');
     }
 
+    // ── Design canvas: forward touch events → synthetic mouse events ────────────
+    // All drag/select/resize/rotate handlers in design.js use mouse events only.
+    // This lets them work on touchscreens without any changes to design.js.
+    function initDesignTouchForwarding() {
+        const canvas = document.getElementById('designCanvas');
+        if (!canvas) return;
+
+        let touchInCanvas = false;
+        let lastTouchTarget = null;
+
+        function syntheticMouse(type, touch, target) {
+            const el = target || document.elementFromPoint(touch.clientX, touch.clientY);
+            if (!el) return;
+            el.dispatchEvent(new MouseEvent(type, {
+                bubbles: true, cancelable: true, view: window,
+                clientX: touch.clientX, clientY: touch.clientY,
+            }));
+        }
+
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            touchInCanvas = true;
+            const t = e.touches[0];
+            lastTouchTarget = document.elementFromPoint(t.clientX, t.clientY);
+            syntheticMouse('mousedown', t, lastTouchTarget);
+        }, { passive: false });
+
+        document.addEventListener('touchmove', e => {
+            if (!touchInCanvas) return;
+            e.preventDefault();
+            if (e.touches.length === 1) syntheticMouse('mousemove', e.touches[0]);
+        }, { passive: false });
+
+        document.addEventListener('touchend', e => {
+            if (!touchInCanvas) return;
+            touchInCanvas = false;
+            const t = e.changedTouches[0];
+            syntheticMouse('mouseup', t);
+            // Fire click for tap interactions (control panel buttons, deselect)
+            const el = document.elementFromPoint(t.clientX, t.clientY) || lastTouchTarget;
+            if (el) syntheticMouse('click', t, el);
+            lastTouchTarget = null;
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         initHamburger();
         initDesignTabs();
+        initDesignTouchForwarding();
     });
 })();
