@@ -166,18 +166,17 @@ function getMockProducts() {
 }
 
 async function getProducts() {
-    // Skip health check — try products directly with a 5s timeout, then fall back
-    if (window.ProductAPI) {
+    if (window.ProductAPI && window.MigrationHelper) {
         try {
-            const result = await Promise.race([
-                ProductAPI.getAll(),
-                new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
-            ]);
-            const products = Array.isArray(result) ? result
-                : (result?.products && Array.isArray(result.products)) ? result.products
-                : (result?.data    && Array.isArray(result.data))     ? result.data
-                : null;
-            if (products?.length) return products;
+            const connected = await MigrationHelper.checkConnection();
+            if (connected) {
+                const result = await ProductAPI.getAll();
+                const products = Array.isArray(result) ? result
+                    : (result?.products && Array.isArray(result.products)) ? result.products
+                    : (result?.data    && Array.isArray(result.data))     ? result.data
+                    : null;
+                if (products?.length) return products;
+            }
         } catch (e) { console.warn('Backend unavailable, using fallback'); }
     }
     const stored = localStorage.getItem('gardiyProducts');
@@ -202,9 +201,9 @@ function isPathItem(n, c) {
 }
 
 // ── DOM ready ─────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
     checkUserStatus();
-    loadProductCategories(); // fire-and-forget — shows "Loading…" then fills in
+    await loadProductCategories(); // loading state shows instantly, then fills in
 
     const savedImage = window.GarDIYStorage?.getImage();
     const canvasImage = document.getElementById('canvasImage');
