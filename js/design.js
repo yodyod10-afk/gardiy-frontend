@@ -1181,14 +1181,38 @@ async function submitDesignForCheckout() {
     // Restore visibility
     document.querySelectorAll('.control-panel, .poly-dot, .corner-handle, .mesh-dot').forEach(el => el.style.visibility = '');
 
-    const total  = placedItems.reduce((s, i) => s + (i.price || 0), 0);
     const width  = document.getElementById('width')?.value  || 'Not specified';
     const height = document.getElementById('height')?.value || 'Not specified';
     const depth  = document.getElementById('depth')?.value  || 'Not specified';
 
-    try {
-        const checkoutItems = placedItems.map(i => ({ name: i.name, price: i.price || 0 }));
+    // Mirror the pricing logic from updateMaterialsList: hardscapes are priced by polygon area
+    const coverageGroups = {};
+    const regularGroups  = {};
+    placedItems.forEach(item => {
+        const sfPerTon = getCoverageRate(item.name);
+        if (sfPerTon !== undefined) {
+            if (!coverageGroups[item.name]) coverageGroups[item.name] = { name: item.name, basePricePerTon: item.price || 0, sfPerTon, totalSqFt: 0 };
+            const sqFt = getItemSqFt(item);
+            if (sqFt) coverageGroups[item.name].totalSqFt += sqFt;
+        } else {
+            if (!regularGroups[item.name]) regularGroups[item.name] = { name: item.name, price: item.price || 0, count: 0 };
+            regularGroups[item.name].count++;
+        }
+    });
 
+    const checkoutItems = [];
+    // Hardscapes: one line per material type with area-computed total cost
+    Object.values(coverageGroups).forEach(g => {
+        const tons = g.sfPerTon > 0 && g.totalSqFt > 0 ? g.totalSqFt / g.sfPerTon : 0;
+        checkoutItems.push({ name: g.name, price: tons * g.basePricePerTon });
+    });
+    // Regular items: individual entries so checkout can display qty × unit price
+    Object.values(regularGroups).forEach(g => {
+        for (let c = 0; c < g.count; c++) checkoutItems.push({ name: g.name, price: g.price });
+    });
+    const total = checkoutItems.reduce((s, i) => s + i.price, 0);
+
+    try {
         // Pass items + total to checkout page
         localStorage.setItem('gardiyCheckout', JSON.stringify({ items: checkoutItems, total }));
 
@@ -1203,7 +1227,7 @@ async function submitDesignForCheckout() {
             body: JSON.stringify({
                 userId: session.id || session.email || 'guest',
                 designName: `${session.name || 'Customer'} – ${new Date().toLocaleDateString()}`,
-                items: placedItems.map(i => ({ id: i.id, name: i.name, emoji: i.emoji, x: i.x, y: i.y, price: i.price || 0 })),
+                items: checkoutItems,
                 totalCost: total,
                 landscapeImageData: designScreenshot,
             })
