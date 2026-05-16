@@ -18,6 +18,11 @@ function checkOAuthRedirect() {
             if (data.type === 'GOOGLE_AUTH' && data.token) {
                 saveSession(data);
                 history.replaceState(null, '', window.location.pathname + window.location.search);
+                // If this is a popup, close it — the opener window handles the redirect
+                if (window.opener && !window.opener.closed) {
+                    window.close();
+                    return true;
+                }
                 showMessage('Signed in with Google! Redirecting…', 'success');
                 setTimeout(() => { window.location.href = getNextUrl(); }, 1000);
                 return true;
@@ -142,7 +147,28 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!popup) { showMessage('Allow popups for this page to use Google sign-in.', 'error'); return; }
             btn.textContent = 'Waiting for Google…';
             btn.disabled = true;
-            const timer = setInterval(() => { if (popup.closed) { btn.disabled = false; btn.innerHTML = '<img src="https://www.google.com/favicon.ico" width="18" style="vertical-align:middle;margin-right:8px">Continue with Google'; clearInterval(timer); } }, 500);
+
+            // When the popup saves the session to localStorage, this window detects it
+            // via the storage event and redirects itself (the popup only navigates itself)
+            function onStorage(e) {
+                if (e.key === 'gardiyUser' && e.newValue) {
+                    window.removeEventListener('storage', onStorage);
+                    clearInterval(pollTimer);
+                    const next = sessionStorage.getItem('loginNext') || 'profile.html';
+                    sessionStorage.removeItem('loginNext');
+                    window.location.href = next;
+                }
+            }
+            window.addEventListener('storage', onStorage);
+
+            const pollTimer = setInterval(() => {
+                if (popup.closed) {
+                    clearInterval(pollTimer);
+                    window.removeEventListener('storage', onStorage);
+                    btn.disabled = false;
+                    btn.innerHTML = '<img src="https://www.google.com/favicon.ico" width="18" style="vertical-align:middle;margin-right:8px">Continue with Google';
+                }
+            }, 500);
         });
     });
 
