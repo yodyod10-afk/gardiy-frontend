@@ -1,6 +1,14 @@
 ﻿// Login Page JavaScript
 const API = 'https://gardiy-backend-production.up.railway.app';
 
+// Returns the ?next= redirect target (also checks sessionStorage for OAuth popup flow)
+function getNextUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next') || sessionStorage.getItem('loginNext');
+    sessionStorage.removeItem('loginNext');
+    return next ? decodeURIComponent(next) : 'profile.html';
+}
+
 // Check if this page load is a Google OAuth redirect (token in URL fragment)
 function checkOAuthRedirect() {
     const hash = window.location.hash;
@@ -9,14 +17,9 @@ function checkOAuthRedirect() {
             const data = JSON.parse(atob(hash.slice(7)));
             if (data.type === 'GOOGLE_AUTH' && data.token) {
                 saveSession(data);
-                history.replaceState(null, '', window.location.pathname);
-                // If opened as a popup (e.g. from manager page), just close it
-                if (window.opener && !window.opener.closed) {
-                    setTimeout(() => window.close(), 300);
-                    return true;
-                }
+                history.replaceState(null, '', window.location.pathname + window.location.search);
                 showMessage('Signed in with Google! Redirecting…', 'success');
-                setTimeout(() => { window.location.href = 'upload.html'; }, 1000);
+                setTimeout(() => { window.location.href = getNextUrl(); }, 1000);
                 return true;
             }
         } catch (e) { /* invalid token — fall through to normal login */ }
@@ -76,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             saveSession(data);
             showMessage('Welcome back! Redirecting…', 'success');
-            setTimeout(() => { window.location.href = 'upload.html'; }, 1200);
+            setTimeout(() => { window.location.href = getNextUrl(); }, 1200);
         } catch (err) {
             showMessage('Could not reach server. Is the backend running?', 'error');
         } finally {
@@ -117,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             saveSession(data);
             showMessage('Account created! Redirecting…', 'success');
-            setTimeout(() => { window.location.href = 'upload.html'; }, 1200);
+            setTimeout(() => { window.location.href = getNextUrl(); }, 1200);
         } catch (err) {
             showMessage('Could not reach server. Is the backend running?', 'error');
         } finally {
@@ -130,6 +133,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.google-btn').forEach(btn => {
         btn.addEventListener('click', e => {
             e.preventDefault();
+            sessionStorage.setItem('loginNext', getNextUrl());
             const popup = window.open(
                 'https://gardiy-backend-production.up.railway.app/api/auth/google',
                 'google-auth',

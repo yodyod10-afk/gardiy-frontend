@@ -3,11 +3,16 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is logged in
     const user = JSON.parse(localStorage.getItem('gardiyUser'));
-    
+
     if (!user || !user.loggedIn) {
-        // Redirect to login if not logged in
-        window.location.href = 'login.html';
+        window.location.href = 'login.html?next=profile.html';
         return;
+    }
+
+    // Show Manager link for admins
+    if (user.isAdmin) {
+        const managerLink = document.getElementById('managerLink');
+        if (managerLink) managerLink.style.display = 'flex';
     }
 
     // Load user data

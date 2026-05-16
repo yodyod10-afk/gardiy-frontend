@@ -251,85 +251,37 @@ async function deleteProduct(productId) {
 
 function managerLogout() {
     localStorage.removeItem('gardiyUser');
-    location.reload();
-}
-
-function openGoogleLogin() {
-    const btn = document.getElementById('googleLoginBtn');
-    const msg = document.getElementById('loginGateMsg');
-    btn.disabled = true;
-    btn.textContent = 'Waiting for Google…';
-    msg.style.display = 'none';
-
-    const popup = window.open(
-        'https://gardiy-backend-production.up.railway.app/api/auth/google',
-        'google-auth',
-        'width=520,height=620,left=' + (screen.width / 2 - 260) + ',top=' + (screen.height / 2 - 310)
-    );
-
-    if (!popup) {
-        btn.disabled = false;
-        btn.innerHTML = '<img src="https://www.google.com/favicon.ico" width="20" height="20"> Continue with Google';
-        msg.textContent = 'Allow popups for this page to use Google sign-in.';
-        msg.style.display = 'block';
-        return;
-    }
-
-    const timer = setInterval(() => {
-        if (popup.closed) {
-            clearInterval(timer);
-            btn.disabled = false;
-            btn.innerHTML = '<img src="https://www.google.com/favicon.ico" width="20" height="20"> Continue with Google';
-            checkAdminSession();
-        }
-    }, 500);
-}
-
-function checkAdminSession() {
-    try {
-        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
-        const gate = document.getElementById('loginGate');
-        const authEl = document.getElementById('authStatus');
-        const logoutBtn = document.getElementById('logoutBtn');
-
-        if (session.token && session.loggedIn && session.isAdmin) {
-            // Admin confirmed — hide gate, show dashboard
-            if (gate) gate.style.display = 'none';
-            if (authEl) {
-                authEl.textContent = session.name || session.email;
-                authEl.style.background = '#d1fae5';
-                authEl.style.color = '#065f46';
-            }
-            if (logoutBtn) logoutBtn.style.display = 'inline-block';
-            // Load real data now that we're authenticated
-            if (typeof loadSubmissions === 'function') loadSubmissions();
-            if (typeof loadStats === 'function') loadStats();
-            return true;
-        } else if (session.token && session.loggedIn && !session.isAdmin) {
-            // Logged in but not admin
-            const msg = document.getElementById('loginGateMsg');
-            if (msg) { msg.textContent = 'This account does not have manager access.'; msg.style.display = 'block'; }
-        }
-        return false;
-    } catch (e) { return false; }
+    window.location.href = 'index.html';
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
-    // Wire up the Google login button on the gate
-    const googleBtn = document.getElementById('googleLoginBtn');
-    if (googleBtn) googleBtn.addEventListener('click', openGoogleLogin);
+    let session = {};
+    try { session = JSON.parse(localStorage.getItem('gardiyUser') || '{}'); } catch {}
 
-    // Check if already logged in as admin
-    const isAdmin = checkAdminSession();
-
-    if (!isAdmin) {
-        // Show gate (it's already visible by default)
-        return;  // Don't load dashboard content until authenticated
+    if (!session.token || !session.loggedIn) {
+        window.location.href = 'login.html?next=manager.html';
+        return;
     }
+    if (!session.isAdmin) {
+        document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;flex-direction:column;gap:1rem;color:#4a5568;">
+            <div style="font-size:48px;">🔒</div>
+            <h2 style="margin:0;">Manager access only</h2>
+            <p style="margin:0;color:#718096;">Your account (${session.email}) does not have manager permissions.</p>
+            <a href="profile.html" style="color:#10b981;text-decoration:none;font-weight:600;">← Back to Profile</a>
+        </div>`;
+        return;
+    }
+
+    // Admin confirmed — update nav
+    const authEl = document.getElementById('authStatus');
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (authEl) { authEl.textContent = session.name || session.email; authEl.style.background = '#d1fae5'; authEl.style.color = '#065f46'; }
+    if (logoutBtn) logoutBtn.style.display = 'inline-block';
 
     setupTabs();
     loadProductsGrid();
     setupAddProductButton();
+    if (typeof loadStats === 'function') loadStats();
 });
 
 function setupTabs() {
