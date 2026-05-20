@@ -534,6 +534,62 @@ body {
     transition: transform 0.2s;
 }
 
+/* ── Plant recommendation color coding ─────────────────────────────────────── */
+.product-item.plant-recommended {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-color: #10b981;
+}
+
+.product-item.plant-recommended:hover {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    border-color: #059669;
+    transform: translateX(5px);
+}
+
+.product-item.plant-not-recommended {
+    background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+    border-color: #f43f5e;
+    opacity: 0.88;
+}
+
+.product-item.plant-not-recommended:hover {
+    background: linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%);
+    border-color: #e11d48;
+    opacity: 1;
+    transform: translateX(5px);
+}
+
+/* Plant recommendation legend in sidebar */
+.plant-legend {
+    display: flex;
+    gap: 0.85rem;
+    padding: 0.55rem 0.75rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    color: #4b5563;
+    font-weight: 500;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.rec-dot    { background: #10b981; }
+.notrec-dot { background: #f43f5e; }
+
 /* Responsive */
 @media (max-width: 1024px) {
     .design-container {

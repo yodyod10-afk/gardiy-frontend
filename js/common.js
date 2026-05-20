@@ -81,11 +81,31 @@ const Storage = {
         return data ? JSON.parse(data) : [];
     },
     
+    // Save location context (ZIP, direction, time of day)
+    saveLocationContext: function(data) {
+        localStorage.setItem('gardiy_location_context', JSON.stringify(data));
+    },
+    getLocationContext: function() {
+        const data = localStorage.getItem('gardiy_location_context');
+        return data ? JSON.parse(data) : null;
+    },
+
+    // Save plant recommendations from AI analysis
+    saveRecommendations: function(data) {
+        localStorage.setItem('gardiy_plant_recommendations', JSON.stringify(data));
+    },
+    getRecommendations: function() {
+        const data = localStorage.getItem('gardiy_plant_recommendations');
+        return data ? JSON.parse(data) : null;
+    },
+
     // Clear all project data
     clearProject: function() {
         localStorage.removeItem('gardiy_uploaded_image');
         localStorage.removeItem('gardiy_analysis');
         localStorage.removeItem('gardiy_design_items');
+        localStorage.removeItem('gardiy_location_context');
+        localStorage.removeItem('gardiy_plant_recommendations');
     }
 };
 

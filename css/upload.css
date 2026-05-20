@@ -655,6 +655,189 @@
     text-align: center;
 }
 
+/* ── Location Form ──────────────────────────────────────────────────────────── */
+.location-form {
+    padding: 0.5rem 0;
+}
+
+.location-form-header {
+    margin-bottom: 1.5rem;
+}
+
+.location-form-header h3 {
+    color: #065f46;
+    font-size: 1.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.location-form-header p {
+    color: #6b7280;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.exif-status-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #f0fdf4;
+    border: 1.5px solid #10b981;
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 1.25rem;
+    color: #065f46;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.exif-status-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.location-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.location-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.location-field label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.88rem;
+}
+
+.input-with-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.input-with-badge input,
+.input-with-badge select {
+    flex: 1;
+    padding: 0.55rem 0.85rem;
+    border: 2px solid #d1fae5;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #374151;
+    background: white;
+    transition: border-color 0.2s;
+    min-width: 0;
+}
+
+.input-with-badge input:focus,
+.input-with-badge select:focus {
+    outline: none;
+    border-color: #10b981;
+}
+
+.auto-badge {
+    background: #10b981;
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 50px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.field-hint {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    margin: 0;
+}
+
+.location-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.analyze-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 0.85rem 2rem;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.analyze-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+}
+
+.skip-link {
+    color: #9ca3af;
+    font-size: 0.83rem;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.skip-link:hover {
+    color: #6b7280;
+    text-decoration: underline;
+}
+
+/* ── Plant recommendations preview card ─────────────────────────────────────── */
+.plant-recommendations-preview {
+    background: linear-gradient(135deg, #f0fdf4 0%, #d1fae5 100%);
+    border: 2px solid #10b981;
+    border-radius: 15px;
+    padding: 1.1rem 1.4rem;
+    margin-bottom: 1.5rem;
+}
+
+.plant-recommendations-preview h4 {
+    color: #065f46;
+    font-size: 1rem;
+    margin: 0 0 0.6rem 0;
+}
+
+.rec-summary {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.rec-count {
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 0.2rem 0.7rem;
+    border-radius: 50px;
+}
+
+.recommended-count {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.not-recommended-count {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.rec-hint {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin: 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .analysis-container {

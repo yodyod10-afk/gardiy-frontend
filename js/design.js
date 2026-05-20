@@ -203,7 +203,8 @@ function isPathItem(n, c) {
 // ── DOM ready ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async function () {
     checkUserStatus();
-    await loadProductCategories(); // loading state shows instantly, then fills in
+    await loadProductCategories();
+    applyPlantRecommendationColors();
 
     const savedImage = window.GarDIYStorage?.getImage();
     const canvasImage = document.getElementById('canvasImage');
@@ -1297,6 +1298,53 @@ document.head.appendChild(Object.assign(document.createElement('style'), { textC
         position:absolute; top:4px; transform-origin:center 14px;
     }
 ` }));
+
+// ── Plant recommendation color coding ─────────────────────────────────────────
+function applyPlantRecommendationColors() {
+    const recs = window.GarDIYStorage?.getRecommendations?.();
+    if (!recs) return;
+
+    const recommended    = (recs.recommended    || []).map(s => s.toLowerCase());
+    const notRecommended = (recs.notRecommended || []).map(s => s.toLowerCase());
+    if (!recommended.length && !notRecommended.length) return;
+
+    const plantCategories = ['plants', 'trees', 'flowers'];
+    let anyColored = false;
+
+    document.querySelectorAll('.product-item').forEach(item => {
+        const product = productRegistry[item.dataset.pid];
+        if (!product || !plantCategories.includes(product.category)) return;
+
+        const name = product.name.toLowerCase();
+
+        const isRec    = recommended.some(r    => name.includes(r)    || r.includes(name));
+        const isNotRec = !isRec && notRecommended.some(r => name.includes(r) || r.includes(name));
+
+        if (isRec) {
+            item.classList.add('plant-recommended');
+            anyColored = true;
+        } else if (isNotRec) {
+            item.classList.add('plant-not-recommended');
+            anyColored = true;
+        }
+    });
+
+    // Inject a legend into the sidebar when colors are active
+    if (anyColored && !document.getElementById('plantLegend')) {
+        const sidebar = document.querySelector('.design-sidebar');
+        const h3 = sidebar?.querySelector('h3');
+        if (h3) {
+            const legend = document.createElement('div');
+            legend.id        = 'plantLegend';
+            legend.className = 'plant-legend';
+            legend.innerHTML = `
+                <span class="legend-item"><span class="legend-dot rec-dot"></span>Recommended</span>
+                <span class="legend-item"><span class="legend-dot notrec-dot"></span>Not recommended</span>
+            `;
+            h3.insertAdjacentElement('afterend', legend);
+        }
+    }
+}
 
 console.log('✅ Design page ready');
 

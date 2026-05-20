@@ -1,139 +1,102 @@
-﻿// Upload & Analysis Page JavaScript - FIXED
+// Upload & Analysis Page JavaScript
 
-// Variables for elements
+// DOM element references
 let uploadArea, uploadBtn, fileInput, uploadSection, analysisSection;
 let previewImage, photoPreview, scanOverlay;
 let changePhotoBtn, backToUploadBtn, analysisLoading, analysisResults;
 let startDesignBtn;
+let locationForm, zipCodeInput, directionInput, timeInput;
+let analyzeBtn, skipLocationBtn;
+let exifStatusBanner, exifStatusText;
+let zipBadge, directionBadge, timeBadge;
 
-// Wait for DOM to load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('✅ Upload page loaded');
-    
-    // Get all elements
-    uploadArea = document.getElementById('uploadArea');
-    uploadBtn = document.getElementById('uploadBtn');
-    fileInput = document.getElementById('fileInput');
-    uploadSection = document.getElementById('uploadSection');
-    analysisSection = document.getElementById('analysisSection');
-    previewImage = document.getElementById('previewImage');
-    photoPreview = document.getElementById('photoPreview');
-    scanOverlay = document.getElementById('scanOverlay');
-    changePhotoBtn = document.getElementById('changePhotoBtn');
-    backToUploadBtn = document.getElementById('backToUploadBtn');
-    analysisLoading = document.getElementById('analysisLoading');
-    analysisResults = document.getElementById('analysisResults');
-    startDesignBtn = document.getElementById('startDesignBtn');
-    
-    console.log('Elements loaded');
-    
-    // Set up all event listeners
+
+    uploadArea       = document.getElementById('uploadArea');
+    uploadBtn        = document.getElementById('uploadBtn');
+    fileInput        = document.getElementById('fileInput');
+    uploadSection    = document.getElementById('uploadSection');
+    analysisSection  = document.getElementById('analysisSection');
+    previewImage     = document.getElementById('previewImage');
+    photoPreview     = document.getElementById('photoPreview');
+    scanOverlay      = document.getElementById('scanOverlay');
+    changePhotoBtn   = document.getElementById('changePhotoBtn');
+    backToUploadBtn  = document.getElementById('backToUploadBtn');
+    analysisLoading  = document.getElementById('analysisLoading');
+    analysisResults  = document.getElementById('analysisResults');
+    startDesignBtn   = document.getElementById('startDesignBtn');
+    locationForm     = document.getElementById('locationForm');
+    zipCodeInput     = document.getElementById('zipCodeInput');
+    directionInput   = document.getElementById('directionInput');
+    timeInput        = document.getElementById('timeInput');
+    analyzeBtn       = document.getElementById('analyzeBtn');
+    skipLocationBtn  = document.getElementById('skipLocationBtn');
+    exifStatusBanner = document.getElementById('exifStatusBanner');
+    exifStatusText   = document.getElementById('exifStatusText');
+    zipBadge         = document.getElementById('zipBadge');
+    directionBadge   = document.getElementById('directionBadge');
+    timeBadge        = document.getElementById('timeBadge');
+
     setupEventListeners();
-    
-    // Check for saved data
     checkForSavedData();
 });
 
-// Setup event listeners
+// ── Event listeners ───────────────────────────────────────────────────────────
 function setupEventListeners() {
-    // Upload button click
-    uploadBtn.addEventListener('click', function() {
-        fileInput.click();
-    });
+    uploadBtn.addEventListener('click',  () => fileInput.click());
+    uploadArea.addEventListener('click', () => fileInput.click());
 
-    // Upload area click
-    uploadArea.addEventListener('click', function() {
-        fileInput.click();
-    });
-
-    // Drag and drop
-    uploadArea.addEventListener('dragover', function(e) {
+    uploadArea.addEventListener('dragover', e => {
         e.preventDefault();
         uploadArea.style.borderColor = '#059669';
-        uploadArea.style.background = '#f0fdf4';
+        uploadArea.style.background  = '#f0fdf4';
     });
-
-    uploadArea.addEventListener('dragleave', function() {
+    uploadArea.addEventListener('dragleave', () => {
         uploadArea.style.borderColor = '#10b981';
-        uploadArea.style.background = 'white';
+        uploadArea.style.background  = 'white';
     });
-
-    uploadArea.addEventListener('drop', function(e) {
+    uploadArea.addEventListener('drop', e => {
         e.preventDefault();
         uploadArea.style.borderColor = '#10b981';
-        uploadArea.style.background = 'white';
-        
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            handleFileUpload(files[0]);
-        }
+        uploadArea.style.background  = 'white';
+        if (e.dataTransfer.files.length > 0) handleFileUpload(e.dataTransfer.files[0]);
     });
 
-    // File input change
-    fileInput.addEventListener('change', function(e) {
-        if (e.target.files.length > 0) {
-            handleFileUpload(e.target.files[0]);
-        }
+    fileInput.addEventListener('change', e => {
+        if (e.target.files.length > 0) handleFileUpload(e.target.files[0]);
     });
 
-    // Change photo button
-    changePhotoBtn.addEventListener('click', function() {
-        fileInput.click();
-    });
+    changePhotoBtn.addEventListener('click', () => fileInput.click());
 
-    // Back to upload button
-    backToUploadBtn.addEventListener('click', function() {
+    backToUploadBtn.addEventListener('click', () => {
         analysisSection.style.display = 'none';
-        uploadSection.style.display = 'block';
-        
-        // Reset loading steps
-        const steps = document.querySelectorAll('.loading-step');
-        steps.forEach(function(step) {
-            step.classList.remove('active');
-            step.querySelector('.step-dot').classList.remove('active');
-        });
-        
+        uploadSection.style.display   = 'block';
+        resetLocationForm();
+        resetLoadingSteps();
         window.scrollTo(0, 0);
     });
 
-    // FIXED: Start Design button - save image BEFORE navigating
+    if (analyzeBtn)      analyzeBtn.addEventListener('click', () => analyzeWithLocation());
+    if (skipLocationBtn) skipLocationBtn.addEventListener('click', e => { e.preventDefault(); analyzeWithLocation(); });
+
     if (startDesignBtn) {
-        startDesignBtn.addEventListener('click', function(e) {
+        startDesignBtn.addEventListener('click', e => {
             e.preventDefault();
-            console.log('🎨 Start Design clicked');
-            
-            // Check if we have an image
-            if (!previewImage || !previewImage.src || previewImage.src === '') {
-                alert('⚠️ Please upload a photo first');
-                return;
-            }
-            
-            console.log('💾 Saving image before navigation...');
-            
-            // Make sure image is saved
-            try {
-                window.GarDIYStorage.saveImage(previewImage.src);
-                console.log('✅ Image saved to GarDIYStorage');
-            } catch (e) {
-                console.error('Error saving image:', e);
-            }
-            
-            // Give a brief moment for save to complete
-            setTimeout(() => {
-                console.log('➡️ Navigating to design page');
-                window.location.href = 'design.html';
-            }, 100);
+            if (!previewImage?.src) { alert('⚠️ Please upload a photo first'); return; }
+            try { window.GarDIYStorage.saveImage(previewImage.src); } catch (err) {}
+            setTimeout(() => { window.location.href = 'design.html'; }, 100);
         });
     }
 }
 
-// Resize and compress an image file to max 1024px on the longest side, JPEG quality 0.85
+// ── Image compression ─────────────────────────────────────────────────────────
 function compressImage(file) {
-    return new Promise(function(resolve) {
+    return new Promise(resolve => {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = e => {
             const img = new Image();
-            img.onload = function() {
+            img.onload = () => {
                 const MAX = 1024;
                 let w = img.width, h = img.height;
                 if (w > MAX || h > MAX) {
@@ -141,8 +104,7 @@ function compressImage(file) {
                     else       { w = Math.round(w * MAX / h); h = MAX; }
                 }
                 const canvas = document.createElement('canvas');
-                canvas.width = w;
-                canvas.height = h;
+                canvas.width = w; canvas.height = h;
                 canvas.getContext('2d').drawImage(img, 0, 0, w, h);
                 resolve(canvas.toDataURL('image/jpeg', 0.85));
             };
@@ -152,44 +114,241 @@ function compressImage(file) {
     });
 }
 
-// Handle file upload
+// ── EXIF extraction ───────────────────────────────────────────────────────────
+function degreesToCompass(deg) {
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return dirs[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
+}
+
+async function getZipFromCoords(lat, lon) {
+    try {
+        const res  = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+            { headers: { 'User-Agent': 'GarDIY Landscaping App' } }
+        );
+        const data = await res.json();
+        return data?.address?.postcode?.replace(/\s/g, '').slice(0, 10) || null;
+    } catch {
+        return null;
+    }
+}
+
+async function extractExifData(file) {
+    if (typeof exifr === 'undefined') { console.warn('exifr not loaded'); return null; }
+    try {
+        const exif = await exifr.parse(file, {
+            gps: true, tiff: true, exif: true,
+            pick: ['GPSImgDirection', 'DateTimeOriginal', 'CreateDate']
+        });
+        if (!exif) return null;
+
+        const result = {};
+
+        if (exif.GPSImgDirection != null) {
+            result.direction = degreesToCompass(exif.GPSImgDirection);
+        }
+
+        const ts = exif.DateTimeOriginal || exif.CreateDate;
+        if (ts instanceof Date && !isNaN(ts)) {
+            result.timeOfDay = `${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`;
+        }
+
+        if (exif.latitude != null && exif.longitude != null) {
+            result._lat = exif.latitude;
+            result._lon = exif.longitude;
+        }
+
+        return Object.keys(result).length ? result : null;
+    } catch (err) {
+        console.warn('EXIF extraction failed:', err.message);
+        return null;
+    }
+}
+
+// ── Sun exposure description ──────────────────────────────────────────────────
+function describeSunExposure(direction, timeOfDay) {
+    if (!direction && !timeOfDay) return null;
+
+    const dirDesc = {
+        N:  'north-facing (mostly shaded, receives little direct sun throughout the day)',
+        NE: 'northeast-facing (receives morning sun, shaded by mid-afternoon)',
+        E:  'east-facing (full morning sun, afternoon shade)',
+        SE: 'southeast-facing (good morning sun through early afternoon)',
+        S:  'south-facing (full sun for most of the day — highest sun exposure)',
+        SW: 'southwest-facing (some morning light, full afternoon and evening sun)',
+        W:  'west-facing (shaded in the morning, full afternoon and evening sun)',
+        NW: 'northwest-facing (very limited direct sun, receives some late-day light)',
+    };
+
+    const parts = [];
+
+    if (timeOfDay) {
+        const [h, m] = timeOfDay.split(':').map(Number);
+        const ampm = h < 12 ? 'AM' : 'PM';
+        const h12  = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        parts.push(`Photo taken at ${h12}:${String(m).padStart(2,'0')} ${ampm}`);
+    }
+
+    if (direction && dirDesc[direction]) {
+        parts.push(`This is a ${dirDesc[direction]} area`);
+    }
+
+    return parts.join('. ') + '.';
+}
+
+// ── Fallback plant recommendations ───────────────────────────────────────────
+// Used when backend does not return recommendedPlants / notRecommendedPlants
+function generateFallbackRecommendations(analysis) {
+    const sunlight = (analysis.sunlight || '').toLowerCase();
+    const climate  = (analysis.climate  || '').toLowerCase();
+
+    let sunCategory = 'full_sun';
+    if (/partial|3[\s-]|4[\s-]|5[\s-]/.test(sunlight)) sunCategory = 'partial';
+    if (/shade|1[\s-]|2[\s-]/.test(sunlight))           sunCategory = 'shade';
+
+    const zoneMatch = climate.match(/zone\s*(\d+)/i);
+    const zone = zoneMatch ? parseInt(zoneMatch[1]) : 6;
+
+    let recommended = [], notRecommended = [];
+
+    if (sunCategory === 'full_sun') {
+        recommended    = ['Sunflower', 'Rose', 'Tree', 'Deciduous Tree', 'Lawn', 'Grass Field'];
+        notRecommended = ['Cherry Blossom'];
+    } else if (sunCategory === 'partial') {
+        recommended    = ['Small Plant', 'Potted Plant', 'Tulip', 'Cherry Blossom', 'Lawn'];
+        notRecommended = ['Cactus', 'Sunflower'];
+    } else {
+        recommended    = ['Small Plant', 'Potted Plant'];
+        notRecommended = ['Sunflower', 'Cactus', 'Rose', 'Tulip'];
+    }
+
+    if (zone >= 9) {
+        if (!recommended.includes('Palm Tree')) recommended.push('Palm Tree');
+        notRecommended = notRecommended.filter(p => p !== 'Palm Tree');
+    } else if (zone <= 5) {
+        notRecommended.push('Palm Tree');
+        recommended = recommended.filter(p => p !== 'Palm Tree');
+    }
+
+    return { recommended, notRecommended };
+}
+
+// ── Location form helpers ─────────────────────────────────────────────────────
+function resetLocationForm() {
+    if (locationForm)     locationForm.style.display     = 'none';
+    if (zipCodeInput)     zipCodeInput.value             = '';
+    if (directionInput)   directionInput.value           = '';
+    if (timeInput)        timeInput.value                = '';
+    if (exifStatusBanner) exifStatusBanner.style.display = 'none';
+    [zipBadge, directionBadge, timeBadge].forEach(b => { if (b) b.style.display = 'none'; });
+}
+
+function resetLoadingSteps() {
+    document.querySelectorAll('.loading-step').forEach(step => {
+        step.classList.remove('active');
+        step.querySelector('.step-dot')?.classList.remove('active');
+    });
+}
+
+function showLocationForm(prefilled = {}) {
+    if (!locationForm) return;
+
+    locationForm.style.display    = 'block';
+    analysisLoading.style.display = 'none';
+    analysisResults.style.display = 'none';
+
+    let autoCount = 0;
+
+    if (prefilled.zipCode) {
+        zipCodeInput.value = prefilled.zipCode;
+        if (zipBadge) zipBadge.style.display = 'inline-block';
+        autoCount++;
+    }
+    if (prefilled.direction) {
+        directionInput.value = prefilled.direction;
+        if (directionBadge) directionBadge.style.display = 'inline-block';
+        autoCount++;
+    }
+    if (prefilled.timeOfDay) {
+        timeInput.value = prefilled.timeOfDay;
+        if (timeBadge) timeBadge.style.display = 'inline-block';
+        autoCount++;
+    }
+
+    if (autoCount > 0 && exifStatusBanner && exifStatusText) {
+        exifStatusText.textContent   = `${autoCount} detail${autoCount !== 1 ? 's' : ''} auto-detected from photo metadata`;
+        exifStatusBanner.style.display = 'flex';
+    }
+}
+
+// ── File upload handler ───────────────────────────────────────────────────────
 async function handleFileUpload(file) {
     if (!file.type.startsWith('image/')) {
         alert('Please upload an image file');
         return;
     }
 
-    const imageDataUrl = await compressImage(file);
-    console.log('📷 Image compressed, size:', (imageDataUrl.length / 1024).toFixed(2), 'KB');
-
-    // Save to GarDIYStorage
-    try {
-        window.GarDIYStorage.saveImage(imageDataUrl);
-        console.log('✅ Image saved to GarDIYStorage');
-    } catch (error) {
-        console.error('Error saving image:', error);
-    }
-
-    // Show analysis section
-    uploadSection.style.display = 'none';
+    // Show analysis section immediately with photo
+    uploadSection.style.display   = 'none';
     analysisSection.style.display = 'block';
-
-    // Set image
-    previewImage.src = imageDataUrl;
-    console.log('🖼️ Image set to preview');
-
-    // Wait for image to load
-    previewImage.onload = function() {
-        console.log('Image loaded, starting analysis...');
-        simulateAIAnalysis();
-    };
-
     window.scrollTo(0, 0);
+
+    // Extract EXIF from original file AND compress in parallel
+    const [imageDataUrl, exifData] = await Promise.all([
+        compressImage(file),
+        extractExifData(file),
+    ]);
+
+    console.log('📷 Image compressed:', (imageDataUrl.length / 1024).toFixed(2), 'KB');
+    console.log('🗺️ EXIF data:', exifData);
+
+    try { window.GarDIYStorage.saveImage(imageDataUrl); } catch (e) {}
+
+    // Build pre-fill object from EXIF data that's already available
+    const prefilled = {};
+    if (exifData?.direction) prefilled.direction = exifData.direction;
+    if (exifData?.timeOfDay) prefilled.timeOfDay = exifData.timeOfDay;
+
+    previewImage.src = imageDataUrl;
+    previewImage.onload = () => showLocationForm(prefilled);
+
+    // Resolve ZIP from GPS coordinates in background (network call)
+    if (exifData?._lat && exifData?._lon) {
+        getZipFromCoords(exifData._lat, exifData._lon).then(zip => {
+            if (zip && zipCodeInput && locationForm.style.display !== 'none') {
+                zipCodeInput.value          = zip;
+                if (zipBadge) zipBadge.style.display = 'inline-block';
+
+                // Update the auto-detected banner count
+                if (exifStatusBanner && exifStatusText) {
+                    const count = document.querySelectorAll('.auto-badge[style*="inline-block"]').length;
+                    exifStatusText.textContent   = `${count} detail${count !== 1 ? 's' : ''} auto-detected from photo metadata`;
+                    exifStatusBanner.style.display = 'flex';
+                }
+            }
+        });
+    }
 }
 
-// Real Claude AI analysis
-async function simulateAIAnalysis() {
-    console.log('🤖 Sending image to Claude for analysis...');
+// ── Start analysis with location data ─────────────────────────────────────────
+function analyzeWithLocation() {
+    const locationData = {
+        zipCode:   zipCodeInput?.value.trim()  || '',
+        direction: directionInput?.value        || '',
+        timeOfDay: timeInput?.value             || '',
+    };
+
+    if (locationData.zipCode || locationData.direction || locationData.timeOfDay) {
+        try { window.GarDIYStorage.saveLocationContext(locationData); } catch (e) {}
+    }
+
+    if (locationForm) locationForm.style.display = 'none';
+    simulateAIAnalysis(locationData);
+}
+
+// ── AI analysis ───────────────────────────────────────────────────────────────
+async function simulateAIAnalysis(locationData = {}) {
+    console.log('🤖 Sending image to Claude...', locationData);
 
     analysisLoading.style.display = 'block';
     analysisResults.style.display = 'none';
@@ -199,24 +358,33 @@ async function simulateAIAnalysis() {
         scanOverlay.style.display = 'block';
     }
 
-    // Animate loading steps while waiting for Claude
     const steps = document.querySelectorAll('.loading-step');
-    steps[0].classList.add('active');
-    steps[0].querySelector('.step-dot').classList.add('active');
+    steps[0]?.classList.add('active');
+    steps[0]?.querySelector('.step-dot')?.classList.add('active');
     const stepTimers = [
-        setTimeout(() => { steps[1].classList.add('active'); steps[1].querySelector('.step-dot').classList.add('active'); }, 1500),
-        setTimeout(() => { steps[2].classList.add('active'); steps[2].querySelector('.step-dot').classList.add('active'); }, 3000),
-        setTimeout(() => { steps[3].classList.add('active'); steps[3].querySelector('.step-dot').classList.add('active'); }, 4500),
+        setTimeout(() => { steps[1]?.classList.add('active'); steps[1]?.querySelector('.step-dot')?.classList.add('active'); }, 1500),
+        setTimeout(() => { steps[2]?.classList.add('active'); steps[2]?.querySelector('.step-dot')?.classList.add('active'); }, 3000),
+        setTimeout(() => { steps[3]?.classList.add('active'); steps[3]?.querySelector('.step-dot')?.classList.add('active'); }, 4500),
     ];
 
     try {
-        const imageData = previewImage.src;
-        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
-        const authHeader = session.token ? { 'Authorization': `Bearer ${session.token}` } : {};
+        const imageData   = previewImage.src;
+        const session     = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        const authHeader  = session.token ? { 'Authorization': `Bearer ${session.token}` } : {};
+        const sunExposure = describeSunExposure(locationData.direction, locationData.timeOfDay);
+
+        const body = {
+            imageData,
+            ...(locationData.zipCode   && { zipCode:   locationData.zipCode }),
+            ...(locationData.direction && { direction: locationData.direction }),
+            ...(locationData.timeOfDay && { timeOfDay: locationData.timeOfDay }),
+            ...(sunExposure            && { sunExposureDescription: sunExposure }),
+        };
+
         const res  = await fetch('https://gardiy-backend-production.up.railway.app/api/analyze-image', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json', ...authHeader },
-            body:    JSON.stringify({ imageData })
+            body:    JSON.stringify(body),
         });
         const data = await res.json();
 
@@ -229,7 +397,7 @@ async function simulateAIAnalysis() {
 
         if (!data.success) throw new Error(data.message || 'Analysis failed');
 
-        showAnalysisResults(data.analysis);
+        showAnalysisResults(data.analysis, locationData);
 
     } catch (err) {
         console.error('❌ Claude analysis failed:', err.message);
@@ -238,34 +406,31 @@ async function simulateAIAnalysis() {
             photoPreview.classList.remove('scanning');
             scanOverlay.style.display = 'none';
         }
-        // Fall back to placeholder so the user can still proceed
         alert('⚠️ AI analysis unavailable: ' + err.message + '\n\nShowing estimated values.');
-        showAnalysisResults(null);
+        showAnalysisResults(null, locationData);
     }
 }
 
-// Show results — accepts real Claude data or falls back to placeholders
-function showAnalysisResults(claude) {
+// ── Show analysis results ─────────────────────────────────────────────────────
+function showAnalysisResults(claude, locationData = {}) {
     analysisLoading.style.display = 'none';
     analysisResults.style.display = 'block';
 
-    // Use Claude data or sensible fallback
     const analysisData = {
-        squareFeet:  claude?.squareFeet   || '—',
-        dimensions:  claude?.dimensions   || '— ft × — ft',
-        sunlight:    claude?.sunlight     || '—',
-        climate:     claude?.climate      || '—',
-        soilType:    claude?.soilType     || '—',
-        irrigation:  claude?.irrigation   || '—',
-        temperature: claude?.temperature  || '—',
-        confidence:  claude?.confidence   || '—',
-        scaleReference: claude?.scaleReference || '—',
+        squareFeet:      claude?.squareFeet      || '—',
+        dimensions:      claude?.dimensions      || '— ft × — ft',
+        sunlight:        claude?.sunlight        || '—',
+        climate:         claude?.climate         || '—',
+        soilType:        claude?.soilType        || '—',
+        irrigation:      claude?.irrigation      || '—',
+        temperature:     claude?.temperature     || '—',
+        confidence:      claude?.confidence      || '—',
+        scaleReference:  claude?.scaleReference  || '—',
         recommendations: claude?.recommendations || [],
     };
 
     try { window.GarDIYStorage.saveAnalysis(analysisData); } catch (e) {}
 
-    // Populate the existing result cards
     document.getElementById('dimensions').textContent  = analysisData.dimensions;
     document.getElementById('sunlight').textContent    = analysisData.sunlight;
     document.getElementById('climate').textContent     = analysisData.climate;
@@ -273,11 +438,11 @@ function showAnalysisResults(claude) {
     document.getElementById('irrigation').textContent  = analysisData.irrigation;
     document.getElementById('temperature').textContent = analysisData.temperature;
 
-    // Inject the square footage hero card if not already present
+    // Square footage hero card
     let sqftCard = document.getElementById('sqftCard');
     if (!sqftCard) {
         sqftCard = document.createElement('div');
-        sqftCard.id = 'sqftCard';
+        sqftCard.id        = 'sqftCard';
         sqftCard.className = 'result-card sqft-hero';
         sqftCard.innerHTML = `
             <div class="result-icon">📐</div>
@@ -287,55 +452,87 @@ function showAnalysisResults(claude) {
                 <span class="result-sub" id="sqftConfidence"></span>
                 <span class="result-sub" id="sqftRef"></span>
             </div>`;
-        const grid = document.querySelector('.results-grid');
-        if (grid) grid.prepend(sqftCard);
+        document.querySelector('.results-grid')?.prepend(sqftCard);
     }
-
     document.getElementById('sqftValue').textContent =
         analysisData.squareFeet !== '—' ? analysisData.squareFeet + ' sq ft' : '—';
     document.getElementById('sqftConfidence').textContent =
         analysisData.confidence !== '—' ? 'Confidence: ' + analysisData.confidence : '';
     document.getElementById('sqftRef').textContent =
-        analysisData.scaleReference && analysisData.scaleReference !== 'No clear reference found' && analysisData.scaleReference !== '—'
+        analysisData.scaleReference && analysisData.scaleReference !== '—'
             ? 'Scale ref: ' + analysisData.scaleReference : '';
+
+    // Plant recommendations — prefer backend response, then saved, then fallback
+    let finalRecommended    = claude?.recommendedPlants    || [];
+    let finalNotRecommended = claude?.notRecommendedPlants || [];
+
+    if (!finalRecommended.length && !finalNotRecommended.length) {
+        const saved = window.GarDIYStorage.getRecommendations?.();
+        if (saved) {
+            finalRecommended    = saved.recommended    || [];
+            finalNotRecommended = saved.notRecommended || [];
+        } else if (claude) {
+            const fallback  = generateFallbackRecommendations(analysisData);
+            finalRecommended    = fallback.recommended;
+            finalNotRecommended = fallback.notRecommended;
+            console.log('🌿 Using fallback plant recommendations:', fallback);
+        }
+    }
+
+    if (finalRecommended.length || finalNotRecommended.length) {
+        try {
+            window.GarDIYStorage.saveRecommendations({
+                recommended:    finalRecommended,
+                notRecommended: finalNotRecommended,
+            });
+        } catch (e) {}
+        showPlantRecommendationsPreview(finalRecommended, finalNotRecommended);
+    }
 
     generateRecommendations(analysisData);
 }
 
-// Generate recommendations — uses Claude's list if available
+function showPlantRecommendationsPreview(recommended, notRecommended) {
+    let card = document.getElementById('plantRecommendationsPreview');
+    if (!card) {
+        card = document.createElement('div');
+        card.id        = 'plantRecommendationsPreview';
+        card.className = 'plant-recommendations-preview';
+        const actionsDiv = document.querySelector('.action-buttons');
+        actionsDiv?.parentNode.insertBefore(card, actionsDiv);
+    }
+    card.innerHTML = `
+        <h4>🌿 Plant Recommendations Ready</h4>
+        <div class="rec-summary">
+            <span class="rec-count recommended-count">✓ ${recommended.length} recommended</span>
+            <span class="rec-count not-recommended-count">✗ ${notRecommended.length} to avoid</span>
+        </div>
+        <p class="rec-hint">Plants will be color-coded in the design panel</p>
+    `;
+}
+
 function generateRecommendations(data) {
     const list = document.getElementById('recommendationsList');
     if (!list) return;
-
-    // Use Claude's recommendations if present
     if (Array.isArray(data.recommendations) && data.recommendations.length) {
         list.innerHTML = data.recommendations.map(r => '<li>' + r + '</li>').join('');
         return;
     }
-
-    // Generic fallback
-    const recs = ['Upload your photo and let Claude analyze for personalized recommendations.'];
-    list.innerHTML = recs.map(r => '<li>' + r + '</li>').join('');
+    list.innerHTML = '<li>Upload your photo and let Claude analyze for personalized recommendations.</li>';
 }
 
-// Check for saved data
+// ── Check for saved data on page load ────────────────────────────────────────
 function checkForSavedData() {
-    const savedImage = window.GarDIYStorage.getImage();
+    const savedImage    = window.GarDIYStorage.getImage();
     const savedAnalysis = window.GarDIYStorage.getAnalysis();
-    
-    console.log('🔍 Checking for saved data...');
-    console.log('Saved image:', savedImage ? 'Yes (' + (savedImage.length / 1024).toFixed(2) + ' KB)' : 'No');
-    console.log('Saved analysis:', savedAnalysis ? 'Yes' : 'No');
-    
+
     if (savedImage && savedAnalysis) {
-        uploadSection.style.display = 'none';
+        uploadSection.style.display   = 'none';
         analysisSection.style.display = 'block';
-        previewImage.src = savedImage;
-        
+        previewImage.src              = savedImage;
         analysisLoading.style.display = 'none';
+        if (locationForm) locationForm.style.display = 'none';
         showAnalysisResults(savedAnalysis);
-        
-        console.log('✅ Restored previous session');
     }
 }
 
