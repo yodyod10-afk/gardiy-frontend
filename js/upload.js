@@ -196,6 +196,51 @@ function describeSunExposure(direction, timeOfDay) {
     return parts.join('. ') + '.';
 }
 
+// ── ZIP code → climate lookup (overrides AI climate analysis) ────────────────
+function getClimateFromZip(zip) {
+    const n = parseInt(zip, 10);
+    if (!n || isNaN(n)) return null;
+    if (n >= 80001 && n <= 81699) return { label: 'Semi-arid Continental (Colorado), Zone 5-6',     zone: 5 };
+    if (n >= 82001 && n <= 83128) return { label: 'Semi-arid High Plains (Wyoming), Zone 4-5',       zone: 4 };
+    if (n >= 83201 && n <= 83876) return { label: 'Semi-arid Continental (Idaho), Zone 5-7',         zone: 5 };
+    if (n >= 84001 && n <= 84784) return { label: 'Semi-arid Continental (Utah), Zone 5-8',          zone: 6 };
+    if (n >= 85001 && n <= 86556) return { label: 'Hot Desert (Arizona), Zone 8-10',                 zone: 9 };
+    if (n >= 87001 && n <= 88441) return { label: 'Semi-arid Steppe (New Mexico), Zone 5-9',         zone: 7 };
+    if (n >= 89001 && n <= 89883) return { label: 'Hot Desert (Nevada), Zone 7-10',                  zone: 8 };
+    if (n >= 90001 && n <= 96162) return { label: 'Mediterranean / Coastal (California), Zone 9-11', zone: 9 };
+    if (n >= 97001 && n <= 97920) return { label: 'Oceanic Marine (Oregon), Zone 7-9',               zone: 8 };
+    if (n >= 98001 && n <= 99403) return { label: 'Oceanic Marine (Washington), Zone 7-9',           zone: 8 };
+    if (n >= 99501 && n <= 99950) return { label: 'Subarctic (Alaska), Zone 1-4',                    zone: 2 };
+    if (n >= 96701 && n <= 96898) return { label: 'Tropical (Hawaii), Zone 11-13',                   zone: 12 };
+    if (n >= 75001 && n <= 79999) return { label: 'Humid Subtropical / Semi-arid (Texas), Zone 7-9', zone: 8 };
+    if (n >= 70001 && n <= 71497) return { label: 'Humid Subtropical (Louisiana), Zone 8-9',         zone: 9 };
+    if (n >= 32004 && n <= 34997) return { label: 'Humid Subtropical (Florida), Zone 9-11',          zone: 10 };
+    if (n >= 30001 && n <= 31999) return { label: 'Humid Subtropical (Georgia), Zone 7-9',           zone: 8 };
+    if (n >= 35001 && n <= 36925) return { label: 'Humid Subtropical (Alabama), Zone 7-9',           zone: 8 };
+    if (n >= 27001 && n <= 28909) return { label: 'Humid Subtropical (North Carolina), Zone 6-8',    zone: 7 };
+    if (n >= 29001 && n <= 29948) return { label: 'Humid Subtropical (South Carolina), Zone 7-9',    zone: 8 };
+    if (n >= 23001 && n <= 24658) return { label: 'Humid Subtropical (Virginia), Zone 6-8',          zone: 7 };
+    if (n >= 20001 && n <= 21930) return { label: 'Humid Subtropical (DC / Maryland), Zone 6-7',     zone: 7 };
+    if (n >= 10001 && n <= 14975) return { label: 'Humid Continental (New York), Zone 5-7',          zone: 6 };
+    if (n >= 6001  && n <= 6928)  return { label: 'Humid Continental (Connecticut), Zone 5-7',       zone: 6 };
+    if (n >= 1001  && n <= 2791)  return { label: 'Humid Continental (New England), Zone 5-6',       zone: 5 };
+    if (n >= 15001 && n <= 19640) return { label: 'Humid Continental (Pennsylvania), Zone 5-7',      zone: 6 };
+    if (n >= 43001 && n <= 45999) return { label: 'Humid Continental (Ohio), Zone 5-6',              zone: 5 };
+    if (n >= 46001 && n <= 47997) return { label: 'Humid Continental (Indiana), Zone 5-6',           zone: 5 };
+    if (n >= 48001 && n <= 49971) return { label: 'Humid Continental (Michigan), Zone 4-6',          zone: 5 };
+    if (n >= 53001 && n <= 54990) return { label: 'Humid Continental (Wisconsin), Zone 3-5',         zone: 4 };
+    if (n >= 55001 && n <= 56763) return { label: 'Humid Continental (Minnesota), Zone 3-5',         zone: 4 };
+    if (n >= 60001 && n <= 62999) return { label: 'Humid Continental (Illinois), Zone 5-6',          zone: 5 };
+    if (n >= 50001 && n <= 52809) return { label: 'Humid Continental (Iowa), Zone 4-5',              zone: 5 };
+    if (n >= 64001 && n <= 65899) return { label: 'Humid Continental (Missouri), Zone 5-7',          zone: 6 };
+    if (n >= 66001 && n <= 67954) return { label: 'Semi-arid (Kansas), Zone 5-7',                    zone: 6 };
+    if (n >= 68001 && n <= 69367) return { label: 'Semi-arid (Nebraska), Zone 4-6',                  zone: 5 };
+    if (n >= 57001 && n <= 57799) return { label: 'Semi-arid (South Dakota), Zone 3-5',              zone: 4 };
+    if (n >= 58001 && n <= 58856) return { label: 'Semi-arid (North Dakota), Zone 3-4',              zone: 3 };
+    if (n >= 59001 && n <= 59937) return { label: 'Semi-arid Continental (Montana), Zone 3-6',       zone: 4 };
+    return null;
+}
+
 // ── Fallback plant recommendations ───────────────────────────────────────────
 // Used when backend does not return recommendedPlants / notRecommendedPlants
 function generateFallbackRecommendations(analysis) {
@@ -429,6 +474,13 @@ function showAnalysisResults(claude, locationData = {}) {
         recommendations: claude?.recommendations || [],
     };
 
+    // ZIP code overrides AI climate — user's location always wins
+    const zipClimate = locationData.zipCode ? getClimateFromZip(locationData.zipCode) : null;
+    if (zipClimate) {
+        analysisData.climate = zipClimate.label;
+        console.log('📍 Climate overridden by ZIP code:', locationData.zipCode, '→', zipClimate.label);
+    }
+
     try { window.GarDIYStorage.saveAnalysis(analysisData); } catch (e) {}
 
     document.getElementById('dimensions').textContent  = analysisData.dimensions;
@@ -462,20 +514,21 @@ function showAnalysisResults(claude, locationData = {}) {
         analysisData.scaleReference && analysisData.scaleReference !== '—'
             ? 'Scale ref: ' + analysisData.scaleReference : '';
 
-    // Plant recommendations — prefer backend response, then saved, then fallback
-    let finalRecommended    = claude?.recommendedPlants    || [];
-    let finalNotRecommended = claude?.notRecommendedPlants || [];
+    // When ZIP overrides climate, regenerate recommendations for the real location.
+    // Otherwise prefer backend response, then saved data, then fallback.
+    let finalRecommended    = (zipClimate ? [] : claude?.recommendedPlants)    || [];
+    let finalNotRecommended = (zipClimate ? [] : claude?.notRecommendedPlants) || [];
 
     if (!finalRecommended.length && !finalNotRecommended.length) {
-        const saved = window.GarDIYStorage.getRecommendations?.();
+        const saved = zipClimate ? null : window.GarDIYStorage.getRecommendations?.();
         if (saved) {
             finalRecommended    = saved.recommended    || [];
             finalNotRecommended = saved.notRecommended || [];
-        } else if (claude) {
+        } else if (claude || zipClimate) {
             const fallback  = generateFallbackRecommendations(analysisData);
             finalRecommended    = fallback.recommended;
             finalNotRecommended = fallback.notRecommended;
-            console.log('🌿 Using fallback plant recommendations:', fallback);
+            console.log('🌿 Plant recommendations (zip-corrected):', fallback);
         }
     }
 

@@ -352,6 +352,7 @@ function setupCategoryButtons() {
         const open    = items.style.display !== 'none';
         items.style.display = open ? 'none' : 'block';
         icon.textContent    = open ? '▼' : '▲';
+        if (!open) applyPlantRecommendationColors();
     });
 }
 
@@ -1300,12 +1301,40 @@ document.head.appendChild(Object.assign(document.createElement('style'), { textC
 ` }));
 
 // ── Plant recommendation color coding ─────────────────────────────────────────
+// Maps AI-returned plant name keywords → generic product names in the sidebar
+const PLANT_KEYWORD_MAP = [
+    { keys: ['spruce','pine','oak','maple','elm','birch','willow','ash','fir','cedar','cottonwood','aspen','larch','juniper','conifer','evergreen','deciduous'], products: ['tree','deciduous tree'] },
+    { keys: ['palm','tropical','banana','ficus','hibiscus'], products: ['palm tree'] },
+    { keys: ['cactus','succulent','agave','yucca','aloe','opuntia'], products: ['cactus'] },
+    { keys: ['rose','rosa'], products: ['rose'] },
+    { keys: ['sunflower','helianthus'], products: ['sunflower'] },
+    { keys: ['tulip','daffodil','crocus','hyacinth','bulb'], products: ['tulip'] },
+    { keys: ['cherry','blossom','ornamental cherry','prunus'], products: ['cherry blossom'] },
+    { keys: ['lavender','sage','thyme','oregano','herb','perennial','annual','columbine','yarrow','coneflower','echinacea','black-eyed','daisy','zinnia','marigold','petunia','impatiens','salvia','aster','sedum'], products: ['small plant','potted plant'] },
+    { keys: ['shrub','bush','boxwood','lilac','forsythia','spirea','viburnum','potentilla'], products: ['small plant','potted plant'] },
+    { keys: ['grass','lawn','turf','sod','bluegrass','fescue','buffalo grass','zoysia','bermuda','ryegrass','dropseed'], products: ['lawn','grass field'] },
+];
+
+function matchRecsToProducts(recList, productName) {
+    const name = productName.toLowerCase();
+    return recList.some(r => {
+        const rl = r.toLowerCase();
+        // direct substring match
+        if (name.includes(rl) || rl.includes(name)) return true;
+        // keyword map: check if the rec string contains a keyword that maps to this product
+        return PLANT_KEYWORD_MAP.some(entry =>
+            entry.products.some(p => name.includes(p)) &&
+            entry.keys.some(k => rl.includes(k))
+        );
+    });
+}
+
 function applyPlantRecommendationColors() {
     const recs = window.GarDIYStorage?.getRecommendations?.();
     if (!recs) return;
 
-    const recommended    = (recs.recommended    || []).map(s => s.toLowerCase());
-    const notRecommended = (recs.notRecommended || []).map(s => s.toLowerCase());
+    const recommended    = (recs.recommended    || []);
+    const notRecommended = (recs.notRecommended || []);
     if (!recommended.length && !notRecommended.length) return;
 
     const plantCategories = ['plants', 'trees', 'flowers'];
@@ -1313,13 +1342,14 @@ function applyPlantRecommendationColors() {
 
     document.querySelectorAll('.product-item').forEach(item => {
         const product = productRegistry[item.dataset.pid];
-        if (!product || !plantCategories.includes(product.category)) return;
+        if (!product || !plantCategories.includes((product.category || '').toLowerCase())) return;
 
-        const name = product.name.toLowerCase();
+        const name = product.name;
 
-        const isRec    = recommended.some(r    => name.includes(r)    || r.includes(name));
-        const isNotRec = !isRec && notRecommended.some(r => name.includes(r) || r.includes(name));
+        const isRec    = matchRecsToProducts(recommended,    name);
+        const isNotRec = !isRec && matchRecsToProducts(notRecommended, name);
 
+        item.classList.remove('plant-recommended', 'plant-not-recommended');
         if (isRec) {
             item.classList.add('plant-recommended');
             anyColored = true;
