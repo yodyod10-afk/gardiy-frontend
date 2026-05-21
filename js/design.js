@@ -71,6 +71,22 @@ function getItemSqFt(placedItem) {
     return sqFt;
 }
 
+// Returns brick count info for a placed brick-path item using getTotalLength()
+function getBrickPathInfo(placedItem) {
+    const el     = placedItem.element;
+    const svgEl  = el.querySelector('svg.path-svg');
+    const pathEl = svgEl?.querySelector('path[data-measure]') || svgEl?.querySelector('path');
+    if (!pathEl) return null;
+    const pixelLength = pathEl.getTotalLength();
+    const pathWidthPx = parseInt(el.dataset.pathWidth || 40);
+    const scale = getSqFtScale();
+    if (!scale) return { pixelLength, pathWidthPx, noScale: true };
+    const areaInSqFt = pixelLength * pathWidthPx * scale;
+    const BRICK_SQFT = (8 / 12) * (4 / 12); // standard 8"×4" brick = 0.222 sq ft
+    const brickCount = Math.ceil((areaInSqFt / BRICK_SQFT) * 1.1); // +10% waste
+    return { pixelLength, pathWidthPx, areaInSqFt, brickCount, cost: brickCount * placedItem.price, noScale: false };
+}
+
 // Keyword-based coverage lookup — handles typos, truncation, any naming variation
 function getCoverageRate(name) {
     // Exact match first
@@ -239,6 +255,9 @@ function isPathItem(n, c) {
     return (c||'').toLowerCase() === 'paths' ||
         ['path','pathway','walkway'].some(k => (n||'').toLowerCase().includes(k));
 }
+function isBrickPath(n, c) {
+    return (c||'').toLowerCase() === 'paths' && (n||'').toLowerCase().includes('brick');
+}
 
 // ── DOM ready ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async function () {
@@ -309,7 +328,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     });
 
     document.addEventListener('mouseup', () => {
-        if (isDraggingPolyDot) updateMaterialsList();
+        if (isDraggingPolyDot || isDraggingDot) updateMaterialsList();
         isDraggingPolyDot = false; draggedPolyDot = null;
         isDraggingDot     = false; draggedDot     = null;
     });
@@ -560,6 +579,16 @@ function makeDraggable(item) {
             item.dataset.polyPoints = JSON.stringify(points);
             applyPolyShape(item);
             if (item === selectedItem) updatePolyDotPositions(item);
+        } else if (item.dataset.pathPoints) {
+            const points = JSON.parse(item.dataset.pathPoints).map(p => ({ ...p, x: p.x + dx, y: p.y + dy }));
+            item.dataset.pathPoints = JSON.stringify(points);
+            applyPathShape(item);
+            if (item === selectedItem) {
+                meshDots.forEach(dot => {
+                    dot.style.left = (parseFloat(dot.style.left) || 0) + dx + 'px';
+                    dot.style.top  = (parseFloat(dot.style.top)  || 0) + dy + 'px';
+                });
+            }
         } else {
             item.style.left = (parseInt(item.style.left) || 0) + dx + 'px';
             item.style.top  = (parseInt(item.style.top)  || 0) + dy + 'px';
@@ -824,6 +853,16 @@ function createControlPanel(item) {
         html += `<span style="font-size:11px;color:#718096;padding:0 4px;" id="dotCountBadge"></span>`;
     }
 
+    const isPathEl = isPathItem(item.dataset.name, item.dataset.category);
+    if (isPathEl) {
+        html += `
+            <button class="control-btn" onclick="changePathWidth('${item.dataset.id}', -8)" title="Narrow path">−</button>
+            <button class="control-btn" onclick="changePathWidth('${item.dataset.id}', 8)"  title="Widen path">+</button>
+            <button class="control-btn" onclick="resetPath('${item.dataset.id}')" title="Reset path shape">↻</button>
+            <span style="font-size:10px;color:#718096;padding:0 2px;">right-click dot → add point</span>
+        `;
+    }
+
     html += `
         <div class="rotation-dial" data-item-id="${item.dataset.id}" title="Rotate">
             <div class="dial-handle" style="transform:rotate(${item.dataset.rotation||0}deg);"></div>
@@ -856,6 +895,11 @@ function updateControlPanelPosition(item) {
     let cx, ty;
     if (item.dataset.polyPoints) {
         const pts = JSON.parse(item.dataset.polyPoints);
+        const xs  = pts.map(p => p.x), ys = pts.map(p => p.y);
+        cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+        ty = Math.min(...ys);
+    } else if (item.dataset.pathPoints) {
+        const pts = JSON.parse(item.dataset.pathPoints);
         const xs  = pts.map(p => p.x), ys = pts.map(p => p.y);
         cx = (Math.min(...xs) + Math.max(...xs)) / 2;
         ty = Math.min(...ys);
@@ -994,10 +1038,16 @@ function updateMaterialsList() {
     }
 
     // coverage: hardscapes ($/ton, sfPerUnit=SF per ton) + grass ($/sqft, sfPerUnit=1)
-    const coverage = {}; // name → { name, price, sfPerUnit, unitType, totalSqFt, noScale }
-    const regular  = {}; // name → { name, price, count }
+    const coverage   = {}; // name → { name, price, sfPerUnit, unitType, totalSqFt, noScale }
+    const regular    = {}; // name → { name, price, count }
+    const brickPaths = {}; // name → { name, price, items[] }
 
     placedItems.forEach(item => {
+        if (isBrickPath(item.name, item.category)) {
+            if (!brickPaths[item.name]) brickPaths[item.name] = { name: item.name, price: item.price, items: [] };
+            brickPaths[item.name].items.push(item);
+            return;
+        }
         const sfPerTon    = getCoverageRate(item.name);
         const isPerSqft   = isGrassItem(item.name, item.category);
         if (sfPerTon !== undefined) {
@@ -1050,6 +1100,35 @@ function updateMaterialsList() {
             <div><div style="font-weight:600;font-size:13px;">${item.name}</div>
             <div style="font-size:12px;color:#718096;">Qty: ${item.count}</div></div>
             <div style="font-weight:700;color:#667eea;font-size:14px;">$${sub.toFixed(2)}</div>
+        </div>`;
+    });
+
+    // Brick path rows (count bricks from path pixel length)
+    Object.values(brickPaths).forEach(group => {
+        let totalBricks = 0, hasNoScale = false, anyDrawn = false;
+        group.items.forEach(item => {
+            const info = getBrickPathInfo(item);
+            if (!info) return;
+            anyDrawn = true;
+            if (info.noScale) { hasNoScale = true; return; }
+            totalBricks += info.brickCount || 0;
+        });
+        const cost = totalBricks * group.price;
+        total += cost;
+        const detailLine = !anyDrawn
+            ? `<div style="font-size:11px;color:#718096;">Draw path to calculate bricks</div>`
+            : hasNoScale
+                ? `<div style="font-size:11px;color:#f59e0b;">⚠ Enter yard area to calculate bricks</div>`
+                : totalBricks > 0
+                    ? `<div style="font-size:11px;color:#b5631a;font-weight:600;margin-top:3px;">🧱 ${totalBricks.toLocaleString()} bricks needed (+10% waste)</div>
+                       <div style="font-size:11px;color:#718096;">$${group.price.toFixed(2)}/brick</div>`
+                    : `<div style="font-size:11px;color:#718096;">Path too short to calculate</div>`;
+        html += `<div class="material-item">
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:13px;">${group.name}</div>
+                ${detailLine}
+            </div>
+            <div style="font-weight:700;color:#b5631a;font-size:14px;white-space:nowrap;">$${cost.toFixed(2)}</div>
         </div>`;
     });
 
@@ -1132,6 +1211,7 @@ function createPathControls(item) {
 }
 
 function applyPathShape(item) {
+    if (isBrickPath(item.dataset.name, item.dataset.category)) { return applyBrickPathShape(item); }
     const points    = JSON.parse(item.dataset.pathPoints || '[]');
     const pathWidth = parseInt(item.dataset.pathWidth || 40);
     if (points.length < 2) return;
@@ -1179,6 +1259,101 @@ function applyPathShape(item) {
     svg.appendChild(path);
 }
 
+function applyBrickPathShape(item) {
+    const points    = JSON.parse(item.dataset.pathPoints || '[]');
+    const pathWidth = parseInt(item.dataset.pathWidth || 40);
+    if (points.length < 2) return;
+
+    let svg = item.querySelector('svg.path-svg');
+    if (!svg) {
+        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.classList.add('path-svg');
+        svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;';
+        item.appendChild(svg);
+    }
+
+    const xs   = points.map(p => p.x), ys = points.map(p => p.y);
+    const minX = Math.min(...xs), minY = Math.min(...ys);
+    const maxX = Math.max(...xs), maxY = Math.max(...ys);
+    const pad  = pathWidth;
+    const W    = maxX - minX + pad * 2, H = maxY - minY + pad * 2;
+
+    item.style.left = (minX - pad) + 'px'; item.style.top  = (minY - pad) + 'px';
+    item.style.width = W + 'px';           item.style.height = H + 'px';
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    svg.innerHTML = '';
+
+    const NS     = 'http://www.w3.org/2000/svg';
+    const ns     = tag => document.createElementNS(NS, tag);
+    const patId  = `brickPat${item.dataset.id}`;
+    // Brick pattern tile (running bond) at base size 40×26px, scaled with path width
+    const patW   = 40, patH = 26;
+    const patScale = (pathWidth / 40).toFixed(3);
+
+    const defs = ns('defs');
+    const pat  = ns('pattern');
+    pat.id = patId;
+    pat.setAttribute('patternUnits', 'userSpaceOnUse');
+    pat.setAttribute('width', patW); pat.setAttribute('height', patH);
+    pat.setAttribute('patternTransform', `scale(${patScale})`);
+
+    // Mortar background
+    const bg = ns('rect');
+    bg.setAttribute('width', patW); bg.setAttribute('height', patH);
+    bg.setAttribute('fill', '#c8a882');
+    pat.appendChild(bg);
+
+    // Row 1 (y=2): two full bricks per tile → centers at x=10 and x=30
+    [[2, 2, 16, 11], [22, 2, 16, 11]].forEach(([x, y, w, h]) => {
+        const r = ns('rect');
+        r.setAttribute('x', x); r.setAttribute('y', y);
+        r.setAttribute('width', w); r.setAttribute('height', h);
+        r.setAttribute('rx', '1'); r.setAttribute('fill', '#b5631a');
+        pat.appendChild(r);
+    });
+
+    // Row 2 (y=15): offset running bond — left frag + center + right frag
+    // Left frag (x=0-8) + right frag from adjacent tile (x=32-40) form one full brick centered at x=0/40
+    // Center brick at x=12-28 centered at x=20 (between row1 centers 10 and 30)
+    [[0, 15, 8, 11], [12, 15, 16, 11], [32, 15, 8, 11]].forEach(([x, y, w, h]) => {
+        const r = ns('rect');
+        r.setAttribute('x', x); r.setAttribute('y', y);
+        r.setAttribute('width', w); r.setAttribute('height', h);
+        r.setAttribute('rx', '1'); r.setAttribute('fill', '#b5631a');
+        pat.appendChild(r);
+    });
+
+    defs.appendChild(pat);
+    svg.appendChild(defs);
+
+    // Build bezier path data
+    let d = `M ${points[0].x - minX + pad} ${points[0].y - minY + pad}`;
+    for (let i = 1; i < points.length; i++) {
+        const cx2 = points[i].x - minX + pad, cy2 = points[i].y - minY + pad;
+        if (i === points.length - 1) { d += ` L ${cx2} ${cy2}`; }
+        else {
+            const nx = points[i+1].x - minX + pad, ny = points[i+1].y - minY + pad;
+            d += ` Q ${cx2} ${cy2} ${(cx2+nx)/2} ${(cy2+ny)/2}`;
+        }
+    }
+
+    // Drop shadow
+    const shadow = ns('path');
+    shadow.setAttribute('d', d); shadow.setAttribute('stroke', 'rgba(0,0,0,0.28)');
+    shadow.setAttribute('stroke-width', pathWidth + 4); shadow.setAttribute('stroke-linecap', 'round');
+    shadow.setAttribute('stroke-linejoin', 'round'); shadow.setAttribute('fill', 'none');
+    svg.appendChild(shadow);
+
+    // Brick-patterned stroke (data-measure for getTotalLength in getBrickPathInfo)
+    const brickPath = ns('path');
+    brickPath.setAttribute('d', d); brickPath.setAttribute('stroke', `url(#${patId})`);
+    brickPath.setAttribute('stroke-width', pathWidth); brickPath.setAttribute('stroke-linecap', 'round');
+    brickPath.setAttribute('stroke-linejoin', 'round'); brickPath.setAttribute('fill', 'none');
+    brickPath.setAttribute('opacity', '0.95'); brickPath.setAttribute('data-measure', 'true');
+    svg.appendChild(brickPath);
+}
+
 function addPathPoint(clientX, clientY) {
     if (!selectedItem || !selectedItem.dataset.pathPoints) return;
     const rect = document.getElementById('designCanvas').getBoundingClientRect();
@@ -1191,8 +1366,9 @@ function addPathPoint(clientX, clientY) {
 window.changePathWidth = function(itemId, delta) {
     const item = document.querySelector(`[data-id="${itemId}"]`);
     if (!item) return;
-    item.dataset.pathWidth = Math.max(10, Math.min(100, parseInt(item.dataset.pathWidth || 40) + delta));
+    item.dataset.pathWidth = Math.max(10, Math.min(120, parseInt(item.dataset.pathWidth || 40) + delta));
     applyPathShape(item);
+    updateMaterialsList();
 };
 window.resetPath = function(itemId) {
     const item = document.querySelector(`[data-id="${itemId}"]`);
@@ -1264,6 +1440,7 @@ async function submitDesignForCheckout() {
     const depth  = document.getElementById('depth')?.value  || 'Not specified';
 
     // Mirror updateMaterialsList pricing: hardscapes per ton, grass per sqft
+    const checkoutItems  = [];
     const coverageGroups = {};
     const regularGroups  = {};
     placedItems.forEach(item => {
@@ -1277,13 +1454,17 @@ async function submitDesignForCheckout() {
             if (!coverageGroups[item.name]) coverageGroups[item.name] = { name: item.name, basePricePerUnit: item.price || 0, sfPerUnit: 1, totalSqFt: 0 };
             const sqFt = getItemSqFt(item);
             if (sqFt) coverageGroups[item.name].totalSqFt += sqFt;
+        } else if (isBrickPath(item.name, item.category)) {
+            const info = getBrickPathInfo(item);
+            const itemCost = (info && !info.noScale && info.cost) ? info.cost : (item.price || 0);
+            const bricks   = (info && !info.noScale && info.brickCount) ? info.brickCount : 1;
+            checkoutItems.push({ name: `${item.name} (${bricks.toLocaleString()} bricks)`, price: parseFloat(itemCost.toFixed(2)) });
         } else {
             if (!regularGroups[item.name]) regularGroups[item.name] = { name: item.name, price: item.price || 0, count: 0 };
             regularGroups[item.name].count++;
         }
     });
 
-    const checkoutItems = [];
     // Coverage items (hardscapes + grass): area-computed when polygon drawn, unit price fallback
     Object.values(coverageGroups).forEach(g => {
         if (g.sfPerUnit > 0 && g.totalSqFt > 0) {
