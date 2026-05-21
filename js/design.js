@@ -410,8 +410,8 @@ document.addEventListener('click', async e => {
         price: parseFloat(p.price),
     };
     const isMesh = isMeshItem(data.name, data.category);
-    const x = isMesh ? rect.width  / 2 - 200 : rect.width  / 2 - 40;
-    const y = isMesh ? rect.height / 2 - 125 : rect.height / 2 - 40;
+    const x = isMesh ? rect.width  / 2 - 100 : rect.width  / 2 - 40;
+    const y = isMesh ? rect.height / 2 - 65  : rect.height / 2 - 40;
     await addItemToCanvas(data, x, y);
 });
 
@@ -422,8 +422,8 @@ async function addItemToCanvas(itemData, x, y) {
 
     const isMesh = isMeshItem(itemData.name, itemData.category);
     const isPath = isPathItem(itemData.name, itemData.category);
-    const w = isMesh ? 400 : 80;
-    const h = isMesh ? 250 : 80;
+    const w = isMesh ? 200 : 80;
+    const h = isMesh ? 130 : 80;
 
     const item = document.createElement('div');
     item.className        = 'draggable-item';
@@ -460,6 +460,7 @@ async function addItemToCanvas(itemData, x, y) {
             item.style.backgroundRepeat   = 'no-repeat';
             item.style.backgroundSize     = 'cover';
             item.style.backgroundPosition = 'center';
+            item.style.mixBlendMode       = 'multiply';
         } else {
             item.style.backgroundColor = 'rgba(120,190,90,0.3)';
             item.innerHTML = `<span style="font-size:64px;opacity:0.7;pointer-events:none;">${itemData.image}</span>`;
