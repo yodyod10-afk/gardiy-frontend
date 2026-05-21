@@ -1226,7 +1226,9 @@ async function submitDesignForCheckout() {
     Object.values(regularGroups).forEach(g => {
         for (let c = 0; c < g.count; c++) checkoutItems.push({ name: g.name, price: g.price });
     });
-    const total = checkoutItems.reduce((s, i) => s + i.price, 0);
+    // Use the total currently displayed on the design page as the authoritative subtotal
+    const displayedTotal = parseFloat(document.getElementById('totalCost')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
+    const total = displayedTotal > 0 ? displayedTotal : checkoutItems.reduce((s, i) => s + i.price, 0);
 
     try {
         // Pass items + total to checkout page

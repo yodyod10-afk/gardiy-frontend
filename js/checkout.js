@@ -90,7 +90,7 @@ function updateTotals(storedTotal) {
     }
 
     const calcSubtotal = savedDesign.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
-    const subtotal = calcSubtotal > 0 ? calcSubtotal : (fallbackTotal || 0);
+    const subtotal = (typeof fallbackTotal === 'number' && fallbackTotal > 0) ? fallbackTotal : calcSubtotal;
     const deliveryFee = deliveryFeeAmount;
     const installationRequested = document.getElementById('installRadio')?.checked;
     const tax = (subtotal + deliveryFee) * taxRate;
@@ -122,7 +122,7 @@ function getOrderTotalCents() {
         const d = JSON.parse(savedDesignStr);
         const items = d.items && Array.isArray(d.items) ? d.items : Array.isArray(d) ? d : [];
         const calcSubtotal = items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
-        const subtotal = calcSubtotal > 0 ? calcSubtotal : (typeof d.total === 'number' ? d.total : 0);
+        const subtotal = (typeof d.total === 'number' && d.total > 0) ? d.total : calcSubtotal;
         const tax = (subtotal + deliveryFeeAmount) * taxRate;
         return Math.round((subtotal + deliveryFeeAmount + tax) * 100);
     } catch (e) { return 0; }
