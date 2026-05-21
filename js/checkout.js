@@ -34,7 +34,20 @@ function checkUserLogin() {
 
 // ── Order summary ─────────────────────────────────────────────────────────────
 function loadOrderSummary() {
-    const savedDesignStr = localStorage.getItem('gardiyCheckout') || localStorage.getItem('gardiyDesign');
+    const checkoutRaw = localStorage.getItem('gardiyCheckout');
+    const designRaw   = localStorage.getItem('gardiyDesign');
+    const savedDesignStr = checkoutRaw || designRaw;
+
+    // Debug box
+    const dbg = document.getElementById('debugBox');
+    if (dbg) {
+        const co = checkoutRaw ? JSON.parse(checkoutRaw) : null;
+        dbg.innerHTML = '<b>DEBUG (temp)</b><br>'
+            + 'gardiyCheckout: ' + (co ? `total=$${co.total}, items=${co.items?.length}` : 'null') + '<br>'
+            + 'gardiyDesign: ' + (designRaw ? JSON.parse(designRaw)?.items?.length + ' items' : 'null') + '<br>'
+            + (co?.items?.slice(0,3).map(i=>`${i.name}: $${i.price}`).join(', ') || '');
+    }
+
     if (!savedDesignStr) { showEmptySummary(); return; }
 
     let savedDesign, storedTotal;
