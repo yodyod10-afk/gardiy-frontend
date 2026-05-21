@@ -1034,6 +1034,7 @@ async function loadSavedDesign() {
             if (d.pathPoints) { item.dataset.pathPoints = d.pathPoints; item.dataset.pathWidth = d.pathWidth || '40'; applyPathShape(item); }
         }
         deselectItem();
+        updateMaterialsList(); // recalculate after all polygon shapes are restored
     } catch (e) { console.error('Load error:', e); }
 }
 
@@ -1215,20 +1216,21 @@ async function submitDesignForCheckout() {
     Object.values(coverageGroups).forEach(g => {
         if (g.sfPerTon > 0 && g.totalSqFt > 0) {
             const tons = g.totalSqFt / g.sfPerTon;
-            checkoutItems.push({ name: g.name, price: tons * g.basePricePerTon });
+            checkoutItems.push({ name: g.name, price: parseFloat((tons * g.basePricePerTon).toFixed(2)) });
         } else {
             // No polygon drawn — use unit (per-ton) price × count so checkout is never $0
             const count = placedItems.filter(i => i.name === g.name).length;
-            for (let c = 0; c < count; c++) checkoutItems.push({ name: g.name, price: g.basePricePerTon });
+            const unitPrice = parseFloat(g.basePricePerTon) || 0;
+            for (let c = 0; c < count; c++) checkoutItems.push({ name: g.name, price: unitPrice });
         }
     });
     // Regular items: individual entries so checkout can display qty × unit price
     Object.values(regularGroups).forEach(g => {
-        for (let c = 0; c < g.count; c++) checkoutItems.push({ name: g.name, price: g.price });
+        const unitPrice = parseFloat(g.price) || 0;
+        for (let c = 0; c < g.count; c++) checkoutItems.push({ name: g.name, price: unitPrice });
     });
-    // Use the total currently displayed on the design page as the authoritative subtotal
-    const displayedTotal = parseFloat(document.getElementById('totalCost')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
-    const total = displayedTotal > 0 ? displayedTotal : checkoutItems.reduce((s, i) => s + i.price, 0);
+    // Compute total directly from checkoutItems so it's always consistent with actual prices
+    const total = parseFloat(checkoutItems.reduce((s, i) => s + (parseFloat(i.price) || 0), 0).toFixed(2));
 
     try {
         // Pass items + total to checkout page
