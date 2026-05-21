@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setupServiceSelection();
     setupDeliveryDate();
     setupPhoneFormatting();
-    setupLazyStripeInit();
+    initStripePaymentElement(); // background — no await, page stays responsive
     setupPlaceOrder();
 });
 
@@ -171,26 +171,6 @@ async function initStripePaymentElement() {
     }
 }
 
-// Defer Stripe init until the payment section scrolls into view
-function setupLazyStripeInit() {
-    const paymentSection = document.getElementById('paymentSection');
-    if (!paymentSection) { initStripePaymentElement(); return; }
-
-    const paymentDiv = document.getElementById('payment-element');
-    if (paymentDiv) paymentDiv.innerHTML = '<p style="color:#9ca3af;font-style:italic;padding:1rem 0;">Scroll down to load payment form…</p>';
-
-    if (!('IntersectionObserver' in window)) { initStripePaymentElement(); return; }
-
-    const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && !stripeInstance) {
-            if (paymentDiv) paymentDiv.innerHTML = '<p style="color:#9ca3af;font-style:italic;padding:1rem 0;">Loading secure payment form…</p>';
-            initStripePaymentElement();
-            observer.disconnect();
-        }
-    }, { rootMargin: '300px' });
-
-    observer.observe(paymentSection);
-}
 
 function getAuthHeader() {
     try {
