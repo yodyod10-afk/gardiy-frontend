@@ -58,10 +58,18 @@ const defaultProducts = [
     { id: 'flower-2', name: 'Tulips', image: '🌷', category: 'flowers', price: 20, type: 'emoji' },
     { id: 'flower-3', name: 'Sunflowers', image: '🌻', category: 'flowers', price: 15, type: 'emoji' },
     
+    // Rocks & Pavers
+    { id: 'rocks-1', name: 'Concrete Paver',      image: '⬜', category: 'rocks_pavers', price: 6.00,  type: 'emoji' },
+    { id: 'rocks-2', name: 'Brick Paver',          image: '🧱', category: 'rocks_pavers', price: 7.50,  type: 'emoji' },
+    { id: 'rocks-3', name: 'Natural Stone Paver',  image: '🪨', category: 'rocks_pavers', price: 12.00, type: 'emoji' },
+    { id: 'rocks-4', name: 'Flagstone',            image: '🟫', category: 'rocks_pavers', price: 8.00,  type: 'emoji' },
+    { id: 'rocks-5', name: 'Pea Gravel',           image: '⚫', category: 'rocks_pavers', price: 2.50,  type: 'emoji' },
+    { id: 'rocks-6', name: 'Decomposed Granite',   image: '🟡', category: 'rocks_pavers', price: 2.00,  type: 'emoji' },
+
     // Furniture
-    { id: 'furniture-1', name: 'Chairs', image: '🪑', category: 'furniture', price: 180, type: 'emoji' },
+    { id: 'furniture-1', name: 'Chairs',       image: '🪑',  category: 'furniture', price: 180, type: 'emoji' },
     { id: 'furniture-2', name: 'Outdoor Sofa', image: '🛋️', category: 'furniture', price: 800, type: 'emoji' },
-    { id: 'furniture-3', name: 'Fire Pit', image: '🔥', category: 'furniture', price: 450, type: 'emoji' }
+    { id: 'furniture-3', name: 'Fire Pit',     image: '🔥',  category: 'furniture', price: 450, type: 'emoji' }
 ];
 
 let products = [];
@@ -335,13 +343,14 @@ async function loadProductsGrid() {
     }
     
     const categories = {
-        'paths': 'Paths',
-        'grass': 'Grass',
-        'hardscapes': 'Hardscapes',
-        'plants': 'Plants',
-        'trees': 'Trees',
-        'flowers': 'Flowers',
-        'furniture': 'Furniture'
+        'paths':        'Paths',
+        'grass':        'Grass',
+        'hardscapes':   'Hardscapes',
+        'rocks_pavers': 'Rocks & Pavers',
+        'plants':       'Plants',
+        'trees':        'Trees',
+        'flowers':      'Flowers',
+        'furniture':    'Furniture',
     };
     
     let html = '';
@@ -582,13 +591,14 @@ function createProductModal(existingProduct = null) {
                     <select id="productCategory" required
                         style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; box-sizing: border-box;">
                         <option value="">Select category...</option>
-                        <option value="paths" ${existingProduct?.category === 'paths' ? 'selected' : ''}>Paths</option>
-                        <option value="grass" ${existingProduct?.category === 'grass' ? 'selected' : ''}>Grass</option>
-                        <option value="hardscapes" ${existingProduct?.category === 'hardscapes' ? 'selected' : ''}>Hardscapes</option>
-                        <option value="plants" ${existingProduct?.category === 'plants' ? 'selected' : ''}>Plants</option>
-                        <option value="trees" ${existingProduct?.category === 'trees' ? 'selected' : ''}>Trees</option>
-                        <option value="flowers" ${existingProduct?.category === 'flowers' ? 'selected' : ''}>Flowers</option>
-                        <option value="furniture" ${existingProduct?.category === 'furniture' ? 'selected' : ''}>Furniture</option>
+                        <option value="paths"        ${existingProduct?.category === 'paths'        ? 'selected' : ''}>Paths</option>
+                        <option value="grass"        ${existingProduct?.category === 'grass'        ? 'selected' : ''}>Grass</option>
+                        <option value="hardscapes"   ${existingProduct?.category === 'hardscapes'   ? 'selected' : ''}>Hardscapes</option>
+                        <option value="rocks_pavers" ${existingProduct?.category === 'rocks_pavers' ? 'selected' : ''}>Rocks &amp; Pavers</option>
+                        <option value="plants"       ${existingProduct?.category === 'plants'       ? 'selected' : ''}>Plants</option>
+                        <option value="trees"        ${existingProduct?.category === 'trees'        ? 'selected' : ''}>Trees</option>
+                        <option value="flowers"      ${existingProduct?.category === 'flowers'      ? 'selected' : ''}>Flowers</option>
+                        <option value="furniture"    ${existingProduct?.category === 'furniture'    ? 'selected' : ''}>Furniture</option>
                     </select>
                 </div>
                 
