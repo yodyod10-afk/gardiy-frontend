@@ -360,26 +360,23 @@ async function loadProductsGrid() {
     };
     
     let html = '';
-    
+
     for (const [catKey, catName] of Object.entries(categories)) {
         const catProducts = products.filter(p => p.category === catKey);
-        
-        if (catProducts.length > 0) {
-            html += `
-                <div class="category-section">
-                    <h3>${catName} (${catProducts.length})</h3>
-                    <div class="products-list">
-            `;
-            
+
+        html += `<div class="category-section">
+            <h3>${catName} (${catProducts.length})</h3>
+            <div class="products-list">`;
+
+        if (catProducts.length === 0) {
+            html += `<p style="color:#9ca3af;font-style:italic;padding:0.5rem 0;">No products yet — use Add Product to add one.</p>`;
+        } else {
             catProducts.forEach(product => {
                 const productId = product.id || product._id;
-                
-                const displayImage = product.type === 'emoji' 
+                const displayImage = product.type === 'emoji'
                     ? `<div class="product-emoji">${product.image}</div>`
                     : `<img src="${product.image}" class="product-image" alt="${product.name}">`;
-                
                 const tilingBadge = product.tiling ? '<span class="tiling-badge">🔄 Tiling</span>' : '';
-                
                 html += `
                     <div class="product-card" data-id="${productId}">
                         ${displayImage}
@@ -394,24 +391,11 @@ async function loadProductsGrid() {
                             <button class="edit-product-btn" data-id="${productId}">✏️ Edit</button>
                             <button class="delete-product-btn" data-id="${productId}">🗑️ Delete</button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
-            
-            html += `
-                    </div>
-                </div>
-            `;
         }
-    }
-    
-    if (html === '') {
-        html = `
-            <div class="empty-state">
-                <h3>No products in any category</h3>
-                <p>Click "Add Product" to create your first product</p>
-            </div>
-        `;
+
+        html += `</div></div>`;
     }
     
     productsGrid.innerHTML = html;
