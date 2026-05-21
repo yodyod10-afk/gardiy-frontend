@@ -159,9 +159,15 @@ function getMockProducts() {
         { id: 13, name: 'Sunflower',       category: 'flowers',    type: 'emoji', image: '🌻', price: 25   },
         { id: 14, name: 'Tulip',           category: 'flowers',    type: 'emoji', image: '🌷', price: 18   },
         { id: 15, name: 'Cherry Blossom',  category: 'flowers',    type: 'emoji', image: '🌸', price: 30   },
-        { id: 16, name: 'Bench',           category: 'furniture',  type: 'emoji', image: '🪑', price: 200  },
-        { id: 17, name: 'Table',           category: 'furniture',  type: 'emoji', image: '🛋️', price: 300  },
-        { id: 18, name: 'Fountain',        category: 'furniture',  type: 'emoji', image: '⛲', price: 500  },
+        { id: 16, name: 'Bench',                category: 'furniture',    type: 'emoji', image: '🪑', price: 200   },
+        { id: 17, name: 'Table',                category: 'furniture',    type: 'emoji', image: '🛋️', price: 300   },
+        { id: 18, name: 'Fountain',             category: 'furniture',    type: 'emoji', image: '⛲', price: 500   },
+        { id: 19, name: 'Concrete Paver',       category: 'rocks_pavers', type: 'emoji', image: '⬜', price: 6.00  },
+        { id: 20, name: 'Brick Paver',          category: 'rocks_pavers', type: 'emoji', image: '🧱', price: 7.50  },
+        { id: 21, name: 'Natural Stone Paver',  category: 'rocks_pavers', type: 'emoji', image: '🪨', price: 12.00 },
+        { id: 22, name: 'Flagstone',            category: 'rocks_pavers', type: 'emoji', image: '🟫', price: 8.00  },
+        { id: 23, name: 'Pea Gravel',           category: 'rocks_pavers', type: 'emoji', image: '⚫', price: 2.50  },
+        { id: 24, name: 'Decomposed Granite',   category: 'rocks_pavers', type: 'emoji', image: '🟡', price: 2.00  },
     ];
 }
 
@@ -192,9 +198,10 @@ async function getItemPrices() {
 }
 
 // ── Category helpers ──────────────────────────────────────────────────────────
-function isGrassItem(n, c)     { return (c||'').toLowerCase() === 'grass'; }
-function isHardscapeItem(n, c) { return (c||'').toLowerCase() === 'hardscapes'; }
-function isMeshItem(n, c)      { return isGrassItem(n, c) || isHardscapeItem(n, c); }
+function isGrassItem(n, c)       { return (c||'').toLowerCase() === 'grass'; }
+function isHardscapeItem(n, c)   { return (c||'').toLowerCase() === 'hardscapes'; }
+function isRocksPaversItem(n, c) { return (c||'').toLowerCase() === 'rocks_pavers'; }
+function isMeshItem(n, c)        { return isGrassItem(n, c) || isHardscapeItem(n, c) || isRocksPaversItem(n, c); }
 function isPathItem(n, c) {
     return (c||'').toLowerCase() === 'paths' ||
         ['path','pathway','walkway'].some(k => (n||'').toLowerCase().includes(k));
@@ -296,13 +303,14 @@ async function loadProductCategories() {
     products.forEach((p, i) => { productRegistry[i] = p; });
 
     const categories = {
-        paths:      { name: 'Paths',      icon: '🛤️', products: [] },
-        grass:      { name: 'Grass',      icon: '🌿', products: [] },
-        hardscapes: { name: 'Hardscapes', icon: '🪨', products: [] },
-        plants:     { name: 'Plants',     icon: '🌱', products: [] },
-        trees:      { name: 'Trees',      icon: '🌳', products: [] },
-        flowers:    { name: 'Flowers',    icon: '🌸', products: [] },
-        furniture:  { name: 'Furniture',  icon: '🪑', products: [] },
+        paths:        { name: 'Paths',           icon: '🛤️', products: [] },
+        grass:        { name: 'Grass',           icon: '🌿', products: [] },
+        hardscapes:   { name: 'Hardscapes',      icon: '⛏️', products: [] },
+        rocks_pavers: { name: 'Rocks & Pavers',  icon: '🧱', products: [] },
+        plants:       { name: 'Plants',          icon: '🌱', products: [] },
+        trees:        { name: 'Trees',           icon: '🌳', products: [] },
+        flowers:      { name: 'Flowers',         icon: '🌸', products: [] },
+        furniture:    { name: 'Furniture',       icon: '🪑', products: [] },
     };
 
     products.forEach((p, i) => {
@@ -939,14 +947,14 @@ function updateMaterialsList() {
     const regular  = {}; // name → { name, price, count }
 
     placedItems.forEach(item => {
-        const sfPerTon = getCoverageRate(item.name);
-        const isGrass  = isGrassItem(item.name, item.category);
+        const sfPerTon    = getCoverageRate(item.name);
+        const isPerSqft   = isGrassItem(item.name, item.category) || isRocksPaversItem(item.name, item.category);
         if (sfPerTon !== undefined) {
             if (!coverage[item.name]) coverage[item.name] = { name: item.name, price: item.price, sfPerUnit: sfPerTon, unitType: 'ton', totalSqFt: 0, noScale: false };
             const sqFt = getItemSqFt(item);
             if (sqFt === null) coverage[item.name].noScale = true;
             else coverage[item.name].totalSqFt += sqFt;
-        } else if (isGrass) {
+        } else if (isPerSqft) {
             if (!coverage[item.name]) coverage[item.name] = { name: item.name, price: item.price, sfPerUnit: 1, unitType: 'sqft', totalSqFt: 0, noScale: false };
             const sqFt = getItemSqFt(item);
             if (sqFt === null) coverage[item.name].noScale = true;
@@ -1208,13 +1216,13 @@ async function submitDesignForCheckout() {
     const coverageGroups = {};
     const regularGroups  = {};
     placedItems.forEach(item => {
-        const sfPerTon = getCoverageRate(item.name);
-        const isGrass  = isGrassItem(item.name, item.category);
+        const sfPerTon  = getCoverageRate(item.name);
+        const isPerSqft = isGrassItem(item.name, item.category) || isRocksPaversItem(item.name, item.category);
         if (sfPerTon !== undefined) {
             if (!coverageGroups[item.name]) coverageGroups[item.name] = { name: item.name, basePricePerUnit: item.price || 0, sfPerUnit: sfPerTon, totalSqFt: 0 };
             const sqFt = getItemSqFt(item);
             if (sqFt) coverageGroups[item.name].totalSqFt += sqFt;
-        } else if (isGrass) {
+        } else if (isPerSqft) {
             if (!coverageGroups[item.name]) coverageGroups[item.name] = { name: item.name, basePricePerUnit: item.price || 0, sfPerUnit: 1, totalSqFt: 0 };
             const sqFt = getItemSqFt(item);
             if (sqFt) coverageGroups[item.name].totalSqFt += sqFt;
