@@ -377,6 +377,16 @@ async function handleFileUpload(file) {
 
 // ── Start analysis with location data ─────────────────────────────────────────
 function analyzeWithLocation() {
+    if (window.GarDIYSubscriptions) {
+        const check = GarDIYSubscriptions.checkScanLimit();
+        if (!check.allowed) {
+            GarDIYSubscriptions.showUpgradeModal(
+                `You've used all ${check.limit} scan${check.limit === 1 ? '' : 's'} on your <strong>${check.planLabel}</strong> plan. Upgrade to keep scanning your yard.`
+            );
+            return;
+        }
+    }
+
     const locationData = {
         zipCode:   zipCodeInput?.value.trim()  || '',
         direction: directionInput?.value        || '',
@@ -442,6 +452,7 @@ async function simulateAIAnalysis(locationData = {}) {
 
         if (!data.success) throw new Error(data.message || 'Analysis failed');
 
+        if (window.GarDIYSubscriptions) GarDIYSubscriptions.incrementScans();
         showAnalysisResults(data.analysis, locationData);
 
     } catch (err) {

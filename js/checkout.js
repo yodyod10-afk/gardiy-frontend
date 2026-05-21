@@ -285,6 +285,16 @@ function setupPlaceOrder() {
             return;
         }
 
+        if (window.GarDIYSubscriptions) {
+            const check = GarDIYSubscriptions.checkOrderLimit();
+            if (!check.allowed) {
+                GarDIYSubscriptions.showUpgradeModal(
+                    `You've used all ${check.limit} order${check.limit === 1 ? '' : 's'} this month on your <strong>${check.planLabel}</strong> plan. Upgrade to place more orders.`
+                );
+                return;
+            }
+        }
+
         if (!stripeInstance || !stripeElements) {
             const errDiv = document.getElementById('payment-errors');
             errDiv.textContent = 'Loading payment form… please wait a moment and try again.';
@@ -312,6 +322,7 @@ function setupPlaceOrder() {
             btn.innerHTML = '<span>Complete Order</span><span class="btn-arrow">→</span>';
             btn.disabled = false;
         } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+            if (window.GarDIYSubscriptions) GarDIYSubscriptions.incrementOrders();
             showOrderConfirmation(paymentIntent.id);
         }
     });
