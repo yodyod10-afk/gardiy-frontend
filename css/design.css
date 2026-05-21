@@ -604,6 +604,135 @@ body {
     color: #4b5563;
 }
 
+/* ── Auto Design button ────────────────────────────────────────────────────── */
+.auto-design-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    margin: 0.5rem 0 0.75rem;
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(109, 40, 217, 0.35);
+}
+.auto-design-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(109, 40, 217, 0.45);
+}
+
+/* ── Auto Design modal overlay ─────────────────────────────────────────────── */
+.ad-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    padding: 1rem;
+}
+
+.ad-modal {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 580px;
+    width: 100%;
+    position: relative;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+}
+
+.ad-close {
+    position: absolute;
+    top: 1rem;
+    right: 1.2rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #9ca3af;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+}
+.ad-close:hover { background: #f3f4f6; color: #374151; }
+
+.ad-header { margin-bottom: 1.5rem; }
+.ad-header h2 { font-size: 1.5rem; color: #1a202c; margin: 0 0 0.35rem; }
+.ad-header p  { color: #6b7280; font-size: 0.9rem; margin: 0; }
+
+/* Style cards */
+.ad-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.ad-card {
+    border: 2px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 1.1rem 0.75rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+.ad-card:hover {
+    border-color: #7c3aed;
+    background: #faf5ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+}
+.ad-card.selected {
+    border-color: #7c3aed;
+    background: linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%);
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.25);
+}
+
+.ad-card-icon { font-size: 2.2rem; margin-bottom: 0.5rem; }
+.ad-card-name { font-weight: 700; font-size: 0.88rem; color: #374151; margin-bottom: 0.3rem; }
+.ad-card-desc { font-size: 0.75rem; color: #6b7280; line-height: 1.4; }
+
+/* Generate button */
+.ad-generate-btn {
+    width: 100%;
+    padding: 0.85rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(109, 40, 217, 0.35);
+}
+.ad-generate-btn:disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.ad-generate-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(109, 40, 217, 0.45);
+}
+
+@media (max-width: 500px) {
+    .ad-cards { grid-template-columns: 1fr; }
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
     .design-container {

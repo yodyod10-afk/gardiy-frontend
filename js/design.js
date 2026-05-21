@@ -355,7 +355,9 @@ async function loadProductCategories() {
 
     const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-    let html = '<h3>🎨 Products</h3><div class="category-list">';
+    let html = `<h3>🎨 Products</h3>
+    <button class="auto-design-btn" onclick="openAutoDesignModal()">✨ Auto Design</button>
+    <div class="category-list">`;
     Object.keys(categories).forEach(key => {
         const cat = categories[key];
         if (key === 'furniture') {
@@ -443,14 +445,14 @@ document.addEventListener('click', async e => {
 });
 
 // ── Add item to canvas ────────────────────────────────────────────────────────
-async function addItemToCanvas(itemData, x, y) {
+async function addItemToCanvas(itemData, x, y, customW, customH) {
     const canvas = document.getElementById('designCanvas');
     if (!canvas) return;
 
     const isMesh = isMeshItem(itemData.name, itemData.category);
     const isPath = isPathItem(itemData.name, itemData.category);
-    const w = isMesh ? 200 : 80;
-    const h = isMesh ? 130 : 80;
+    const w = customW || (isMesh ? 200 : 80);
+    const h = customH || (isMesh ? 130 : 80);
 
     const item = document.createElement('div');
     item.className        = 'draggable-item';
@@ -519,11 +521,14 @@ async function addItemToCanvas(itemData, x, y) {
 
     canvas.appendChild(item);
 
-    const prices = await getItemPrices();
+    // _price bypasses the getItemPrices() network call (used by auto-design batch)
+    const priceVal = itemData._price !== undefined
+        ? itemData._price
+        : ((await getItemPrices())[itemData.name] || parseFloat(itemData.price) || 0);
     placedItems.push({
         id: item.dataset.id, element: item,
         name: itemData.name, category: itemData.category,
-        type: itemData.type, price: prices[itemData.name] || itemData.price || 0,
+        type: itemData.type, price: priceVal,
     });
 
     makeDraggable(item);
@@ -1451,6 +1456,170 @@ function applyPlantRecommendationColors() {
             h3.insertAdjacentElement('afterend', legend);
         }
     }
+}
+
+// ── Auto Design ──────────────────────────────────────────────────────────────
+
+const AUTO_DESIGN_STYLES = {
+    california_coastal: {
+        key:   'california_coastal',
+        icon:  '🌊',
+        name:  'California Coastal',
+        desc:  'Drought-tolerant plants, ornamental grasses, stone paths',
+    },
+    mediterranean: {
+        key:   'mediterranean',
+        icon:  '🫒',
+        name:  'Mediterranean',
+        desc:  'Lavender, roses, stone pavers, terracotta pots, fountain',
+    },
+    japanese: {
+        key:   'japanese',
+        icon:  '⛩️',
+        name:  'Japanese Garden',
+        desc:  'Cherry blossoms, stone paths, minimalist & serene',
+    },
+};
+
+let autoDesignSelectedStyle = null;
+
+function openAutoDesignModal() {
+    if (document.getElementById('autoDesignModal')) {
+        document.getElementById('autoDesignModal').style.display = 'flex';
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'autoDesignModal';
+    modal.className = 'ad-overlay';
+    modal.innerHTML = `
+        <div class="ad-modal">
+            <button class="ad-close" onclick="closeAutoDesignModal()">×</button>
+            <div class="ad-header">
+                <h2>✨ Auto Design</h2>
+                <p>Choose a style — AI will design your yard using your available products.</p>
+            </div>
+            <div class="ad-cards">
+                ${Object.values(AUTO_DESIGN_STYLES).map(s => `
+                <div class="ad-card" data-style="${s.key}" onclick="selectAutoStyle(this)">
+                    <div class="ad-card-icon">${s.icon}</div>
+                    <div class="ad-card-name">${s.name}</div>
+                    <div class="ad-card-desc">${s.desc}</div>
+                </div>`).join('')}
+            </div>
+            <button class="ad-generate-btn" id="adGenerateBtn" disabled onclick="runAutoDesign()">
+                Choose a style to generate
+            </button>
+        </div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) closeAutoDesignModal(); });
+    document.body.appendChild(modal);
+}
+
+function closeAutoDesignModal() {
+    const m = document.getElementById('autoDesignModal');
+    if (m) m.style.display = 'none';
+}
+
+function selectAutoStyle(card) {
+    document.querySelectorAll('.ad-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    autoDesignSelectedStyle = card.dataset.style;
+    const btn = document.getElementById('adGenerateBtn');
+    if (btn) {
+        btn.disabled = false;
+        btn.textContent = `Generate ${AUTO_DESIGN_STYLES[autoDesignSelectedStyle].name} Design`;
+    }
+}
+
+async function runAutoDesign() {
+    if (!autoDesignSelectedStyle) return;
+    const btn = document.getElementById('adGenerateBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '🎨 Generating…'; }
+
+    const imageData = window.GarDIYStorage?.getImage();
+    if (!imageData) {
+        alert('No landscape photo found — please upload a photo first.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Generate Design'; }
+        return;
+    }
+
+    // Only send plant/tree/flower/rocks/path categories to the AI
+    const ALLOWED_FOR_AD = new Set(['plants', 'trees', 'flowers', 'rocks_pavers', 'paths']);
+    const products = Object.values(productRegistry)
+        .filter(p => ALLOWED_FOR_AD.has((p.category || '').toLowerCase()))
+        .map(p => ({ name: p.name, category: p.category }));
+
+    try {
+        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        const headers = { 'Content-Type': 'application/json' };
+        if (session.token) headers['Authorization'] = 'Bearer ' + session.token;
+
+        const res = await fetch('https://gardiy-backend-production.up.railway.app/api/auto-design', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ imageData, style: autoDesignSelectedStyle, products }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Auto-design failed');
+
+        closeAutoDesignModal();
+        await placeAutoDesignItems(data.items, AUTO_DESIGN_STYLES[autoDesignSelectedStyle].name);
+
+    } catch (err) {
+        alert('Auto-design error: ' + err.message);
+        if (btn) { btn.disabled = false; btn.textContent = 'Generate Design'; }
+    }
+}
+
+async function placeAutoDesignItems(items, styleName) {
+    // Clear current design first
+    deselectItem();
+    [...placedItems].forEach(pi => pi.element.remove());
+    placedItems = [];
+    removePolyDots();
+    removeMeshDots();
+    removeCornerHandles();
+    removeControlPanel();
+
+    const canvas = document.getElementById('designCanvas');
+    if (!canvas) return;
+
+    // Canvas loading overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'adCanvasOverlay';
+    overlay.innerHTML = `<span style="font-size:2rem;">✨</span><span style="margin-top:0.4rem;font-size:0.95rem;font-weight:600;color:#065f46;">Designing your ${styleName} garden…</span>`;
+    overlay.style.cssText = 'position:absolute;inset:0;background:rgba(255,255,255,0.82);backdrop-filter:blur(2px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;border-radius:inherit;gap:0.25rem;';
+    canvas.appendChild(overlay);
+
+    const W = canvas.offsetWidth;
+    const H = canvas.offsetHeight;
+    const allProducts = Object.values(productRegistry);
+
+    for (const item of items) {
+        const product = allProducts.find(p => p.name.toLowerCase() === (item.name || '').toLowerCase());
+        if (!product) { console.warn('Auto-design: product not found:', item.name); continue; }
+
+        const itemW = Math.round(Math.max(40, (item.w || 0.08) * W));
+        const itemH = Math.round(Math.max(40, (item.h || 0.08) * H));
+        // x/y from AI is the item center; convert to top-left for canvas
+        const x = Math.max(0, Math.min(W - itemW, ((item.x || 0.5) * W) - itemW / 2));
+        const y = Math.max(0, Math.min(H - itemH, ((item.y || 0.5) * H) - itemH / 2));
+
+        await addItemToCanvas({
+            name:     product.name,
+            image:    product.image,
+            type:     product.type,
+            category: product.category,
+            price:    parseFloat(product.price) || 0,
+            _price:   parseFloat(product.price) || 0,
+        }, x, y, itemW, itemH);
+
+        await new Promise(r => setTimeout(r, 120)); // progressive reveal
+    }
+
+    overlay.remove();
+    deselectItem();
+    updateMaterialsList();
 }
 
 console.log('✅ Design page ready');
