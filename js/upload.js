@@ -5,10 +5,10 @@ let uploadArea, uploadBtn, fileInput, uploadSection, analysisSection;
 let previewImage, photoPreview, scanOverlay;
 let changePhotoBtn, backToUploadBtn, analysisLoading, analysisResults;
 let startDesignBtn;
-let locationForm, zipCodeInput, directionInput, timeInput;
+let locationForm, zipCodeInput;
 let analyzeBtn, skipLocationBtn;
 let exifStatusBanner, exifStatusText;
-let zipBadge, directionBadge, timeBadge;
+let zipBadge;
 
 document.addEventListener('DOMContentLoaded', function () {
     console.log('✅ Upload page loaded');
@@ -28,15 +28,11 @@ document.addEventListener('DOMContentLoaded', function () {
     startDesignBtn   = document.getElementById('startDesignBtn');
     locationForm     = document.getElementById('locationForm');
     zipCodeInput     = document.getElementById('zipCodeInput');
-    directionInput   = document.getElementById('directionInput');
-    timeInput        = document.getElementById('timeInput');
     analyzeBtn       = document.getElementById('analyzeBtn');
     skipLocationBtn  = document.getElementById('skipLocationBtn');
     exifStatusBanner = document.getElementById('exifStatusBanner');
     exifStatusText   = document.getElementById('exifStatusText');
     zipBadge         = document.getElementById('zipBadge');
-    directionBadge   = document.getElementById('directionBadge');
-    timeBadge        = document.getElementById('timeBadge');
 
     setupEventListeners();
     checkForSavedData();
@@ -282,10 +278,8 @@ function generateFallbackRecommendations(analysis) {
 function resetLocationForm() {
     if (locationForm)     locationForm.style.display     = 'none';
     if (zipCodeInput)     zipCodeInput.value             = '';
-    if (directionInput)   directionInput.value           = '';
-    if (timeInput)        timeInput.value                = '';
     if (exifStatusBanner) exifStatusBanner.style.display = 'none';
-    [zipBadge, directionBadge, timeBadge].forEach(b => { if (b) b.style.display = 'none'; });
+    if (zipBadge)         zipBadge.style.display         = 'none';
 }
 
 function resetLoadingSteps() {
@@ -302,27 +296,10 @@ function showLocationForm(prefilled = {}) {
     analysisLoading.style.display = 'none';
     analysisResults.style.display = 'none';
 
-    let autoCount = 0;
-
     if (prefilled.zipCode) {
         zipCodeInput.value = prefilled.zipCode;
         if (zipBadge) zipBadge.style.display = 'inline-block';
-        autoCount++;
-    }
-    if (prefilled.direction) {
-        directionInput.value = prefilled.direction;
-        if (directionBadge) directionBadge.style.display = 'inline-block';
-        autoCount++;
-    }
-    if (prefilled.timeOfDay) {
-        timeInput.value = prefilled.timeOfDay;
-        if (timeBadge) timeBadge.style.display = 'inline-block';
-        autoCount++;
-    }
-
-    if (autoCount > 0 && exifStatusBanner && exifStatusText) {
-        exifStatusText.textContent   = `${autoCount} detail${autoCount !== 1 ? 's' : ''} auto-detected from photo metadata`;
-        exifStatusBanner.style.display = 'flex';
+        if (exifStatusBanner) exifStatusBanner.style.display = 'flex';
     }
 }
 
@@ -349,27 +326,16 @@ async function handleFileUpload(file) {
 
     try { window.GarDIYStorage.saveImage(imageDataUrl); } catch (e) {}
 
-    // Build pre-fill object from EXIF data that's already available
-    const prefilled = {};
-    if (exifData?.direction) prefilled.direction = exifData.direction;
-    if (exifData?.timeOfDay) prefilled.timeOfDay = exifData.timeOfDay;
-
     previewImage.src = imageDataUrl;
-    previewImage.onload = () => showLocationForm(prefilled);
+    previewImage.onload = () => showLocationForm({});
 
     // Resolve ZIP from GPS coordinates in background (network call)
     if (exifData?._lat && exifData?._lon) {
         getZipFromCoords(exifData._lat, exifData._lon).then(zip => {
             if (zip && zipCodeInput && locationForm.style.display !== 'none') {
-                zipCodeInput.value          = zip;
+                zipCodeInput.value = zip;
                 if (zipBadge) zipBadge.style.display = 'inline-block';
-
-                // Update the auto-detected banner count
-                if (exifStatusBanner && exifStatusText) {
-                    const count = document.querySelectorAll('.auto-badge[style*="inline-block"]').length;
-                    exifStatusText.textContent   = `${count} detail${count !== 1 ? 's' : ''} auto-detected from photo metadata`;
-                    exifStatusBanner.style.display = 'flex';
-                }
+                if (exifStatusBanner) exifStatusBanner.style.display = 'flex';
             }
         });
     }
@@ -388,9 +354,7 @@ function analyzeWithLocation() {
     }
 
     const locationData = {
-        zipCode:   zipCodeInput?.value.trim()  || '',
-        direction: directionInput?.value        || '',
-        timeOfDay: timeInput?.value             || '',
+        zipCode: zipCodeInput?.value.trim() || '',
     };
 
     if (locationData.zipCode || locationData.direction || locationData.timeOfDay) {
@@ -423,17 +387,13 @@ async function simulateAIAnalysis(locationData = {}) {
     ];
 
     try {
-        const imageData   = previewImage.src;
-        const session     = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
-        const authHeader  = session.token ? { 'Authorization': `Bearer ${session.token}` } : {};
-        const sunExposure = describeSunExposure(locationData.direction, locationData.timeOfDay);
+        const imageData  = previewImage.src;
+        const session    = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        const authHeader = session.token ? { 'Authorization': `Bearer ${session.token}` } : {};
 
         const body = {
             imageData,
-            ...(locationData.zipCode   && { zipCode:   locationData.zipCode }),
-            ...(locationData.direction && { direction: locationData.direction }),
-            ...(locationData.timeOfDay && { timeOfDay: locationData.timeOfDay }),
-            ...(sunExposure            && { sunExposureDescription: sunExposure }),
+            ...(locationData.zipCode && { zipCode: locationData.zipCode }),
         };
 
         const res  = await fetch('https://gardiy-backend-production.up.railway.app/api/analyze-image', {

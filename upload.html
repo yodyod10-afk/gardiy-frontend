@@ -121,12 +121,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div id="locationForm" class="location-form" style="display:none;">
                         <div class="location-form-header">
                             <h3>📍 Location Details</h3>
-                            <p>Help AI recommend the right plants for your climate and sun exposure</p>
+                            <p>Help AI recommend the right plants for your climate zone</p>
                         </div>
 
                         <div id="exifStatusBanner" class="exif-status-banner" style="display:none;">
                             <span class="exif-status-icon">✓</span>
-                            <span id="exifStatusText">Details auto-detected from photo metadata</span>
+                            <span id="exifStatusText">ZIP code auto-detected from photo metadata</span>
                         </div>
 
                         <div class="location-fields">
@@ -135,33 +135,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="input-with-badge">
                                     <input type="text" id="zipCodeInput" placeholder="e.g. 80203" maxlength="10" inputmode="numeric">
                                     <span id="zipBadge" class="auto-badge" style="display:none;">Auto</span>
-                                </div>
-                            </div>
-
-                            <div class="location-field">
-                                <label for="directionInput">Photo Direction</label>
-                                <div class="input-with-badge">
-                                    <select id="directionInput">
-                                        <option value="">— Select direction —</option>
-                                        <option value="N">North (N)</option>
-                                        <option value="NE">Northeast (NE)</option>
-                                        <option value="E">East (E)</option>
-                                        <option value="SE">Southeast (SE)</option>
-                                        <option value="S">South (S)</option>
-                                        <option value="SW">Southwest (SW)</option>
-                                        <option value="W">West (W)</option>
-                                        <option value="NW">Northwest (NW)</option>
-                                    </select>
-                                    <span id="directionBadge" class="auto-badge" style="display:none;">Auto</span>
-                                </div>
-                                <p class="field-hint">Which direction were you facing when you took this photo?</p>
-                            </div>
-
-                            <div class="location-field">
-                                <label for="timeInput">Time of Day</label>
-                                <div class="input-with-badge">
-                                    <input type="time" id="timeInput">
-                                    <span id="timeBadge" class="auto-badge" style="display:none;">Auto</span>
                                 </div>
                             </div>
                         </div>

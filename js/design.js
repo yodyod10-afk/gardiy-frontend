@@ -203,6 +203,33 @@ async function getItemPrices() {
     return map;
 }
 
+// ── Sun exposure requirements ────────────────────────────────────────────────
+// Returns 'full_sun', 'shade', or 'both' for plants/flowers/trees; null for other categories.
+const PLANT_CATEGORIES = new Set(['plants', 'trees', 'flowers']);
+
+function getSunRequirement(name, category) {
+    if (!PLANT_CATEGORIES.has((category || '').toLowerCase())) return null;
+    const n = (name || '').toLowerCase();
+
+    // Full sun
+    if (/cactus|sunflower|palm|lavender|sage|sedum|yucca/.test(n))          return 'full_sun';
+    if (/rose/.test(n) && !/primrose/.test(n))                               return 'full_sun';
+    if (/grass field/.test(n))                                               return 'full_sun';
+
+    // Shade
+    if (/fern|hosta|impatiens|astilbe|begonia|caladium|shade/.test(n))      return 'shade';
+
+    // Both / partial (default for all remaining plants)
+    return 'both';
+}
+
+function sunBadgeHTML(name, category) {
+    const req = getSunRequirement(name, category);
+    if (!req) return '';
+    const map = { full_sun: '☀️', shade: '☁️', both: '⛅' };
+    return `<span class="sun-badge" title="${req === 'full_sun' ? 'Full sun' : req === 'shade' ? 'Shade' : 'Sun or shade'}">${map[req]}</span>`;
+}
+
 // ── Category helpers ──────────────────────────────────────────────────────────
 function isGrassItem(n, c)       { return (c||'').toLowerCase() === 'grass'; }
 function isHardscapeItem(n, c)   { return (c||'').toLowerCase() === 'hardscapes'; }
@@ -359,7 +386,7 @@ async function loadProductCategories() {
             html += `<div class="product-item" data-pid="${p._pid}">
                 ${thumb}
                 <div class="product-info">
-                    <div class="product-name">${esc(p.name)}</div>
+                    <div class="product-name">${esc(p.name)}${sunBadgeHTML(p.name, p.category)}</div>
                     <div class="product-price">$${p.price}</div>
                 </div>
             </div>`;
@@ -1419,6 +1446,7 @@ function applyPlantRecommendationColors() {
             legend.innerHTML = `
                 <span class="legend-item"><span class="legend-dot rec-dot"></span>Recommended</span>
                 <span class="legend-item"><span class="legend-dot notrec-dot"></span>Not recommended</span>
+                <span class="legend-item sun-legend">☀️ Full sun &nbsp; ⛅ Both &nbsp; ☁️ Shade</span>
             `;
             h3.insertAdjacentElement('afterend', legend);
         }

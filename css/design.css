@@ -590,6 +590,20 @@ body {
 .rec-dot    { background: #10b981; }
 .notrec-dot { background: #f43f5e; }
 
+/* Sun exposure badges on plant items */
+.sun-badge {
+    font-size: 0.78rem;
+    margin-left: 0.25rem;
+    vertical-align: middle;
+    display: inline-block;
+    line-height: 1;
+}
+
+.sun-legend {
+    font-size: 0.78rem;
+    color: #4b5563;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
     .design-container {
