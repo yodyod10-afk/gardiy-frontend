@@ -934,14 +934,20 @@ function updateMaterialsList() {
         return;
     }
 
-    // Separate coverage items (hardscape/mulch) from regular items
-    const coverage = {}; // name → { name, price, sfPerTon, totalSqFt, noScale }
+    // coverage: hardscapes ($/ton, sfPerUnit=SF per ton) + grass ($/sqft, sfPerUnit=1)
+    const coverage = {}; // name → { name, price, sfPerUnit, unitType, totalSqFt, noScale }
     const regular  = {}; // name → { name, price, count }
 
     placedItems.forEach(item => {
         const sfPerTon = getCoverageRate(item.name);
+        const isGrass  = isGrassItem(item.name, item.category);
         if (sfPerTon !== undefined) {
-            if (!coverage[item.name]) coverage[item.name] = { name: item.name, price: item.price, sfPerTon, totalSqFt: 0, noScale: false };
+            if (!coverage[item.name]) coverage[item.name] = { name: item.name, price: item.price, sfPerUnit: sfPerTon, unitType: 'ton', totalSqFt: 0, noScale: false };
+            const sqFt = getItemSqFt(item);
+            if (sqFt === null) coverage[item.name].noScale = true;
+            else coverage[item.name].totalSqFt += sqFt;
+        } else if (isGrass) {
+            if (!coverage[item.name]) coverage[item.name] = { name: item.name, price: item.price, sfPerUnit: 1, unitType: 'sqft', totalSqFt: 0, noScale: false };
             const sqFt = getItemSqFt(item);
             if (sqFt === null) coverage[item.name].noScale = true;
             else coverage[item.name].totalSqFt += sqFt;
@@ -953,23 +959,25 @@ function updateMaterialsList() {
 
     let total = 0, html = '';
 
-    // Coverage-based rows
+    // Coverage-based rows (hardscapes + grass)
     Object.values(coverage).forEach(item => {
-        const tons = item.totalSqFt / item.sfPerTon;
-        const cost = tons * item.price;
+        const units = item.totalSqFt / item.sfPerUnit;
+        const cost  = units * item.price;
         total += cost;
         const hasScale = !item.noScale && item.totalSqFt > 0;
+        const detailLine = hasScale
+            ? item.unitType === 'ton'
+                ? `<div style="font-size:11px;color:#10b981;font-weight:600;margin-top:3px;">📐 ${item.totalSqFt.toFixed(1)} sq ft covered</div>
+                   <div style="font-size:11px;color:#718096;">${units.toFixed(2)} tons · $${item.price.toFixed(2)}/ton</div>`
+                : `<div style="font-size:11px;color:#10b981;font-weight:600;margin-top:3px;">📐 ${item.totalSqFt.toFixed(1)} sq ft covered</div>
+                   <div style="font-size:11px;color:#718096;">$${item.price.toFixed(2)}/sqft</div>`
+            : item.noScale
+                ? `<div style="font-size:11px;color:#f59e0b;">⚠ Analyze photo to calculate SF</div>`
+                : `<div style="font-size:11px;color:#718096;">Shape on canvas to calculate SF</div>`;
         html += `<div class="material-item coverage-item">
             <div style="flex:1;min-width:0;">
                 <div style="font-weight:600;font-size:13px;">${item.name}</div>
-                ${hasScale ? `
-                <div style="font-size:11px;color:#10b981;font-weight:600;margin-top:3px;">📐 ${item.totalSqFt.toFixed(1)} sq ft covered</div>
-                <div style="font-size:11px;color:#718096;">${tons.toFixed(2)} tons · $${item.price.toFixed(2)}/ton</div>
-                ` : item.noScale ? `
-                <div style="font-size:11px;color:#f59e0b;">⚠ Analyze photo to calculate SF</div>
-                ` : `
-                <div style="font-size:11px;color:#718096;">Shape on canvas to calculate SF</div>
-                `}
+                ${detailLine}
             </div>
             <div style="font-weight:700;color:#059669;font-size:14px;white-space:nowrap;">$${cost.toFixed(2)}</div>
         </div>`;
@@ -1196,13 +1204,18 @@ async function submitDesignForCheckout() {
     const height = document.getElementById('height')?.value || 'Not specified';
     const depth  = document.getElementById('depth')?.value  || 'Not specified';
 
-    // Mirror the pricing logic from updateMaterialsList: hardscapes are priced by polygon area
+    // Mirror updateMaterialsList pricing: hardscapes per ton, grass per sqft
     const coverageGroups = {};
     const regularGroups  = {};
     placedItems.forEach(item => {
         const sfPerTon = getCoverageRate(item.name);
+        const isGrass  = isGrassItem(item.name, item.category);
         if (sfPerTon !== undefined) {
-            if (!coverageGroups[item.name]) coverageGroups[item.name] = { name: item.name, basePricePerTon: item.price || 0, sfPerTon, totalSqFt: 0 };
+            if (!coverageGroups[item.name]) coverageGroups[item.name] = { name: item.name, basePricePerUnit: item.price || 0, sfPerUnit: sfPerTon, totalSqFt: 0 };
+            const sqFt = getItemSqFt(item);
+            if (sqFt) coverageGroups[item.name].totalSqFt += sqFt;
+        } else if (isGrass) {
+            if (!coverageGroups[item.name]) coverageGroups[item.name] = { name: item.name, basePricePerUnit: item.price || 0, sfPerUnit: 1, totalSqFt: 0 };
             const sqFt = getItemSqFt(item);
             if (sqFt) coverageGroups[item.name].totalSqFt += sqFt;
         } else {
@@ -1212,15 +1225,14 @@ async function submitDesignForCheckout() {
     });
 
     const checkoutItems = [];
-    // Hardscapes: area-computed price when polygon is drawn; unit price × count as fallback
+    // Coverage items (hardscapes + grass): area-computed when polygon drawn, unit price fallback
     Object.values(coverageGroups).forEach(g => {
-        if (g.sfPerTon > 0 && g.totalSqFt > 0) {
-            const tons = g.totalSqFt / g.sfPerTon;
-            checkoutItems.push({ name: g.name, price: parseFloat((tons * g.basePricePerTon).toFixed(2)) });
+        if (g.sfPerUnit > 0 && g.totalSqFt > 0) {
+            const units = g.totalSqFt / g.sfPerUnit;
+            checkoutItems.push({ name: g.name, price: parseFloat((units * g.basePricePerUnit).toFixed(2)) });
         } else {
-            // No polygon drawn — use unit (per-ton) price × count so checkout is never $0
             const count = placedItems.filter(i => i.name === g.name).length;
-            const unitPrice = parseFloat(g.basePricePerTon) || 0;
+            const unitPrice = parseFloat(g.basePricePerUnit) || 0;
             for (let c = 0; c < count; c++) checkoutItems.push({ name: g.name, price: unitPrice });
         }
     });
