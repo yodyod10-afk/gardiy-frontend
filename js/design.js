@@ -331,6 +331,19 @@ async function loadProductCategories() {
     let html = '<h3>🎨 Products</h3><div class="category-list">';
     Object.keys(categories).forEach(key => {
         const cat = categories[key];
+        if (key === 'furniture') {
+            html += `<div class="category-section" data-category="${key}">
+                <button class="category-btn">
+                    <span class="category-icon">${cat.icon}</span>
+                    <span>${cat.name}</span>
+                    <span class="expand-icon">▼</span>
+                </button>
+                <div class="category-items" style="display:none;">
+                    <div style="padding:1rem;text-align:center;color:#9ca3af;font-style:italic;font-size:0.9rem;">Coming Soon</div>
+                </div>
+            </div>`;
+            return;
+        }
         if (!cat.products.length) return;
         html += `<div class="category-section" data-category="${key}">
             <button class="category-btn">
