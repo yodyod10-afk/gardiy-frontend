@@ -274,7 +274,8 @@ function shareProject(projectTitle) {
 
 function setupSettingsForms() {
     // Personal information form
-    const personalInfoForm = document.querySelector('.settings-card:nth-child(1) form');
+    const personalInfoForm = document.querySelector('#settings-section .settings-card:nth-child(2) form');
+    if (!personalInfoForm) return;
     personalInfoForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -296,7 +297,8 @@ function setupSettingsForms() {
     });
 
     // Password change form
-    const passwordForm = document.querySelector('.settings-card:nth-child(2) form');
+    const passwordForm = document.querySelector('#settings-section .settings-card:nth-child(3) form');
+    if (!passwordForm) return;
     passwordForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -457,6 +459,15 @@ async function loadMgrStats() {
     } catch {}
 }
 
+const MGR_DEFAULT_PRODUCTS = [
+    { id: 'rocks-1', name: 'Concrete Paver',     image: '⬜', category: 'rocks_pavers', price: 6.00,  type: 'emoji' },
+    { id: 'rocks-2', name: 'Brick Paver',         image: '🧱', category: 'rocks_pavers', price: 7.50,  type: 'emoji' },
+    { id: 'rocks-3', name: 'Natural Stone Paver', image: '🪨', category: 'rocks_pavers', price: 12.00, type: 'emoji' },
+    { id: 'rocks-4', name: 'Flagstone',           image: '🟫', category: 'rocks_pavers', price: 8.00,  type: 'emoji' },
+    { id: 'rocks-5', name: 'Pea Gravel',          image: '⚫', category: 'rocks_pavers', price: 2.50,  type: 'emoji' },
+    { id: 'rocks-6', name: 'Decomposed Granite',  image: '🟡', category: 'rocks_pavers', price: 2.00,  type: 'emoji' },
+];
+
 async function loadMgrProducts() {
     const grid = document.getElementById('mgr-products-grid');
     const countEl = document.getElementById('mgr-product-count');
@@ -465,7 +476,11 @@ async function loadMgrProducts() {
         const r = await fetch(`${MGR_API}/products`);
         const d = await r.json();
         if (!d.success || !d.products) { grid.innerHTML = '<p style="color:#e53e3e;">Failed to load products.</p>'; return; }
-        const products = d.products;
+        let products = d.products;
+        // Supplement with local defaults for any category missing from backend
+        const existingCats = new Set(products.map(p => (p.category || '').toLowerCase()));
+        const missing = MGR_DEFAULT_PRODUCTS.filter(p => !existingCats.has(p.category));
+        if (missing.length) products = [...products, ...missing];
         countEl.textContent = `${products.length} products`;
         if (!products.length) { grid.innerHTML = '<p style="color:#718096;grid-column:1/-1;">No products yet.</p>'; return; }
         grid.innerHTML = products.map(p => {
