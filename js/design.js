@@ -1211,10 +1211,16 @@ async function submitDesignForCheckout() {
     });
 
     const checkoutItems = [];
-    // Hardscapes: one line per material type with area-computed total cost
+    // Hardscapes: area-computed price when polygon is drawn; unit price × count as fallback
     Object.values(coverageGroups).forEach(g => {
-        const tons = g.sfPerTon > 0 && g.totalSqFt > 0 ? g.totalSqFt / g.sfPerTon : 0;
-        checkoutItems.push({ name: g.name, price: tons * g.basePricePerTon });
+        if (g.sfPerTon > 0 && g.totalSqFt > 0) {
+            const tons = g.totalSqFt / g.sfPerTon;
+            checkoutItems.push({ name: g.name, price: tons * g.basePricePerTon });
+        } else {
+            // No polygon drawn — use unit (per-ton) price × count so checkout is never $0
+            const count = placedItems.filter(i => i.name === g.name).length;
+            for (let c = 0; c < count; c++) checkoutItems.push({ name: g.name, price: g.basePricePerTon });
+        }
     });
     // Regular items: individual entries so checkout can display qty × unit price
     Object.values(regularGroups).forEach(g => {

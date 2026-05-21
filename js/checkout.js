@@ -8,14 +8,14 @@ const taxRate = 0.08;
 let stripeInstance = null;
 let stripeElements = null;
 
-document.addEventListener('DOMContentLoaded', async function () {
+document.addEventListener('DOMContentLoaded', function () {
     checkUserLogin();
     loadOrderSummary();
     setupAddressAutocomplete();
     setupServiceSelection();
     setupDeliveryDate();
     setupPhoneFormatting();
-    await initStripePaymentElement();
+    setupLazyStripeInit();
     setupPlaceOrder();
 });
 
@@ -37,10 +37,11 @@ function loadOrderSummary() {
     const savedDesignStr = localStorage.getItem('gardiyCheckout') || localStorage.getItem('gardiyDesign');
     if (!savedDesignStr) { showEmptySummary(); return; }
 
-    let savedDesign;
+    let savedDesign, storedTotal;
     try {
         const d = JSON.parse(savedDesignStr);
         savedDesign = d.items && Array.isArray(d.items) ? d.items : Array.isArray(d) ? d : [];
+        storedTotal = typeof d.total === 'number' ? d.total : null;
     } catch (e) { showEmptySummary(); return; }
 
     const summaryContainer = document.getElementById('summaryItems');
@@ -49,24 +50,26 @@ function loadOrderSummary() {
     const itemCounts = {};
     savedDesign.forEach(item => {
         const name = item.name;
-        if (!itemCounts[name]) itemCounts[name] = { count: 0, price: item.price || 0, name };
-        itemCounts[name].count++;
+        const price = parseFloat(item.price) || 0;
+        if (!itemCounts[name]) itemCounts[name] = { count: 1, price, name };
+        else itemCounts[name].count++;
     });
 
     let html = '';
     for (const [name, data] of Object.entries(itemCounts)) {
-        const itemTotal = data.price * data.count;
+        const unitPrice = parseFloat(data.price) || 0;
+        const itemTotal = unitPrice * data.count;
         html += `
             <div class="summary-item">
                 <div>
                     <div class="summary-item-name">${name}</div>
-                    <div style="font-size:0.85rem;color:#6b7280;">Qty: ${data.count} × $${data.price.toFixed(2)}</div>
+                    <div style="font-size:0.85rem;color:#6b7280;">Qty: ${data.count} × $${unitPrice.toFixed(2)}</div>
                 </div>
                 <span class="summary-item-price">$${itemTotal.toFixed(2)}</span>
             </div>`;
     }
     summaryContainer.innerHTML = html;
-    updateTotals();
+    updateTotals(storedTotal);
 }
 
 function showEmptySummary() {
@@ -75,17 +78,19 @@ function showEmptySummary() {
     updateTotals();
 }
 
-function updateTotals() {
+function updateTotals(storedTotal) {
     const savedDesignStr = localStorage.getItem('gardiyCheckout') || localStorage.getItem('gardiyDesign');
-    let savedDesign = [];
+    let savedDesign = [], fallbackTotal = storedTotal;
     if (savedDesignStr) {
         try {
             const d = JSON.parse(savedDesignStr);
             savedDesign = d.items && Array.isArray(d.items) ? d.items : Array.isArray(d) ? d : [];
+            if (fallbackTotal == null && typeof d.total === 'number') fallbackTotal = d.total;
         } catch (e) {}
     }
 
-    const subtotal = savedDesign.reduce((sum, item) => sum + (item.price || 0), 0);
+    const calcSubtotal = savedDesign.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+    const subtotal = calcSubtotal > 0 ? calcSubtotal : (fallbackTotal || 0);
     const deliveryFee = deliveryFeeAmount;
     const installationRequested = document.getElementById('installRadio')?.checked;
     const tax = (subtotal + deliveryFee) * taxRate;
@@ -116,7 +121,8 @@ function getOrderTotalCents() {
     try {
         const d = JSON.parse(savedDesignStr);
         const items = d.items && Array.isArray(d.items) ? d.items : Array.isArray(d) ? d : [];
-        const subtotal = items.reduce((sum, item) => sum + (item.price || 0), 0);
+        const calcSubtotal = items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+        const subtotal = calcSubtotal > 0 ? calcSubtotal : (typeof d.total === 'number' ? d.total : 0);
         const tax = (subtotal + deliveryFeeAmount) * taxRate;
         return Math.round((subtotal + deliveryFeeAmount + tax) * 100);
     } catch (e) { return 0; }
@@ -163,6 +169,27 @@ async function initStripePaymentElement() {
         if (errDiv) errDiv.textContent = 'Payment system unavailable. Please refresh or contact support.';
         if (paymentDiv) paymentDiv.innerHTML = '';
     }
+}
+
+// Defer Stripe init until the payment section scrolls into view
+function setupLazyStripeInit() {
+    const paymentSection = document.getElementById('paymentSection');
+    if (!paymentSection) { initStripePaymentElement(); return; }
+
+    const paymentDiv = document.getElementById('payment-element');
+    if (paymentDiv) paymentDiv.innerHTML = '<p style="color:#9ca3af;font-style:italic;padding:1rem 0;">Scroll down to load payment form…</p>';
+
+    if (!('IntersectionObserver' in window)) { initStripePaymentElement(); return; }
+
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !stripeInstance) {
+            if (paymentDiv) paymentDiv.innerHTML = '<p style="color:#9ca3af;font-style:italic;padding:1rem 0;">Loading secure payment form…</p>';
+            initStripePaymentElement();
+            observer.disconnect();
+        }
+    }, { rootMargin: '300px' });
+
+    observer.observe(paymentSection);
 }
 
 function getAuthHeader() {
@@ -282,7 +309,11 @@ function setupPlaceOrder() {
         }
 
         if (!stripeInstance || !stripeElements) {
-            document.getElementById('payment-errors').textContent = 'Payment system not ready — please refresh the page.';
+            const errDiv = document.getElementById('payment-errors');
+            errDiv.textContent = 'Loading payment form… please wait a moment and try again.';
+            // Trigger init if it hasn't started yet
+            if (!stripeInstance) initStripePaymentElement();
+            document.getElementById('paymentSection')?.scrollIntoView({ behavior: 'smooth' });
             return;
         }
 
