@@ -185,12 +185,6 @@ async function initStripePaymentElement() {
 }
 
 
-function getAuthHeader() {
-    try {
-        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
-        return session.token ? { 'Authorization': `Bearer ${session.token}` } : {};
-    } catch { return {}; }
-}
 
 // ── Address autocomplete ──────────────────────────────────────────────────────
 function setupAddressAutocomplete() {
