@@ -207,7 +207,7 @@ async function getItemPrices() {
 function isGrassItem(n, c)       { return (c||'').toLowerCase() === 'grass'; }
 function isHardscapeItem(n, c)   { return (c||'').toLowerCase() === 'hardscapes'; }
 function isRocksPaversItem(n, c) { return (c||'').toLowerCase() === 'rocks_pavers'; }
-function isMeshItem(n, c)        { return isGrassItem(n, c) || isHardscapeItem(n, c) || isRocksPaversItem(n, c); }
+function isMeshItem(n, c)        { return isGrassItem(n, c) || isHardscapeItem(n, c); }
 function isPathItem(n, c) {
     return (c||'').toLowerCase() === 'paths' ||
         ['path','pathway','walkway'].some(k => (n||'').toLowerCase().includes(k));
@@ -460,7 +460,6 @@ async function addItemToCanvas(itemData, x, y) {
             item.style.backgroundRepeat   = 'no-repeat';
             item.style.backgroundSize     = 'cover';
             item.style.backgroundPosition = 'center';
-            item.style.mixBlendMode       = 'multiply';
         } else {
             item.style.backgroundColor = 'rgba(120,190,90,0.3)';
             item.innerHTML = `<span style="font-size:64px;opacity:0.7;pointer-events:none;">${itemData.image}</span>`;
@@ -968,7 +967,7 @@ function updateMaterialsList() {
 
     placedItems.forEach(item => {
         const sfPerTon    = getCoverageRate(item.name);
-        const isPerSqft   = isGrassItem(item.name, item.category) || isRocksPaversItem(item.name, item.category);
+        const isPerSqft   = isGrassItem(item.name, item.category);
         if (sfPerTon !== undefined) {
             if (!coverage[item.name]) coverage[item.name] = { name: item.name, price: item.price, sfPerUnit: sfPerTon, unitType: 'ton', totalSqFt: 0, noScale: false };
             const sqFt = getItemSqFt(item);
@@ -1237,7 +1236,7 @@ async function submitDesignForCheckout() {
     const regularGroups  = {};
     placedItems.forEach(item => {
         const sfPerTon  = getCoverageRate(item.name);
-        const isPerSqft = isGrassItem(item.name, item.category) || isRocksPaversItem(item.name, item.category);
+        const isPerSqft = isGrassItem(item.name, item.category);
         if (sfPerTon !== undefined) {
             if (!coverageGroups[item.name]) coverageGroups[item.name] = { name: item.name, basePricePerUnit: item.price || 0, sfPerUnit: sfPerTon, totalSqFt: 0 };
             const sqFt = getItemSqFt(item);
