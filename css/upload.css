@@ -157,284 +157,225 @@
     border-radius: 15px;
 }
 
-/* Scanning Animation Overlay */
+/* ════════════════════════════════════════════════════════════════
+   AI Scan Animation — Neural Scan v2
+   ════════════════════════════════════════════════════════════════ */
+
 .scan-overlay {
     position: absolute;
-    top: 1.5rem;
-    left: 1.5rem;
-    right: 1.5rem;
-    bottom: 1.5rem;
+    top: 1.5rem; left: 1.5rem; right: 1.5rem; bottom: 1.5rem;
     border-radius: 15px;
     overflow: hidden;
     pointer-events: none;
+    z-index: 5;
 }
 
-/* Green scanning bar */
+/* ── Primary scan beam ────────────────────────────────────────── */
 .scan-bar {
     position: absolute;
+    left: 0;
     width: 100%;
-    height: 3px;
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(16, 185, 129, 0.3) 20%, 
-        rgba(16, 185, 129, 1) 50%, 
-        rgba(16, 185, 129, 0.3) 80%, 
+    height: 2px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(0, 240, 195, 0.25) 10%,
+        rgba(80, 255, 220, 0.75) 28%,
+        rgba(255, 255, 255, 1)   47%,
+        rgba(255, 255, 255, 1)   53%,
+        rgba(80, 255, 220, 0.75) 72%,
+        rgba(0, 240, 195, 0.25)  90%,
         transparent 100%
     );
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8),
-                0 0 40px rgba(16, 185, 129, 0.6),
-                0 0 60px rgba(16, 185, 129, 0.4);
-    animation: scanMove 3s ease-in-out infinite;
+    box-shadow:
+        0 0  4px 1px rgba(255, 255, 255, 1),
+        0 0 14px 3px rgba(0, 240, 200, 1),
+        0 0 36px 6px rgba(16, 185, 129, 0.8),
+        0 0 80px 14px rgba(16, 185, 129, 0.3);
+    animation: beamSweep 3s ease-in-out infinite;
+    z-index: 4;
 }
 
-@keyframes scanMove {
-    0%, 100% { top: 0%; }
-    50% { top: 100%; }
+/* Below-beam glow wash */
+.scan-bar::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 0;
+    width: 100%;
+    height: 110px;
+    background: linear-gradient(to bottom,
+        rgba(0, 220, 180, 0.22) 0%,
+        rgba(16, 185, 129, 0.08) 45%,
+        transparent 100%
+    );
 }
 
-/* Scanning grid overlay */
+/* "ANALYZING" label floats just above beam */
+.scan-bar::before {
+    content: 'ANALYZING';
+    position: absolute;
+    bottom: 7px;
+    right: 7%;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: rgba(0, 255, 200, 0.95);
+    text-shadow: 0 0 10px rgba(0, 255, 200, 1), 0 0 22px rgba(0, 255, 200, 0.5);
+    animation: labelBlink 0.9s step-end infinite;
+    white-space: nowrap;
+}
+
+@keyframes beamSweep {
+    0%   { top: -2px; }
+    100% { top: 100%; }
+}
+
+@keyframes labelBlink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.2; }
+}
+
+/* ── Grid mesh ────────────────────────────────────────────────── */
 .scan-grid {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: 
-        linear-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(16, 185, 129, 0.1) 1px, transparent 1px);
-    background-size: 50px 50px;
-    animation: scanGridFade 2s ease-in-out infinite;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-image:
+        linear-gradient(rgba(0, 220, 180, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 220, 180, 0.12) 1px, transparent 1px),
+        linear-gradient(rgba(0, 220, 180, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 220, 180, 0.05) 1px, transparent 1px);
+    background-size: 60px 60px, 60px 60px, 20px 20px, 20px 20px;
+    animation: gridBreath 2.5s ease-in-out infinite;
+    z-index: 1;
 }
 
-@keyframes scanGridFade {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 0.6; }
+@keyframes gridBreath {
+    0%, 100% { opacity: 0.55; }
+    50%       { opacity: 1;    }
 }
 
-/* Edge detection highlights */
+/* ── Detection rings ──────────────────────────────────────────── */
 .scan-edges {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    mix-blend-mode: screen;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 3;
 }
 
 .edge-line {
     position: absolute;
-    background: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 1),
-                0 0 25px rgba(255, 255, 255, 0.8),
-                0 0 35px rgba(16, 185, 129, 0.6);
-    animation: edgePulse 1.5s ease-in-out infinite;
-}
-
-@keyframes edgePulse {
-    0%, 100% { 
-        opacity: 0.6;
-        filter: brightness(1.2);
-    }
-    50% { 
-        opacity: 1;
-        filter: brightness(2);
-    }
-}
-
-/* House outline - rectangle shape */
-.edge-line:nth-child(1) {
-    top: 8%;
-    left: 20%;
-    width: 35%;
-    height: 3px;
-    animation-delay: 0s;
-}
-
-.edge-line:nth-child(2) {
-    top: 8%;
-    left: 20%;
-    width: 3px;
-    height: 45%;
-    animation-delay: 0.1s;
-}
-
-.edge-line:nth-child(3) {
-    top: 8%;
-    left: 55%;
-    width: 3px;
-    height: 45%;
-    animation-delay: 0.2s;
-}
-
-.edge-line:nth-child(4) {
-    top: 53%;
-    left: 20%;
-    width: 35%;
-    height: 3px;
-    animation-delay: 0.3s;
-}
-
-/* Roof line */
-.edge-line:nth-child(5) {
-    top: 8%;
-    left: 30%;
-    width: 3px;
-    height: 8%;
-    transform: rotate(-45deg);
-    animation-delay: 0.15s;
-}
-
-/* Path outline - curved */
-.edge-line:nth-child(6) {
-    top: 55%;
-    left: 28%;
-    width: 25%;
-    height: 3px;
+    border: 1.5px solid rgba(0, 255, 190, 0.9);
     border-radius: 50%;
-    animation-delay: 0.4s;
-}
-
-.edge-line:nth-child(7) {
-    top: 65%;
-    left: 35%;
-    width: 20%;
-    height: 3px;
-    border-radius: 50%;
-    animation-delay: 0.5s;
-}
-
-/* Plant/bush outlines - circular/organic shapes */
-.edge-line:nth-child(8) {
-    top: 35%;
-    left: 15%;
-    width: 8%;
-    height: 8%;
-    border: 3px solid rgba(255, 255, 255, 0.9);
     background: transparent;
-    border-radius: 50%;
-    animation-delay: 0.6s;
+    box-shadow:
+        0 0  6px rgba(0, 255, 200, 0.9),
+        0 0 18px rgba(0, 255, 200, 0.5),
+        inset 0 0 6px rgba(0, 255, 200, 0.1);
+    opacity: 0;
+    animation: ringDetect 3s ease-in-out infinite;
 }
 
-.edge-line:nth-child(9) {
-    top: 40%;
-    left: 60%;
-    width: 10%;
-    height: 10%;
-    border: 3px solid rgba(255, 255, 255, 0.9);
-    background: transparent;
-    border-radius: 50%;
-    animation-delay: 0.7s;
+@keyframes ringDetect {
+    0%   { opacity: 0;   transform: scale(0.65); }
+    20%  { opacity: 1;   transform: scale(1);    }
+    70%  { opacity: 0.8; transform: scale(1);    }
+    100% { opacity: 0;   transform: scale(1.3);  }
 }
 
-.edge-line:nth-child(10) {
-    top: 60%;
-    left: 10%;
-    width: 7%;
-    height: 7%;
-    border: 3px solid rgba(255, 255, 255, 0.9);
-    background: transparent;
-    border-radius: 50%;
-    animation-delay: 0.8s;
-}
+.edge-line:nth-child(1)  { width: 62px;  height: 62px;  top: 10%; left: 16%; animation-delay: 0.4s;  }
+.edge-line:nth-child(2)  { width: 44px;  height: 44px;  top: 35%; left: 12%; animation-delay: 1.2s;  }
+.edge-line:nth-child(3)  { width: 78px;  height: 78px;  top: 7%;  left: 48%; animation-delay: 0.8s;  }
+.edge-line:nth-child(4)  { width: 54px;  height: 54px;  top: 26%; left: 63%; animation-delay: 1.6s;  }
+.edge-line:nth-child(5)  { width: 68px;  height: 68px;  top: 54%; left: 20%; animation-delay: 0.6s;  }
+.edge-line:nth-child(6)  { width: 38px;  height: 38px;  top: 64%; left: 58%; animation-delay: 2.0s;  }
+.edge-line:nth-child(7)  { width: 50px;  height: 50px;  top: 72%; left: 36%; animation-delay: 1.0s;  }
+.edge-line:nth-child(8)  { width: 64px;  height: 64px;  top: 13%; left: 73%; animation-delay: 1.8s;  }
+.edge-line:nth-child(9)  { width: 34px;  height: 34px;  top: 46%; left: 43%; animation-delay: 2.4s;  }
+.edge-line:nth-child(10) { width: 56px;  height: 56px;  top: 78%; left: 9%;  animation-delay: 0.2s;  }
+.edge-line:nth-child(11) { width: 42px;  height: 42px;  top: 41%; left: 81%; animation-delay: 1.4s;  }
+.edge-line:nth-child(12) { width: 74px;  height: 74px;  top: 59%; left: 67%; animation-delay: 0.9s;  }
+.edge-line:nth-child(13) { width: 30px;  height: 30px;  top: 20%; left: 34%; animation-delay: 2.2s;  }
+.edge-line:nth-child(14) { width: 48px;  height: 48px;  top: 84%; left: 47%; animation-delay: 1.7s;  }
 
-/* Tree outline */
-.edge-line:nth-child(11) {
-    top: 10%;
-    left: 70%;
-    width: 12%;
-    height: 12%;
-    border: 3px solid rgba(255, 255, 255, 0.9);
-    background: transparent;
-    border-radius: 50%;
-    animation-delay: 0.9s;
-}
-
-/* Ground/lawn edges */
-.edge-line:nth-child(12) {
-    bottom: 15%;
-    left: 10%;
-    width: 80%;
-    height: 2px;
-    animation-delay: 1s;
-}
-
-/* Additional architectural details */
-.edge-line:nth-child(13) {
-    top: 25%;
-    left: 30%;
-    width: 8%;
-    height: 2px;
-    animation-delay: 0.25s;
-}
-
-.edge-line:nth-child(14) {
-    top: 25%;
-    left: 45%;
-    width: 8%;
-    height: 2px;
-    animation-delay: 0.35s;
-}
-
-/* Corner markers */
-.corner-marker {
+/* ── Corner targeting brackets ────────────────────────────────── */
+.scan-corners {
     position: absolute;
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(16, 185, 129, 1);
-    animation: cornerPulse 2s ease-in-out infinite;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 6;
+    pointer-events: none;
 }
 
-@keyframes cornerPulse {
-    0%, 100% { 
-        opacity: 0.6;
+.scan-corner {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border-color: rgba(0, 255, 200, 0.95);
+    border-style: solid;
+    animation: cornerBreathe 2s ease-in-out infinite;
+}
+
+.scan-corner.top-left    { top: 10px; left: 10px;   border-width: 2.5px 0 0 2.5px; }
+.scan-corner.top-right   { top: 10px; right: 10px;  border-width: 2.5px 2.5px 0 0; animation-delay: 0.5s; }
+.scan-corner.bottom-left { bottom: 10px; left: 10px;  border-width: 0 0 2.5px 2.5px; animation-delay: 1.0s; }
+.scan-corner.bottom-right{ bottom: 10px; right: 10px; border-width: 0 2.5px 2.5px 0; animation-delay: 1.5s; }
+
+@keyframes cornerBreathe {
+    0%, 100% {
+        opacity: 0.65;
+        box-shadow: 0 0 6px rgba(0, 255, 200, 0.6);
         transform: scale(1);
     }
-    50% { 
+    50% {
         opacity: 1;
+        box-shadow: 0 0 14px rgba(0, 255, 200, 1), 0 0 28px rgba(0, 255, 200, 0.45);
         transform: scale(1.1);
     }
 }
 
-.corner-marker.top-left {
-    top: 5%;
-    left: 5%;
-    border-right: none;
-    border-bottom: none;
+/* ── HUD readout ──────────────────────────────────────────────── */
+.scan-hud {
+    position: absolute;
+    bottom: 14px;
+    left: 14px;
+    z-index: 7;
+    font-family: 'Courier New', monospace;
+    color: rgba(0, 255, 200, 0.9);
+    text-shadow: 0 0 8px rgba(0, 255, 200, 0.7);
+    line-height: 1.5;
+    pointer-events: none;
 }
 
-.corner-marker.top-right {
-    top: 5%;
-    right: 5%;
-    border-left: none;
-    border-bottom: none;
+.hud-label {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    opacity: 0.65;
+    margin-bottom: 1px;
 }
 
-.corner-marker.bottom-left {
-    bottom: 5%;
-    left: 5%;
-    border-right: none;
-    border-top: none;
+.hud-data {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 2px;
 }
 
-.corner-marker.bottom-right {
-    bottom: 5%;
-    right: 5%;
-    border-left: none;
-    border-top: none;
+.hud-blink {
+    animation: labelBlink 0.75s step-end infinite;
 }
 
-/* Scanning active state */
+/* ── Scanning active state ────────────────────────────────────── */
 .photo-preview.scanning {
-    animation: photoScanGlow 2s ease-in-out infinite;
+    animation: photoGlow 2.5s ease-in-out infinite;
 }
 
-@keyframes photoScanGlow {
-    0%, 100% { 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+@keyframes photoGlow {
+    0%, 100% {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     }
-    50% { 
-        box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3),
-                    0 0 50px rgba(16, 185, 129, 0.2);
+    50% {
+        box-shadow:
+            0 10px 40px rgba(16, 185, 129, 0.25),
+            0 0 0 1px rgba(0, 255, 200, 0.18),
+            0 0 55px rgba(0, 200, 170, 0.14);
     }
 }
 

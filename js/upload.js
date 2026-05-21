@@ -44,8 +44,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ── Event listeners ───────────────────────────────────────────────────────────
 function setupEventListeners() {
-    uploadBtn.addEventListener('click',  () => fileInput.click());
-    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadBtn.addEventListener('click', e => { e.stopPropagation(); fileInput.value = ''; fileInput.click(); });
+    uploadArea.addEventListener('click', () => { fileInput.value = ''; fileInput.click(); });
 
     uploadArea.addEventListener('dragover', e => {
         e.preventDefault();
@@ -67,7 +67,7 @@ function setupEventListeners() {
         if (e.target.files.length > 0) handleFileUpload(e.target.files[0]);
     });
 
-    changePhotoBtn.addEventListener('click', () => fileInput.click());
+    changePhotoBtn.addEventListener('click', () => { fileInput.value = ''; fileInput.click(); });
 
     backToUploadBtn.addEventListener('click', () => {
         analysisSection.style.display = 'none';

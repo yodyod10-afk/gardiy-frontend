@@ -393,7 +393,29 @@
 
     <script src="js/common.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/subscriptions.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/mobile.js"></script>
+    <script>
+    // Activate plan after returning from Stripe checkout
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('subscription_success') === '1') {
+            const plan = params.get('plan');
+            if (plan === 'basic' || plan === 'pro') {
+                try {
+                    const user = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+                    if (user.loggedIn) {
+                        user.plan = plan;
+                        localStorage.setItem('gardiyUser', JSON.stringify(user));
+                        // Remove params from URL without reload
+                        history.replaceState({}, '', 'profile.html');
+                        setTimeout(() => alert('🎉 You\'re now on the ' + (plan === 'basic' ? 'Basic ($30/mo)' : 'Pro ($250/mo)') + ' plan!'), 300);
+                    }
+                } catch (e) {}
+            }
+        }
+    })();
+    </script>
 </body>
 </html>

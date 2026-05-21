@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <li>✓ Access community to inspire & be inspired</li>
                         <li>✓ Share designs with others</li>
                     </ul>
-                    <a href="upload.html" class="pricing-btn primary">Get Started</a>
+                    <button class="pricing-btn primary" onclick="startPlanCheckout('basic')">Get Started</button>
                 </div>
 
                 <div class="pricing-card">
@@ -237,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <li>✓ Exclusive deals & discounts for large orders</li>
                         <li>✓ Dedicated sales team support</li>
                     </ul>
-                    <a href="upload.html" class="pricing-btn">Go Pro</a>
+                    <button class="pricing-btn" onclick="startPlanCheckout('pro')">Go Pro</button>
                 </div>
             </div>
         </div>
@@ -297,5 +297,35 @@ document.addEventListener('DOMContentLoaded', function() {
     <script src="js/api.js"></script>
     <script src="js/common.js"></script>
     <script src="js/mobile.js"></script>
+    <script>
+    async function startPlanCheckout(plan) {
+        const btn = event.currentTarget;
+        const originalText = btn.textContent;
+        btn.textContent = 'Loading...';
+        btn.disabled = true;
+        try {
+            const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+            const headers = { 'Content-Type': 'application/json' };
+            if (session.token) headers['Authorization'] = 'Bearer ' + session.token;
+            const res = await fetch('https://gardiy-backend-production.up.railway.app/api/create-checkout-session', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ plan })
+            });
+            const data = await res.json();
+            if (data.success && data.url) {
+                window.location.href = data.url;
+            } else {
+                alert('Could not start checkout: ' + (data.message || 'Unknown error'));
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        } catch (err) {
+            alert('Checkout error: ' + err.message);
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    }
+    </script>
 </body>
 </html>
