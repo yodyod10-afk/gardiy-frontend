@@ -171,6 +171,12 @@ function getMockProducts() {
     ];
 }
 
+function supplementWithMockProducts(products) {
+    const existingCategories = new Set(products.map(p => (p.category || '').toLowerCase()));
+    const missing = getMockProducts().filter(p => !existingCategories.has((p.category || '').toLowerCase()));
+    return missing.length ? [...products, ...missing] : products;
+}
+
 async function getProducts() {
     if (window.ProductAPI && window.MigrationHelper) {
         try {
@@ -181,12 +187,12 @@ async function getProducts() {
                     : (result?.products && Array.isArray(result.products)) ? result.products
                     : (result?.data    && Array.isArray(result.data))     ? result.data
                     : null;
-                if (products?.length) return products;
+                if (products?.length) return supplementWithMockProducts(products);
             }
         } catch (e) { console.warn('Backend unavailable, using fallback'); }
     }
     const stored = localStorage.getItem('gardiyProducts');
-    if (stored) { try { return JSON.parse(stored); } catch (e) {} }
+    if (stored) { try { return supplementWithMockProducts(JSON.parse(stored)); } catch (e) {} }
     return getMockProducts();
 }
 

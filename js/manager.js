@@ -90,21 +90,27 @@ function initializeProducts() {
     }
 }
 
+function supplementWithDefaults(products) {
+    const existingCategories = new Set(products.map(p => (p.category || '').toLowerCase()));
+    const missing = defaultProducts.filter(p => !existingCategories.has((p.category || '').toLowerCase()));
+    return missing.length ? [...products, ...missing] : products;
+}
+
 async function getProducts() {
     console.log('Getting products...');
-    
+
     if (window.ProductAPI && window.MigrationHelper) {
         try {
             const isConnected = await MigrationHelper.checkConnection();
             if (isConnected) {
                 console.log('Loading products from backend...');
-                
+
                 try {
                     const result = await ProductAPI.getAll();
                     console.log('Backend response:', result);
-                    
+
                     let products = null;
-                    
+
                     if (Array.isArray(result)) {
                         products = result;
                         console.log('✅ Loaded from backend (direct array):', products.length, 'products');
@@ -112,7 +118,7 @@ async function getProducts() {
                         products = result.data;
                         console.log('✅ Loaded from backend (wrapped):', products.length, 'products');
                     }
-                    
+
                     if (products && products.length > 0) {
                         products = products.map((p, idx) => {
                             if (!p.id && !p._id) {
@@ -122,7 +128,7 @@ async function getProducts() {
                             }
                             return p;
                         });
-                        return products;
+                        return supplementWithDefaults(products);
                     } else {
                         console.warn('Backend returned empty or invalid data');
                     }
@@ -136,12 +142,12 @@ async function getProducts() {
     } else {
         console.warn('Backend APIs not available');
     }
-    
+
     console.log('Falling back to localStorage');
     const stored = localStorage.getItem('gardiyProducts');
     const products = stored ? JSON.parse(stored) : defaultProducts;
     console.log('Getting products from localStorage:', products.length);
-    return products;
+    return supplementWithDefaults(products);
 }
 
 async function saveProducts(products) {
