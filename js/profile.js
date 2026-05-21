@@ -468,6 +468,8 @@ const MGR_DEFAULT_PRODUCTS = [
     { id: 'rocks-6', name: 'Decomposed Granite',  image: '🟡', category: 'rocks_pavers', price: 2.00,  type: 'emoji' },
 ];
 
+let mgrProductsCache = [];
+
 async function loadMgrProducts() {
     const grid = document.getElementById('mgr-products-grid');
     const countEl = document.getElementById('mgr-product-count');
@@ -475,12 +477,13 @@ async function loadMgrProducts() {
     try {
         const r = await fetch(`${MGR_API}/products`);
         const d = await r.json();
-        if (!d.success || !d.products) { grid.innerHTML = '<p style="color:#e53e3e;">Failed to load products.</p>'; return; }
-        let products = d.products;
-        // Supplement with local defaults for any category missing from backend
+        // Backend returns array directly; some versions wrap in { success, products }
+        let products = Array.isArray(d) ? d : (d.success && d.products ? d.products : null);
+        if (!products) { grid.innerHTML = '<p style="color:#e53e3e;">Failed to load products.</p>'; return; }
         const existingCats = new Set(products.map(p => (p.category || '').toLowerCase()));
         const missing = MGR_DEFAULT_PRODUCTS.filter(p => !existingCats.has(p.category));
         if (missing.length) products = [...products, ...missing];
+        mgrProductsCache = products;
         countEl.textContent = `${products.length} products`;
         if (!products.length) { grid.innerHTML = '<p style="color:#718096;grid-column:1/-1;">No products yet.</p>'; return; }
         grid.innerHTML = products.map(p => {
@@ -488,16 +491,131 @@ async function loadMgrProducts() {
                 ? `<img src="${p.image}" style="width:100%;height:100px;object-fit:cover;border-radius:8px 8px 0 0;">`
                 : `<div style="height:100px;background:#f0fdf4;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:2.5rem;">${p.image || '🌿'}</div>`;
             const id = p._id || p.id;
+            const isDefault = !p._id;
             return `<div style="background:white;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
                 ${img}
                 <div style="padding:0.75rem;">
                     <div style="font-weight:600;font-size:13px;color:#2d3748;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
                     <div style="font-size:12px;color:#718096;margin:2px 0;">$${p.price} · ${p.category}</div>
-                    <button onclick="deleteMgrProduct('${id}')" style="margin-top:6px;width:100%;padding:4px;background:#fff5f5;color:#e53e3e;border:1px solid #fed7d7;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">Delete</button>
+                    <div style="display:flex;gap:6px;margin-top:6px;">
+                        ${!isDefault ? `<button onclick="openEditProductModal('${id}')" style="flex:1;padding:4px;background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">Edit</button>` : ''}
+                        ${!isDefault ? `<button onclick="deleteMgrProduct('${id}')" style="flex:1;padding:4px;background:#fff5f5;color:#e53e3e;border:1px solid #fed7d7;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">Delete</button>` : ''}
+                        ${isDefault ? `<span style="font-size:11px;color:#9ca3af;font-style:italic;">Default — add to backend to edit</span>` : ''}
+                    </div>
                 </div>
             </div>`;
         }).join('');
     } catch { grid.innerHTML = '<p style="color:#e53e3e;grid-column:1/-1;">Error loading products.</p>'; }
+}
+
+function openEditProductModal(id) {
+    const p = mgrProductsCache.find(x => (x._id || x.id) === id);
+    if (!p) return;
+
+    const existing = document.getElementById('mgrEditModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'mgrEditModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99999;';
+
+    const currentImg = p.type === 'image' && p.image
+        ? `<img src="${p.image}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;">`
+        : `<div style="width:80px;height:80px;background:#f0fdf4;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;">${p.image || '🌿'}</div>`;
+
+    modal.innerHTML = `
+        <div style="background:white;border-radius:16px;padding:2rem;width:90%;max-width:480px;max-height:90vh;overflow-y:auto;">
+            <h3 style="margin:0 0 1.25rem;color:#1a202c;">Edit Product</h3>
+            <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;">
+                <div id="editImgPreview">${currentImg}</div>
+                <div style="flex:1;font-size:13px;color:#718096;">Current image. Upload a new one below to replace it.</div>
+            </div>
+            <div style="display:grid;gap:0.75rem;">
+                <div>
+                    <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Name</label>
+                    <input id="edit-name" type="text" value="${p.name}" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Category</label>
+                    <select id="edit-category" style="width:100%;padding:9px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;">
+                        <option value="hardscapes"  ${p.category==='hardscapes'  ?'selected':''}>Hardscapes</option>
+                        <option value="rocks_pavers"${p.category==='rocks_pavers'?'selected':''}>Rocks &amp; Pavers</option>
+                        <option value="plants"      ${p.category==='plants'      ?'selected':''}>Plants</option>
+                        <option value="trees"       ${p.category==='trees'       ?'selected':''}>Trees</option>
+                        <option value="grass"       ${p.category==='grass'       ?'selected':''}>Grass</option>
+                        <option value="flowers"     ${p.category==='flowers'     ?'selected':''}>Flowers</option>
+                        <option value="paths"       ${p.category==='paths'       ?'selected':''}>Paths</option>
+                        <option value="furniture"   ${p.category==='furniture'   ?'selected':''}>Furniture</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Price ($)</label>
+                    <input id="edit-price" type="number" value="${p.price}" min="0" step="0.01" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">New Image (optional — leave blank to keep current)</label>
+                    <input id="edit-image" type="file" accept="image/*" style="width:100%;padding:6px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;">
+                </div>
+            </div>
+            <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+                <button id="editSaveBtn" onclick="submitEditProduct('${id}')" style="flex:1;padding:10px;background:#10b981;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">Save Changes</button>
+                <button onclick="document.getElementById('mgrEditModal').remove()" style="padding:10px 16px;background:white;color:#4a5568;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;">Cancel</button>
+            </div>
+        </div>`;
+
+    // Live preview of newly selected image
+    modal.querySelector('#edit-image').addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('editImgPreview').innerHTML =
+                `<img src="${e.target.result}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;">`;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+}
+
+async function submitEditProduct(id) {
+    const name     = document.getElementById('edit-name').value.trim();
+    const category = document.getElementById('edit-category').value;
+    const price    = parseFloat(document.getElementById('edit-price').value);
+    const imageFile = document.getElementById('edit-image').files[0];
+
+    if (!name)        { alert('Enter a product name.'); return; }
+    if (isNaN(price)) { alert('Enter a valid price.');  return; }
+
+    const btn = document.getElementById('editSaveBtn');
+    btn.textContent = 'Saving…';
+    btn.disabled = true;
+
+    try {
+        const p = mgrProductsCache.find(x => (x._id || x.id) === id);
+        let imageData = p ? p.image : null;
+        if (imageFile) imageData = await compressImageForUpload(imageFile);
+
+        const payload = { name, category, price, image: imageData, type: imageFile ? 'image' : (p?.type || 'image') };
+        const r = await fetch(`${MGR_API}/products/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${mgrToken()}` },
+            body: JSON.stringify(payload)
+        });
+        const d = await r.json();
+        if (d.success) {
+            document.getElementById('mgrEditModal').remove();
+            loadMgrProducts();
+        } else {
+            alert(d.message || 'Failed to update product.');
+        }
+    } catch (e) {
+        alert('Error updating product: ' + e.message);
+    } finally {
+        const btn2 = document.getElementById('editSaveBtn');
+        if (btn2) { btn2.textContent = 'Save Changes'; btn2.disabled = false; }
+    }
 }
 
 async function deleteMgrProduct(id) {
