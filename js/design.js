@@ -601,9 +601,9 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
 
         if (itemData.type === 'image') {
             item.style.backgroundImage    = `url("${itemData.image}")`;
-            item.style.backgroundRepeat   = 'no-repeat';
-            item.style.backgroundSize     = 'cover';
-            item.style.backgroundPosition = 'center';
+            item.style.backgroundRepeat   = 'repeat';
+            item.style.backgroundSize     = '150px 150px';
+            item.style.backgroundPosition = '0 0';
         } else {
             item.style.backgroundColor = 'rgba(120,190,90,0.3)';
             item.innerHTML = `<span style="font-size:64px;opacity:0.7;pointer-events:none;">${itemData.image}</span>`;
@@ -1456,22 +1456,25 @@ function applyBrickPathShape(item) {
         svg.appendChild(shadow);
 
         if (isRealImage) {
-            // Clip the image to the polygon — one image stretched to cover the whole area, no white gaps
-            const clipId   = `brickClip${item.dataset.id}`;
-            const clipPath = ns('clipPath');
-            clipPath.id = clipId;
-            const clipShape = ns('path');
-            clipShape.setAttribute('d', d);
-            clipPath.appendChild(clipShape);
-            defs.appendChild(clipPath);
-
+            // Tiling pattern at fixed px size — bricks stay proportional as area grows
+            const tilePatId = `brickTile${item.dataset.id}`;
+            const tileW = 150, tileH = 100;
+            const tilePat = ns('pattern');
+            tilePat.id = tilePatId;
+            tilePat.setAttribute('patternUnits', 'userSpaceOnUse');
+            tilePat.setAttribute('width', tileW); tilePat.setAttribute('height', tileH);
             const imgEl = ns('image');
             imgEl.setAttribute('href', imageUrl);
             imgEl.setAttribute('x', '0'); imgEl.setAttribute('y', '0');
-            imgEl.setAttribute('width', W); imgEl.setAttribute('height', H);
+            imgEl.setAttribute('width', tileW); imgEl.setAttribute('height', tileH);
             imgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-            imgEl.setAttribute('clip-path', `url(#${clipId})`);
-            svg.appendChild(imgEl);
+            tilePat.appendChild(imgEl);
+            defs.appendChild(tilePat);
+
+            const fill = ns('path');
+            fill.setAttribute('d', d); fill.setAttribute('fill', `url(#${tilePatId})`);
+            fill.setAttribute('stroke', 'none');
+            svg.appendChild(fill);
         } else {
             // SVG brick pattern fallback
             const fill = ns('path');
@@ -1565,24 +1568,27 @@ function applyGenericPathFillShape(item) {
     svg.appendChild(shadow);
 
     if (isRealImage) {
-        // Single image stretched to bounding box, hard-clipped to polygon
-        const clipId   = `genericClip${item.dataset.id}`;
-        const defs     = gns('defs');
-        const clipPath = gns('clipPath');
-        clipPath.id = clipId;
-        const clipShape = gns('path');
-        clipShape.setAttribute('d', d);
-        clipPath.appendChild(clipShape);
-        defs.appendChild(clipPath);
-        svg.appendChild(defs);
-
+        // Tiling pattern — texture stays proportional as area grows
+        const tilePatId = `genericTile${item.dataset.id}`;
+        const tileSize  = 150;
+        const defs      = gns('defs');
+        const tilePat   = gns('pattern');
+        tilePat.id = tilePatId;
+        tilePat.setAttribute('patternUnits', 'userSpaceOnUse');
+        tilePat.setAttribute('width', tileSize); tilePat.setAttribute('height', tileSize);
         const imgEl = gns('image');
         imgEl.setAttribute('href', imageUrl);
         imgEl.setAttribute('x', '0'); imgEl.setAttribute('y', '0');
-        imgEl.setAttribute('width', W); imgEl.setAttribute('height', H);
+        imgEl.setAttribute('width', tileSize); imgEl.setAttribute('height', tileSize);
         imgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-        imgEl.setAttribute('clip-path', `url(#${clipId})`);
-        svg.appendChild(imgEl);
+        tilePat.appendChild(imgEl);
+        defs.appendChild(tilePat);
+        svg.appendChild(defs);
+
+        const fill = gns('path');
+        fill.setAttribute('d', d); fill.setAttribute('fill', `url(#${tilePatId})`);
+        fill.setAttribute('stroke', 'none');
+        svg.appendChild(fill);
     } else {
         const fill = gns('path');
         fill.setAttribute('d', d); fill.setAttribute('fill', fillColor);
