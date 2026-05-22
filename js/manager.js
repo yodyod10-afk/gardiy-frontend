@@ -60,6 +60,7 @@ const defaultProducts = [
     { id: 'flower-1', name: 'Roses', image: '🌹', category: 'flowers', price: 35, type: 'emoji' },
     { id: 'flower-2', name: 'Tulips', image: '🌷', category: 'flowers', price: 20, type: 'emoji' },
     { id: 'flower-3', name: 'Sunflowers', image: '🌻', category: 'flowers', price: 15, type: 'emoji' },
+    { id: 'flower-4', name: 'Pink Petunia', image: 'images/pink-petunia.png', imageUrl: 'images/pink-petunia.png', category: 'flowers', price: 15, type: 'image' },
     
     // Rocks & Pavers
     { id: 'rocks-1', name: 'Concrete Paver',      image: '⬜', category: 'rocks_pavers', price: 6.00,  type: 'emoji' },

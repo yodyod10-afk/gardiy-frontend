@@ -559,6 +559,109 @@ body {
     transform: translateX(5px);
 }
 
+/* ── Category product filter bar ───────────────────────────────────────────── */
+.category-filter-bar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filter-sort-row {
+    display: flex;
+    gap: 4px;
+}
+
+.filter-sort-btn {
+    flex: 1;
+    padding: 3px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.filter-sort-btn:hover {
+    border-color: #10b981;
+    color: #065f46;
+}
+
+.filter-sort-btn.active {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+}
+
+.filter-color-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.filter-color-btn {
+    border: 2px solid transparent;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.filter-color-btn:hover {
+    transform: scale(1.2);
+}
+
+.filter-color-btn.active {
+    border-color: #1e293b;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #1e293b;
+}
+
+.filter-color-all {
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 6px;
+    width: auto;
+    padding: 1px 6px;
+    height: 20px;
+    background: white;
+    border: 1.5px solid #d1d5db;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.filter-color-all:hover {
+    border-color: #10b981;
+    color: #065f46;
+}
+
+.filter-color-all.active {
+    background: #1e293b;
+    border-color: #1e293b;
+    color: white;
+}
+
+.filter-no-results {
+    padding: 12px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.82rem;
+    font-style: italic;
+}
+
 /* Plant recommendation legend in sidebar */
 .plant-legend {
     display: flex;
