@@ -600,10 +600,8 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
         item.dataset.polyPoints = JSON.stringify(polyPoints);
 
         if (itemData.type === 'image') {
-            item.style.backgroundImage    = `url("${itemData.image}")`;
-            item.style.backgroundRepeat   = 'repeat';
-            item.style.backgroundSize     = '150px 150px';
-            item.style.backgroundPosition = '0 0';
+            // Mirror-tile SVG — 2×2 grid of flipped copies eliminates seams
+            _appendMirrorTileSvg(item, itemData.image, 150, 150);
         } else {
             item.style.backgroundColor = 'rgba(120,190,90,0.3)';
             item.innerHTML = `<span style="font-size:64px;opacity:0.7;pointer-events:none;">${itemData.image}</span>`;
@@ -635,6 +633,7 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
     }
 
     canvas.appendChild(item);
+    if (isMesh) applyPolyShape(item); // apply clip-path immediately on placement
 
     // _price bypasses the getItemPrices() network call (used by auto-design batch)
     const priceVal = itemData._price !== undefined
@@ -897,6 +896,46 @@ function addPolyDot(canvasX, canvasY, item) {
     createPolyDots(item);
     applyPolyShape(item);
     updateControlPanelPosition(item);
+}
+
+// Build a 2×2 mirror-tile SVG inside item — no visible seams at any area size
+function _appendMirrorTileSvg(item, imageUrl, tileW, tileH) {
+    item.querySelectorAll('svg.poly-texture').forEach(s => s.remove());
+    const NS = 'http://www.w3.org/2000/svg';
+    const ns = t => document.createElementNS(NS, t);
+    const svg = ns('svg');
+    svg.classList.add('poly-texture');
+    svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;';
+    const patId = `mirrorPat${item.dataset.id}`;
+    const defs = ns('defs');
+    const pat  = ns('pattern');
+    pat.id = patId;
+    pat.setAttribute('patternUnits', 'userSpaceOnUse');
+    pat.setAttribute('width',  tileW * 2);
+    pat.setAttribute('height', tileH * 2);
+    // 2×2 grid: original + 3 mirror reflections — every shared edge is a perfect mirror
+    [
+        null,
+        `translate(${tileW * 2},0) scale(-1,1)`,
+        `translate(0,${tileH * 2}) scale(1,-1)`,
+        `translate(${tileW * 2},${tileH * 2}) scale(-1,-1)`,
+    ].forEach(transform => {
+        const img = ns('image');
+        img.setAttribute('href', imageUrl);
+        img.setAttribute('x', '0'); img.setAttribute('y', '0');
+        img.setAttribute('width', tileW); img.setAttribute('height', tileH);
+        img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+        if (transform) img.setAttribute('transform', transform);
+        pat.appendChild(img);
+    });
+    defs.appendChild(pat);
+    svg.appendChild(defs);
+    const bg = ns('rect');
+    bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
+    bg.setAttribute('width', '99999'); bg.setAttribute('height', '99999');
+    bg.setAttribute('fill', `url(#${patId})`);
+    svg.appendChild(bg);
+    item.appendChild(svg);
 }
 
 // Apply clip-path polygon from canvas-absolute dot coordinates
@@ -1456,19 +1495,27 @@ function applyBrickPathShape(item) {
         svg.appendChild(shadow);
 
         if (isRealImage) {
-            // Tiling pattern at fixed px size — bricks stay proportional as area grows
-            const tilePatId = `brickTile${item.dataset.id}`;
+            // Mirror-tile pattern — 2×2 reflected grid, seamless at any scale
+            const tilePatId = `brickMirror${item.dataset.id}`;
             const tileW = 150, tileH = 100;
             const tilePat = ns('pattern');
             tilePat.id = tilePatId;
             tilePat.setAttribute('patternUnits', 'userSpaceOnUse');
-            tilePat.setAttribute('width', tileW); tilePat.setAttribute('height', tileH);
-            const imgEl = ns('image');
-            imgEl.setAttribute('href', imageUrl);
-            imgEl.setAttribute('x', '0'); imgEl.setAttribute('y', '0');
-            imgEl.setAttribute('width', tileW); imgEl.setAttribute('height', tileH);
-            imgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-            tilePat.appendChild(imgEl);
+            tilePat.setAttribute('width', tileW * 2); tilePat.setAttribute('height', tileH * 2);
+            [
+                null,
+                `translate(${tileW * 2},0) scale(-1,1)`,
+                `translate(0,${tileH * 2}) scale(1,-1)`,
+                `translate(${tileW * 2},${tileH * 2}) scale(-1,-1)`,
+            ].forEach(transform => {
+                const img = ns('image');
+                img.setAttribute('href', imageUrl);
+                img.setAttribute('x', '0'); img.setAttribute('y', '0');
+                img.setAttribute('width', tileW); img.setAttribute('height', tileH);
+                img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+                if (transform) img.setAttribute('transform', transform);
+                tilePat.appendChild(img);
+            });
             defs.appendChild(tilePat);
 
             const fill = ns('path');
@@ -1568,20 +1615,28 @@ function applyGenericPathFillShape(item) {
     svg.appendChild(shadow);
 
     if (isRealImage) {
-        // Tiling pattern — texture stays proportional as area grows
-        const tilePatId = `genericTile${item.dataset.id}`;
+        // Mirror-tile pattern — seamless at any scale
+        const tilePatId = `genericMirror${item.dataset.id}`;
         const tileSize  = 150;
         const defs      = gns('defs');
         const tilePat   = gns('pattern');
         tilePat.id = tilePatId;
         tilePat.setAttribute('patternUnits', 'userSpaceOnUse');
-        tilePat.setAttribute('width', tileSize); tilePat.setAttribute('height', tileSize);
-        const imgEl = gns('image');
-        imgEl.setAttribute('href', imageUrl);
-        imgEl.setAttribute('x', '0'); imgEl.setAttribute('y', '0');
-        imgEl.setAttribute('width', tileSize); imgEl.setAttribute('height', tileSize);
-        imgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-        tilePat.appendChild(imgEl);
+        tilePat.setAttribute('width', tileSize * 2); tilePat.setAttribute('height', tileSize * 2);
+        [
+            null,
+            `translate(${tileSize * 2},0) scale(-1,1)`,
+            `translate(0,${tileSize * 2}) scale(1,-1)`,
+            `translate(${tileSize * 2},${tileSize * 2}) scale(-1,-1)`,
+        ].forEach(transform => {
+            const img = gns('image');
+            img.setAttribute('href', imageUrl);
+            img.setAttribute('x', '0'); img.setAttribute('y', '0');
+            img.setAttribute('width', tileSize); img.setAttribute('height', tileSize);
+            img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+            if (transform) img.setAttribute('transform', transform);
+            tilePat.appendChild(img);
+        });
         defs.appendChild(tilePat);
         svg.appendChild(defs);
 
