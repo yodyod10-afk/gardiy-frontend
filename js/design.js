@@ -173,6 +173,14 @@ let dotIdCounter  = 0;
 // Corner resize handles (regular items)
 let cornerHandles = [];
 
+// Freehand path drawing mode
+let drawingMode       = false;
+let drawingProduct    = null;
+let drawingPoints     = [];
+let isMouseDownDraw   = false;
+let drawingOverlay    = null;
+let drawingPreviewSvg = null;
+
 // ── Mock products ─────────────────────────────────────────────────────────────
 function getMockProducts() {
     return [
@@ -267,6 +275,28 @@ function isGrassItem(n, c)       { return (c||'').toLowerCase() === 'grass'; }
 function isHardscapeItem(n, c)   { return (c||'').toLowerCase() === 'hardscapes'; }
 function isRocksPaversItem(n, c) { return (c||'').toLowerCase() === 'rocks_pavers'; }
 function isMeshItem(n, c)        { return isGrassItem(n, c) || isHardscapeItem(n, c); }
+// ── Ramer-Douglas-Peucker path simplification ────────────────────────────────
+function _perpDist(pt, a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    if (len === 0) return Math.hypot(pt.x - a.x, pt.y - a.y);
+    return Math.abs(dx * (a.y - pt.y) - (a.x - pt.x) * dy) / len;
+}
+function rdpSimplify(pts, epsilon) {
+    if (pts.length < 3) return pts;
+    let maxD = 0, maxI = 0;
+    for (let i = 1; i < pts.length - 1; i++) {
+        const d = _perpDist(pts[i], pts[0], pts[pts.length - 1]);
+        if (d > maxD) { maxD = d; maxI = i; }
+    }
+    if (maxD > epsilon) {
+        const L = rdpSimplify(pts.slice(0, maxI + 1), epsilon);
+        const R = rdpSimplify(pts.slice(maxI), epsilon);
+        return [...L.slice(0, -1), ...R];
+    }
+    return [pts[0], pts[pts.length - 1]];
+}
+
 function isPathItem(n, c) {
     return (c||'').toLowerCase() === 'paths' ||
         ['path','pathway','walkway'].some(k => (n||'').toLowerCase().includes(k));
@@ -303,13 +333,23 @@ document.addEventListener('DOMContentLoaded', async function () {
         areaInput.addEventListener('input', () => { console.log('[SF] Manual area changed to:', areaInput.value); updateMaterialsList(); });
     }
 
-    // ── Global mousemove: poly dot drag + path dot drag ──
+    // ── Global mousemove: freehand drawing + poly/path dot drag ──
     document.addEventListener('mousemove', e => {
         const canvas = document.getElementById('designCanvas');
         if (!canvas) return;
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
+
+        // Freehand path drawing
+        if (drawingMode && isMouseDownDraw) {
+            const last = drawingPoints[drawingPoints.length - 1];
+            if (!last || Math.hypot(mx - last.x, my - last.y) > 4) {
+                drawingPoints.push({ x: mx, y: my });
+                _updateDrawingPreview();
+            }
+            return;
+        }
 
         // Poly dot drag (grass / hardscapes)
         if (isDraggingPolyDot && draggedPolyDot && selectedItem) {
@@ -343,7 +383,18 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     });
 
-    document.addEventListener('mouseup', () => {
+    document.addEventListener('mouseup', async () => {
+        // Finish freehand path drawing
+        if (drawingMode && isMouseDownDraw) {
+            isMouseDownDraw = false;
+            if (drawingPreviewSvg) { drawingPreviewSvg.remove(); drawingPreviewSvg = null; }
+            if (drawingPoints.length >= 5) {
+                const simplified = rdpSimplify(drawingPoints, 10);
+                if (simplified.length >= 2) await _finishDrawingPath(simplified);
+            }
+            exitPathDrawingMode();
+            return;
+        }
         if (isDraggingPolyDot || isDraggingDot) updateMaterialsList();
         isDraggingPolyDot = false; draggedPolyDot = null;
         isDraggingDot     = false; draggedDot     = null;
@@ -451,6 +502,7 @@ function setupCanvasClick() {
     const canvas = document.getElementById('designCanvas');
     if (!canvas) return;
     canvas.addEventListener('click', e => {
+        if (drawingMode) return;
         if (e.target.closest('.draggable-item') ||
             e.target.closest('.control-panel')  ||
             e.target.classList.contains('poly-dot') ||
@@ -459,13 +511,25 @@ function setupCanvasClick() {
     });
 }
 
-// ── Product click → add to canvas ────────────────────────────────────────────
+// ── Product click → add to canvas (paths enter drawing mode) ─────────────────
 document.addEventListener('click', async e => {
     const item = e.target.closest('.product-item');
     if (!item) return;
     const pid = item.dataset.pid;
     const p = productRegistry[pid];
     if (!p) return;
+
+    // Path items use freehand drawing mode instead of instant placement
+    if (isPathItem(p.name, p.category)) {
+        if (drawingMode && drawingProduct?.name === p.name) {
+            exitPathDrawingMode(); // toggle off
+        } else {
+            exitPathDrawingMode();
+            enterPathDrawingMode(p, item);
+        }
+        return;
+    }
+
     const canvas = document.getElementById('designCanvas');
     const rect   = canvas.getBoundingClientRect();
     const data   = {
@@ -1551,6 +1615,12 @@ document.head.appendChild(Object.assign(document.createElement('style'), { textC
     .mesh-dot { transition: transform 0.1s; }
     .mesh-dot:hover { transform:translate(-50%,-50%) scale(1.5) !important; background:#ff8c42 !important; }
 
+    .product-item.drawing-active {
+        background: #fff7ed !important;
+        border: 2px solid #b5631a !important;
+        box-shadow: 0 0 0 3px rgba(181,99,26,0.18);
+    }
+
     .control-panel {
         position:absolute; display:flex; gap:6px; align-items:center;
         background:white; padding:6px 10px; border-radius:12px;
@@ -1654,6 +1724,105 @@ function applyPlantRecommendationColors() {
         }
     }
 }
+
+// ── Freehand path drawing mode ────────────────────────────────────────────────
+
+function enterPathDrawingMode(product, sidebarItem) {
+    document.querySelectorAll('.product-item.drawing-active').forEach(el => el.classList.remove('drawing-active'));
+    if (sidebarItem) sidebarItem.classList.add('drawing-active');
+
+    drawingMode    = true;
+    drawingProduct = product;
+    drawingPoints  = [];
+    isMouseDownDraw = false;
+
+    const canvas = document.getElementById('designCanvas');
+    if (!canvas) return;
+
+    deselectItem();
+
+    // Transparent overlay captures all mouse events on the canvas
+    drawingOverlay = document.createElement('div');
+    drawingOverlay.style.cssText = 'position:absolute;inset:0;z-index:10000;cursor:crosshair;user-select:none;';
+    canvas.appendChild(drawingOverlay);
+
+    drawingOverlay.addEventListener('mousedown', e => {
+        e.preventDefault(); e.stopPropagation();
+        isMouseDownDraw = true;
+        drawingPoints   = [];
+        const rect = canvas.getBoundingClientRect();
+        drawingPoints.push({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+
+        // Live preview SVG
+        drawingPreviewSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        drawingPreviewSvg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10001;overflow:visible;';
+        canvas.appendChild(drawingPreviewSvg);
+    });
+
+    // Drawing hint banner
+    let hint = document.getElementById('drawingModeHint');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'drawingModeHint';
+        hint.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(181,99,26,0.92);color:white;padding:7px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:10002;pointer-events:none;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,0.2);';
+        canvas.appendChild(hint);
+    }
+    hint.textContent = `✏️ Draw ${product.name} — click & drag, release to place  ·  Esc to cancel`;
+    hint.style.display = 'block';
+}
+
+function exitPathDrawingMode() {
+    drawingMode     = false;
+    drawingProduct  = null;
+    drawingPoints   = [];
+    isMouseDownDraw = false;
+
+    if (drawingOverlay)    { drawingOverlay.remove();    drawingOverlay    = null; }
+    if (drawingPreviewSvg) { drawingPreviewSvg.remove(); drawingPreviewSvg = null; }
+
+    const hint = document.getElementById('drawingModeHint');
+    if (hint) hint.style.display = 'none';
+
+    document.querySelectorAll('.product-item.drawing-active').forEach(el => el.classList.remove('drawing-active'));
+}
+
+function _updateDrawingPreview() {
+    if (!drawingPreviewSvg || drawingPoints.length < 2) return;
+    const pts = drawingPoints;
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) d += ` L ${pts[i].x} ${pts[i].y}`;
+    drawingPreviewSvg.innerHTML = `
+        <path d="${d}" stroke="#b5631a" stroke-width="3" fill="none"
+              stroke-linecap="round" stroke-linejoin="round"
+              stroke-dasharray="10 5" opacity="0.75"/>`;
+}
+
+async function _finishDrawingPath(simplifiedPts) {
+    const p = drawingProduct;
+    if (!p) return;
+    const data = { name: p.name, image: p.image, type: p.type, category: p.category, price: parseFloat(p.price) };
+
+    // Place item at first drawn point (addItemToCanvas sets default 3-point path)
+    const startX = simplifiedPts[0].x, startY = simplifiedPts[0].y;
+    await addItemToCanvas(data, startX, startY);
+
+    // Patch the item's pathPoints with our smoothed freehand points
+    const newItem = document.querySelector(`[data-id="${itemIdCounter - 1}"]`);
+    if (!newItem) return;
+
+    const pathPoints = simplifiedPts.map(pt => ({ id: dotIdCounter++, x: pt.x, y: pt.y }));
+    newItem.dataset.pathPoints = JSON.stringify(pathPoints);
+
+    // Re-render with freehand shape
+    applyPathShape(newItem);
+    if (newItem === selectedItem) createPathControls(newItem);
+    updateMaterialsList();
+}
+
+// Escape key cancels drawing mode
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && drawingMode) exitPathDrawingMode();
+});
 
 // ── Auto Design ──────────────────────────────────────────────────────────────
 
