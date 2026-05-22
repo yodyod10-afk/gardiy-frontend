@@ -87,19 +87,35 @@ function getBricksPerSqFt(name) {
     return 4; // default: 4 bricks per sq ft
 }
 
-// Returns brick count info for a placed brick-path item using getTotalLength()
+// Returns brick count info for a placed brick-path item
+// Fill mode: uses shoelace polygon area; stroke mode: uses getTotalLength
 function getBrickPathInfo(placedItem) {
-    const el     = placedItem.element;
+    const el    = placedItem.element;
+    const scale = getSqFtScale();
+
+    if (el.dataset.pathFill === 'true') {
+        // Freehand drawn area — calculate from polygon
+        const points = JSON.parse(el.dataset.pathPoints || '[]');
+        if (points.length < 3) return null;
+        if (!scale) return { noScale: true };
+        const areaPx        = polygonAreaPx(points);
+        if (areaPx < 1) return null;
+        const areaInSqFt    = areaPx * scale;
+        const bricksPerSqFt = getBricksPerSqFt(placedItem.name);
+        const brickCount    = Math.ceil(areaInSqFt * bricksPerSqFt * 1.1);
+        return { areaInSqFt, bricksPerSqFt, brickCount, cost: brickCount * placedItem.price, noScale: false };
+    }
+
+    // Legacy stroke mode — measure path length × width
     const svgEl  = el.querySelector('svg.path-svg');
     const pathEl = svgEl?.querySelector('path[data-measure]') || svgEl?.querySelector('path');
     if (!pathEl) return null;
     const pixelLength   = pathEl.getTotalLength();
     const pathWidthPx   = parseInt(el.dataset.pathWidth || 40);
-    const scale         = getSqFtScale();
     if (!scale) return { pixelLength, pathWidthPx, noScale: true };
     const areaInSqFt    = pixelLength * pathWidthPx * scale;
     const bricksPerSqFt = getBricksPerSqFt(placedItem.name);
-    const brickCount    = Math.ceil(areaInSqFt * bricksPerSqFt * 1.1); // +10% waste
+    const brickCount    = Math.ceil(areaInSqFt * bricksPerSqFt * 1.1);
     return { pixelLength, pathWidthPx, areaInSqFt, bricksPerSqFt, brickCount, cost: brickCount * placedItem.price, noScale: false };
 }
 
@@ -1234,6 +1250,7 @@ function saveDesign() {
                 polyPoints:  i.element.dataset.polyPoints,
                 pathPoints:  i.element.dataset.pathPoints,
                 pathWidth:   i.element.dataset.pathWidth,
+                pathFill:    i.element.dataset.pathFill,
             })),
         }));
     } catch (e) { console.warn('Save error:', e); }
@@ -1257,7 +1274,7 @@ async function loadSavedDesign() {
             item.style.transform  = `rotate(${d.rotation || 0}deg)`;
             item.style.zIndex     = d.zIndex || 1;
             if (d.polyPoints) { item.dataset.polyPoints = d.polyPoints; applyPolyShape(item); }
-            if (d.pathPoints) { item.dataset.pathPoints = d.pathPoints; item.dataset.pathWidth = d.pathWidth || '40'; applyPathShape(item); }
+            if (d.pathPoints) { item.dataset.pathPoints = d.pathPoints; item.dataset.pathWidth = d.pathWidth || '40'; if (d.pathFill) item.dataset.pathFill = d.pathFill; applyPathShape(item); }
         }
         deselectItem();
         updateMaterialsList(); // recalculate after all polygon shapes are restored
@@ -1292,6 +1309,11 @@ function createPathControls(item) {
 
 function applyPathShape(item) {
     if (isBrickPath(item.dataset.name, item.dataset.category)) { return applyBrickPathShape(item); }
+    // Non-brick path in fill mode (freehand drawn area)
+    if (item.dataset.pathFill === 'true') {
+        const pts = JSON.parse(item.dataset.pathPoints || '[]');
+        if (pts.length >= 3) return applyGenericPathFillShape(item);
+    }
     const points    = JSON.parse(item.dataset.pathPoints || '[]');
     const pathWidth = parseInt(item.dataset.pathWidth || 40);
     if (points.length < 2) return;
@@ -1342,6 +1364,7 @@ function applyPathShape(item) {
 function applyBrickPathShape(item) {
     const points    = JSON.parse(item.dataset.pathPoints || '[]');
     const pathWidth = parseInt(item.dataset.pathWidth || 40);
+    const fillMode  = item.dataset.pathFill === 'true' && points.length >= 3;
     if (points.length < 2) return;
 
     let svg = item.querySelector('svg.path-svg');
@@ -1355,8 +1378,9 @@ function applyBrickPathShape(item) {
     const xs   = points.map(p => p.x), ys = points.map(p => p.y);
     const minX = Math.min(...xs), minY = Math.min(...ys);
     const maxX = Math.max(...xs), maxY = Math.max(...ys);
-    const pad  = pathWidth;
-    const W    = maxX - minX + pad * 2, H = maxY - minY + pad * 2;
+    const pad  = fillMode ? 4 : pathWidth;
+    const W    = Math.max(1, maxX - minX + pad * 2);
+    const H    = Math.max(1, maxY - minY + pad * 2);
 
     item.style.left = (minX - pad) + 'px'; item.style.top  = (minY - pad) + 'px';
     item.style.width = W + 'px';           item.style.height = H + 'px';
@@ -1364,12 +1388,12 @@ function applyBrickPathShape(item) {
     svg.setAttribute('width', W); svg.setAttribute('height', H);
     svg.innerHTML = '';
 
-    const NS     = 'http://www.w3.org/2000/svg';
-    const ns     = tag => document.createElementNS(NS, tag);
-    const patId  = `brickPat${item.dataset.id}`;
-    // Brick pattern tile (running bond) at base size 40×26px, scaled with path width
-    const patW   = 40, patH = 26;
-    const patScale = (pathWidth / 40).toFixed(3);
+    const NS    = 'http://www.w3.org/2000/svg';
+    const ns    = tag => document.createElementNS(NS, tag);
+    const patId = `brickPat${item.dataset.id}`;
+    // Fixed 40×26 tile — scale=1 for fill (bricks always same real-world size)
+    const patW = 40, patH = 26;
+    const patScale = fillMode ? '1' : (pathWidth / 40).toFixed(3);
 
     const defs = ns('defs');
     const pat  = ns('pattern');
@@ -1378,13 +1402,10 @@ function applyBrickPathShape(item) {
     pat.setAttribute('width', patW); pat.setAttribute('height', patH);
     pat.setAttribute('patternTransform', `scale(${patScale})`);
 
-    // Mortar background
     const bg = ns('rect');
     bg.setAttribute('width', patW); bg.setAttribute('height', patH);
     bg.setAttribute('fill', '#c8a882');
     pat.appendChild(bg);
-
-    // Row 1 (y=2): two full bricks per tile → centers at x=10 and x=30
     [[2, 2, 16, 11], [22, 2, 16, 11]].forEach(([x, y, w, h]) => {
         const r = ns('rect');
         r.setAttribute('x', x); r.setAttribute('y', y);
@@ -1392,10 +1413,6 @@ function applyBrickPathShape(item) {
         r.setAttribute('rx', '1'); r.setAttribute('fill', '#b5631a');
         pat.appendChild(r);
     });
-
-    // Row 2 (y=15): offset running bond — left frag + center + right frag
-    // Left frag (x=0-8) + right frag from adjacent tile (x=32-40) form one full brick centered at x=0/40
-    // Center brick at x=12-28 centered at x=20 (between row1 centers 10 and 30)
     [[0, 15, 8, 11], [12, 15, 16, 11], [32, 15, 8, 11]].forEach(([x, y, w, h]) => {
         const r = ns('rect');
         r.setAttribute('x', x); r.setAttribute('y', y);
@@ -1403,35 +1420,113 @@ function applyBrickPathShape(item) {
         r.setAttribute('rx', '1'); r.setAttribute('fill', '#b5631a');
         pat.appendChild(r);
     });
-
     defs.appendChild(pat);
     svg.appendChild(defs);
 
-    // Build bezier path data
-    let d = `M ${points[0].x - minX + pad} ${points[0].y - minY + pad}`;
-    for (let i = 1; i < points.length; i++) {
-        const cx2 = points[i].x - minX + pad, cy2 = points[i].y - minY + pad;
-        if (i === points.length - 1) { d += ` L ${cx2} ${cy2}`; }
-        else {
-            const nx = points[i+1].x - minX + pad, ny = points[i+1].y - minY + pad;
-            d += ` Q ${cx2} ${cy2} ${(cx2+nx)/2} ${(cy2+ny)/2}`;
+    if (fillMode) {
+        // Build smooth CLOSED polygon from drawn points (catmull-rom via Q beziers)
+        const n = points.length;
+        const px = i => points[i % n].x - minX + pad;
+        const py = i => points[i % n].y - minY + pad;
+        const mx0 = (px(n - 1) + px(0)) / 2, my0 = (py(n - 1) + py(0)) / 2;
+        let d = `M ${mx0.toFixed(1)} ${my0.toFixed(1)}`;
+        for (let i = 0; i < n; i++) {
+            const nx_ = (px(i) + px(i + 1)) / 2, ny_ = (py(i) + py(i + 1)) / 2;
+            d += ` Q ${px(i).toFixed(1)} ${py(i).toFixed(1)} ${nx_.toFixed(1)} ${ny_.toFixed(1)}`;
         }
+        d += ' Z';
+
+        // Shadow for depth
+        const shadow = ns('path');
+        shadow.setAttribute('d', d); shadow.setAttribute('fill', 'rgba(0,0,0,0.2)');
+        shadow.setAttribute('stroke', 'none'); shadow.setAttribute('transform', 'translate(3,3)');
+        svg.appendChild(shadow);
+
+        // Filled brick area
+        const fill = ns('path');
+        fill.setAttribute('d', d); fill.setAttribute('fill', `url(#${patId})`);
+        fill.setAttribute('stroke', '#7a3f10'); fill.setAttribute('stroke-width', '2.5');
+        fill.setAttribute('stroke-linejoin', 'round'); fill.setAttribute('data-measure', 'true');
+        svg.appendChild(fill);
+    } else {
+        // Legacy stroke mode (default 3-point path from sidebar click)
+        let d = `M ${points[0].x - minX + pad} ${points[0].y - minY + pad}`;
+        for (let i = 1; i < points.length; i++) {
+            const cx2 = points[i].x - minX + pad, cy2 = points[i].y - minY + pad;
+            if (i === points.length - 1) { d += ` L ${cx2} ${cy2}`; }
+            else {
+                const nx = points[i+1].x - minX + pad, ny = points[i+1].y - minY + pad;
+                d += ` Q ${cx2} ${cy2} ${(cx2+nx)/2} ${(cy2+ny)/2}`;
+            }
+        }
+        const shadow = ns('path');
+        shadow.setAttribute('d', d); shadow.setAttribute('stroke', 'rgba(0,0,0,0.28)');
+        shadow.setAttribute('stroke-width', pathWidth + 4); shadow.setAttribute('stroke-linecap', 'round');
+        shadow.setAttribute('stroke-linejoin', 'round'); shadow.setAttribute('fill', 'none');
+        svg.appendChild(shadow);
+        const brickPath = ns('path');
+        brickPath.setAttribute('d', d); brickPath.setAttribute('stroke', `url(#${patId})`);
+        brickPath.setAttribute('stroke-width', pathWidth); brickPath.setAttribute('stroke-linecap', 'round');
+        brickPath.setAttribute('stroke-linejoin', 'round'); brickPath.setAttribute('fill', 'none');
+        brickPath.setAttribute('opacity', '0.95'); brickPath.setAttribute('data-measure', 'true');
+        svg.appendChild(brickPath);
+    }
+}
+
+// Filled polygon for non-brick path types (stone, gravel, wood chips, etc.)
+function applyGenericPathFillShape(item) {
+    const points = JSON.parse(item.dataset.pathPoints || '[]');
+    if (points.length < 3) return;
+
+    let svg = item.querySelector('svg.path-svg');
+    if (!svg) {
+        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.classList.add('path-svg');
+        svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;';
+        item.appendChild(svg);
     }
 
-    // Drop shadow
-    const shadow = ns('path');
-    shadow.setAttribute('d', d); shadow.setAttribute('stroke', 'rgba(0,0,0,0.28)');
-    shadow.setAttribute('stroke-width', pathWidth + 4); shadow.setAttribute('stroke-linecap', 'round');
-    shadow.setAttribute('stroke-linejoin', 'round'); shadow.setAttribute('fill', 'none');
+    const xs = points.map(p => p.x), ys = points.map(p => p.y);
+    const minX = Math.min(...xs), minY = Math.min(...ys);
+    const maxX = Math.max(...xs), maxY = Math.max(...ys);
+    const pad = 4;
+    const W = Math.max(1, maxX - minX + pad * 2), H = Math.max(1, maxY - minY + pad * 2);
+
+    item.style.left = (minX - pad) + 'px'; item.style.top = (minY - pad) + 'px';
+    item.style.width = W + 'px'; item.style.height = H + 'px';
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    svg.innerHTML = '';
+
+    const name = (item.dataset.name || '').toLowerCase();
+    let fillColor = '#a0826d', strokeColor = '#7a5c3a';
+    if (name.includes('stone') || name.includes('cobble') || name.includes('paver')) { fillColor = '#9e9e9e'; strokeColor = '#616161'; }
+    else if (name.includes('wood') || name.includes('chip')) { fillColor = '#8d6038'; strokeColor = '#5d3c1e'; }
+    else if (name.includes('gravel') || name.includes('pea')) { fillColor = '#bcaaa4'; strokeColor = '#795548'; }
+
+    const n = points.length;
+    const px = i => points[i % n].x - minX + pad;
+    const py = i => points[i % n].y - minY + pad;
+    const mx0 = (px(n - 1) + px(0)) / 2, my0 = (py(n - 1) + py(0)) / 2;
+    let d = `M ${mx0.toFixed(1)} ${my0.toFixed(1)}`;
+    for (let i = 0; i < n; i++) {
+        const nx_ = (px(i) + px(i + 1)) / 2, ny_ = (py(i) + py(i + 1)) / 2;
+        d += ` Q ${px(i).toFixed(1)} ${py(i).toFixed(1)} ${nx_.toFixed(1)} ${ny_.toFixed(1)}`;
+    }
+    d += ' Z';
+
+    const NS = 'http://www.w3.org/2000/svg';
+    const shadow = document.createElementNS(NS, 'path');
+    shadow.setAttribute('d', d); shadow.setAttribute('fill', 'rgba(0,0,0,0.15)');
+    shadow.setAttribute('transform', 'translate(3,3)');
     svg.appendChild(shadow);
 
-    // Brick-patterned stroke (data-measure for getTotalLength in getBrickPathInfo)
-    const brickPath = ns('path');
-    brickPath.setAttribute('d', d); brickPath.setAttribute('stroke', `url(#${patId})`);
-    brickPath.setAttribute('stroke-width', pathWidth); brickPath.setAttribute('stroke-linecap', 'round');
-    brickPath.setAttribute('stroke-linejoin', 'round'); brickPath.setAttribute('fill', 'none');
-    brickPath.setAttribute('opacity', '0.95'); brickPath.setAttribute('data-measure', 'true');
-    svg.appendChild(brickPath);
+    const fill = document.createElementNS(NS, 'path');
+    fill.setAttribute('d', d); fill.setAttribute('fill', fillColor);
+    fill.setAttribute('fill-opacity', '0.9');
+    fill.setAttribute('stroke', strokeColor); fill.setAttribute('stroke-width', '2.5');
+    fill.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(fill);
 }
 
 function addPathPoint(clientX, clientY) {
@@ -1802,18 +1897,21 @@ async function _finishDrawingPath(simplifiedPts) {
     if (!p) return;
     const data = { name: p.name, image: p.image, type: p.type, category: p.category, price: parseFloat(p.price) };
 
-    // Place item at first drawn point (addItemToCanvas sets default 3-point path)
-    const startX = simplifiedPts[0].x, startY = simplifiedPts[0].y;
-    await addItemToCanvas(data, startX, startY);
+    await addItemToCanvas(data, simplifiedPts[0].x, simplifiedPts[0].y);
 
-    // Patch the item's pathPoints with our smoothed freehand points
     const newItem = document.querySelector(`[data-id="${itemIdCounter - 1}"]`);
     if (!newItem) return;
 
-    const pathPoints = simplifiedPts.map(pt => ({ id: dotIdCounter++, x: pt.x, y: pt.y }));
-    newItem.dataset.pathPoints = JSON.stringify(pathPoints);
+    // Auto-close: if last point is far from first, connect them to seal the area
+    const pts   = [...simplifiedPts];
+    const first = pts[0], last = pts[pts.length - 1];
+    if (Math.hypot(last.x - first.x, last.y - first.y) > 30) {
+        pts.push({ x: first.x, y: first.y });
+    }
 
-    // Re-render with freehand shape
+    newItem.dataset.pathPoints = JSON.stringify(pts.map(pt => ({ id: dotIdCounter++, x: pt.x, y: pt.y })));
+    newItem.dataset.pathFill   = 'true'; // render as filled area, not stroke
+
     applyPathShape(newItem);
     if (newItem === selectedItem) createPathControls(newItem);
     updateMaterialsList();
