@@ -1437,7 +1437,7 @@ function applyBrickPathShape(item) {
     svg.appendChild(defs);
 
     if (fillMode) {
-        // Build smooth CLOSED polygon from drawn points (catmull-rom via Q beziers)
+        // Build smooth CLOSED polygon (catmull-rom via Q beziers)
         const n = points.length;
         const px = i => points[i % n].x - minX + pad;
         const py = i => points[i % n].y - minY + pad;
@@ -1449,18 +1449,43 @@ function applyBrickPathShape(item) {
         }
         d += ' Z';
 
-        // Shadow for depth
+        // Shadow
         const shadow = ns('path');
         shadow.setAttribute('d', d); shadow.setAttribute('fill', 'rgba(0,0,0,0.2)');
         shadow.setAttribute('stroke', 'none'); shadow.setAttribute('transform', 'translate(3,3)');
         svg.appendChild(shadow);
 
-        // Filled brick area
-        const fill = ns('path');
-        fill.setAttribute('d', d); fill.setAttribute('fill', `url(#${patId})`);
-        fill.setAttribute('stroke', '#7a3f10'); fill.setAttribute('stroke-width', '2.5');
-        fill.setAttribute('stroke-linejoin', 'round'); fill.setAttribute('data-measure', 'true');
-        svg.appendChild(fill);
+        if (isRealImage) {
+            // Clip the image to the polygon — one image stretched to cover the whole area, no white gaps
+            const clipId   = `brickClip${item.dataset.id}`;
+            const clipPath = ns('clipPath');
+            clipPath.id = clipId;
+            const clipShape = ns('path');
+            clipShape.setAttribute('d', d);
+            clipPath.appendChild(clipShape);
+            defs.appendChild(clipPath);
+
+            const imgEl = ns('image');
+            imgEl.setAttribute('href', imageUrl);
+            imgEl.setAttribute('x', '0'); imgEl.setAttribute('y', '0');
+            imgEl.setAttribute('width', W); imgEl.setAttribute('height', H);
+            imgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+            imgEl.setAttribute('clip-path', `url(#${clipId})`);
+            svg.appendChild(imgEl);
+        } else {
+            // SVG brick pattern fallback
+            const fill = ns('path');
+            fill.setAttribute('d', d); fill.setAttribute('fill', `url(#${patId})`);
+            fill.setAttribute('stroke', 'none');
+            svg.appendChild(fill);
+        }
+
+        // Border on top
+        const border = ns('path');
+        border.setAttribute('d', d); border.setAttribute('fill', 'none');
+        border.setAttribute('stroke', '#7a3f10'); border.setAttribute('stroke-width', '2.5');
+        border.setAttribute('stroke-linejoin', 'round'); border.setAttribute('data-measure', 'true');
+        svg.appendChild(border);
     } else {
         // Legacy stroke mode (default 3-point path from sidebar click)
         let d = `M ${points[0].x - minX + pad} ${points[0].y - minY + pad}`;
@@ -1523,26 +1548,6 @@ function applyGenericPathFillShape(item) {
     const NS = 'http://www.w3.org/2000/svg';
     const gns = tag => document.createElementNS(NS, tag);
 
-    // Build pattern or solid fill reference
-    let fillRef = fillColor;
-    if (isRealImage) {
-        const patId   = `pathPat${item.dataset.id}`;
-        const tileSize = 80;
-        const defs = gns('defs');
-        const pat  = gns('pattern');
-        pat.id = patId;
-        pat.setAttribute('patternUnits', 'userSpaceOnUse');
-        pat.setAttribute('width', tileSize); pat.setAttribute('height', tileSize);
-        const imgEl = gns('image');
-        imgEl.setAttribute('href', imageUrl);
-        imgEl.setAttribute('width', tileSize); imgEl.setAttribute('height', tileSize);
-        imgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-        pat.appendChild(imgEl);
-        defs.appendChild(pat);
-        svg.appendChild(defs);
-        fillRef = `url(#${patId})`;
-    }
-
     const n = points.length;
     const px = i => points[i % n].x - minX + pad;
     const py = i => points[i % n].y - minY + pad;
@@ -1559,12 +1564,38 @@ function applyGenericPathFillShape(item) {
     shadow.setAttribute('transform', 'translate(3,3)');
     svg.appendChild(shadow);
 
-    const fill = gns('path');
-    fill.setAttribute('d', d); fill.setAttribute('fill', fillRef);
-    if (!isRealImage) fill.setAttribute('fill-opacity', '0.9');
-    fill.setAttribute('stroke', strokeColor); fill.setAttribute('stroke-width', '2.5');
-    fill.setAttribute('stroke-linejoin', 'round');
-    svg.appendChild(fill);
+    if (isRealImage) {
+        // Single image stretched to bounding box, hard-clipped to polygon
+        const clipId   = `genericClip${item.dataset.id}`;
+        const defs     = gns('defs');
+        const clipPath = gns('clipPath');
+        clipPath.id = clipId;
+        const clipShape = gns('path');
+        clipShape.setAttribute('d', d);
+        clipPath.appendChild(clipShape);
+        defs.appendChild(clipPath);
+        svg.appendChild(defs);
+
+        const imgEl = gns('image');
+        imgEl.setAttribute('href', imageUrl);
+        imgEl.setAttribute('x', '0'); imgEl.setAttribute('y', '0');
+        imgEl.setAttribute('width', W); imgEl.setAttribute('height', H);
+        imgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+        imgEl.setAttribute('clip-path', `url(#${clipId})`);
+        svg.appendChild(imgEl);
+    } else {
+        const fill = gns('path');
+        fill.setAttribute('d', d); fill.setAttribute('fill', fillColor);
+        fill.setAttribute('fill-opacity', '0.9');
+        svg.appendChild(fill);
+    }
+
+    // Border on top
+    const border = gns('path');
+    border.setAttribute('d', d); border.setAttribute('fill', 'none');
+    border.setAttribute('stroke', strokeColor); border.setAttribute('stroke-width', '2.5');
+    border.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(border);
 }
 
 function addPathPoint(clientX, clientY) {
