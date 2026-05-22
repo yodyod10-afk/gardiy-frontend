@@ -1,3 +1,54 @@
+/* Sign-in gate */
+.sign-in-gate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 5rem 2rem;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.1);
+    max-width: 480px;
+    margin: 4rem auto 0;
+}
+.sign-in-gate .gate-icon {
+    font-size: 4rem;
+    margin-bottom: 1.25rem;
+}
+.sign-in-gate h2 {
+    font-size: 1.9rem;
+    color: #1a202c;
+    margin-bottom: 0.75rem;
+}
+.sign-in-gate p {
+    color: #6b7280;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+.gate-btn {
+    display: inline-block;
+    padding: 0.85rem 2.2rem;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    margin: 0.4rem;
+    transition: all 0.2s;
+}
+.gate-btn.primary {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+.gate-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16,185,129,0.35); }
+.gate-btn.secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+.gate-btn.secondary:hover { background: #e5e7eb; transform: translateY(-1px); }
+
 /* Upload Section */
 .upload-section {
     min-height: 100vh;

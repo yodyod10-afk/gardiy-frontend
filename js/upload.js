@@ -13,6 +13,13 @@ let zipBadge;
 document.addEventListener('DOMContentLoaded', function () {
     console.log('✅ Upload page loaded');
 
+    // Require sign-in before allowing any scanning
+    const currentUser = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    if (!currentUser.loggedIn) {
+        showSignInGate();
+        return;
+    }
+
     uploadArea       = document.getElementById('uploadArea');
     uploadBtn        = document.getElementById('uploadBtn');
     fileInput        = document.getElementById('fileInput');
@@ -558,6 +565,23 @@ function checkForSavedData() {
         if (locationForm) locationForm.style.display = 'none';
         showAnalysisResults(savedAnalysis);
     }
+}
+
+// ── Sign-in gate ──────────────────────────────────────────────────────────────
+function showSignInGate() {
+    const section = document.getElementById('uploadSection');
+    if (!section) return;
+    section.innerHTML = `
+        <div class="container">
+            <div class="sign-in-gate">
+                <div class="gate-icon">🔒</div>
+                <h2>Sign In to Continue</h2>
+                <p>Create a free account to upload your yard photo and get an AI landscape analysis.</p>
+                <a href="login.html" class="gate-btn primary">Sign In</a>
+                <a href="login.html?tab=register" class="gate-btn secondary">Create Free Account</a>
+            </div>
+        </div>
+    `;
 }
 
 console.log('✅ Upload script loaded');

@@ -47,65 +47,64 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('scroll', highlightNav);
 });
 
+// Returns a user-specific suffix so storage is isolated per account
+function _userStorageSuffix() {
+    try {
+        const user = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        const uid  = user.id || user.email;
+        if (!uid) return '';
+        // Sanitise to safe key characters
+        return '_' + String(uid).replace(/[^a-zA-Z0-9@._-]/g, '_');
+    } catch { return ''; }
+}
+
 // LocalStorage helper functions for passing data between pages
 const Storage = {
-    // Save uploaded image
     saveImage: function(imageDataUrl) {
-        localStorage.setItem('gardiy_uploaded_image', imageDataUrl);
+        localStorage.setItem('gardiy_uploaded_image' + _userStorageSuffix(), imageDataUrl);
     },
-    
-    // Get uploaded image
     getImage: function() {
-        return localStorage.getItem('gardiy_uploaded_image');
+        return localStorage.getItem('gardiy_uploaded_image' + _userStorageSuffix());
     },
-    
-    // Save AI analysis results
+
     saveAnalysis: function(analysisData) {
-        localStorage.setItem('gardiy_analysis', JSON.stringify(analysisData));
+        localStorage.setItem('gardiy_analysis' + _userStorageSuffix(), JSON.stringify(analysisData));
     },
-    
-    // Get AI analysis results
     getAnalysis: function() {
-        const data = localStorage.getItem('gardiy_analysis');
+        const data = localStorage.getItem('gardiy_analysis' + _userStorageSuffix());
         return data ? JSON.parse(data) : null;
     },
-    
-    // Save selected design items
+
     saveDesign: function(items) {
-        localStorage.setItem('gardiy_design_items', JSON.stringify(items));
+        localStorage.setItem('gardiy_design_items' + _userStorageSuffix(), JSON.stringify(items));
     },
-    
-    // Get selected design items
     getDesign: function() {
-        const data = localStorage.getItem('gardiy_design_items');
+        const data = localStorage.getItem('gardiy_design_items' + _userStorageSuffix());
         return data ? JSON.parse(data) : [];
     },
-    
-    // Save location context (ZIP, direction, time of day)
+
     saveLocationContext: function(data) {
-        localStorage.setItem('gardiy_location_context', JSON.stringify(data));
+        localStorage.setItem('gardiy_location_context' + _userStorageSuffix(), JSON.stringify(data));
     },
     getLocationContext: function() {
-        const data = localStorage.getItem('gardiy_location_context');
+        const data = localStorage.getItem('gardiy_location_context' + _userStorageSuffix());
         return data ? JSON.parse(data) : null;
     },
 
-    // Save plant recommendations from AI analysis
     saveRecommendations: function(data) {
-        localStorage.setItem('gardiy_plant_recommendations', JSON.stringify(data));
+        localStorage.setItem('gardiy_plant_recommendations' + _userStorageSuffix(), JSON.stringify(data));
     },
     getRecommendations: function() {
-        const data = localStorage.getItem('gardiy_plant_recommendations');
+        const data = localStorage.getItem('gardiy_plant_recommendations' + _userStorageSuffix());
         return data ? JSON.parse(data) : null;
     },
 
-    // Clear all project data
     clearProject: function() {
-        localStorage.removeItem('gardiy_uploaded_image');
-        localStorage.removeItem('gardiy_analysis');
-        localStorage.removeItem('gardiy_design_items');
-        localStorage.removeItem('gardiy_location_context');
-        localStorage.removeItem('gardiy_plant_recommendations');
+        const p = _userStorageSuffix();
+        ['gardiy_uploaded_image','gardiy_analysis','gardiy_design_items',
+         'gardiy_location_context','gardiy_plant_recommendations'].forEach(k => {
+            localStorage.removeItem(k + p);
+        });
     }
 };
 
