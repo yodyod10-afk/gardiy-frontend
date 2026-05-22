@@ -58,12 +58,26 @@ function _userStorageSuffix() {
     } catch { return ''; }
 }
 
+// Migrate a key from the old global form to the new user-scoped form (one-time, on first read)
+function _migrateKey(base) {
+    const suffix = _userStorageSuffix();
+    if (!suffix) return; // not logged in — nothing to migrate
+    const newKey = base + suffix;
+    if (localStorage.getItem(newKey)) return; // already migrated
+    const oldVal = localStorage.getItem(base);
+    if (oldVal) {
+        localStorage.setItem(newKey, oldVal);
+        localStorage.removeItem(base);
+    }
+}
+
 // LocalStorage helper functions for passing data between pages
 const Storage = {
     saveImage: function(imageDataUrl) {
         localStorage.setItem('gardiy_uploaded_image' + _userStorageSuffix(), imageDataUrl);
     },
     getImage: function() {
+        _migrateKey('gardiy_uploaded_image');
         return localStorage.getItem('gardiy_uploaded_image' + _userStorageSuffix());
     },
 
@@ -71,6 +85,7 @@ const Storage = {
         localStorage.setItem('gardiy_analysis' + _userStorageSuffix(), JSON.stringify(analysisData));
     },
     getAnalysis: function() {
+        _migrateKey('gardiy_analysis');
         const data = localStorage.getItem('gardiy_analysis' + _userStorageSuffix());
         return data ? JSON.parse(data) : null;
     },
@@ -79,6 +94,7 @@ const Storage = {
         localStorage.setItem('gardiy_design_items' + _userStorageSuffix(), JSON.stringify(items));
     },
     getDesign: function() {
+        _migrateKey('gardiy_design_items');
         const data = localStorage.getItem('gardiy_design_items' + _userStorageSuffix());
         return data ? JSON.parse(data) : [];
     },
@@ -87,6 +103,7 @@ const Storage = {
         localStorage.setItem('gardiy_location_context' + _userStorageSuffix(), JSON.stringify(data));
     },
     getLocationContext: function() {
+        _migrateKey('gardiy_location_context');
         const data = localStorage.getItem('gardiy_location_context' + _userStorageSuffix());
         return data ? JSON.parse(data) : null;
     },
@@ -95,6 +112,7 @@ const Storage = {
         localStorage.setItem('gardiy_plant_recommendations' + _userStorageSuffix(), JSON.stringify(data));
     },
     getRecommendations: function() {
+        _migrateKey('gardiy_plant_recommendations');
         const data = localStorage.getItem('gardiy_plant_recommendations' + _userStorageSuffix());
         return data ? JSON.parse(data) : null;
     },

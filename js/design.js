@@ -71,20 +71,36 @@ function getItemSqFt(placedItem) {
     return sqFt;
 }
 
+// Bricks per sq ft by product name — add entries here as new products are defined
+const BRICK_PATH_DENSITY = {
+    'brick path':  4,   // red/standard brick: 4 per sqft
+    'brick paver': 4,
+    'stone pathway': 5, // smaller stone units
+    'wood chips path': 0, // coverage-based, not brick-count
+};
+
+function getBricksPerSqFt(name) {
+    const n = (name || '').toLowerCase();
+    for (const [key, val] of Object.entries(BRICK_PATH_DENSITY)) {
+        if (n.includes(key)) return val;
+    }
+    return 4; // default: 4 bricks per sq ft
+}
+
 // Returns brick count info for a placed brick-path item using getTotalLength()
 function getBrickPathInfo(placedItem) {
     const el     = placedItem.element;
     const svgEl  = el.querySelector('svg.path-svg');
     const pathEl = svgEl?.querySelector('path[data-measure]') || svgEl?.querySelector('path');
     if (!pathEl) return null;
-    const pixelLength = pathEl.getTotalLength();
-    const pathWidthPx = parseInt(el.dataset.pathWidth || 40);
-    const scale = getSqFtScale();
+    const pixelLength   = pathEl.getTotalLength();
+    const pathWidthPx   = parseInt(el.dataset.pathWidth || 40);
+    const scale         = getSqFtScale();
     if (!scale) return { pixelLength, pathWidthPx, noScale: true };
-    const areaInSqFt = pixelLength * pathWidthPx * scale;
-    const BRICK_SQFT = (8 / 12) * (4 / 12); // standard 8"×4" brick = 0.222 sq ft
-    const brickCount = Math.ceil((areaInSqFt / BRICK_SQFT) * 1.1); // +10% waste
-    return { pixelLength, pathWidthPx, areaInSqFt, brickCount, cost: brickCount * placedItem.price, noScale: false };
+    const areaInSqFt    = pixelLength * pathWidthPx * scale;
+    const bricksPerSqFt = getBricksPerSqFt(placedItem.name);
+    const brickCount    = Math.ceil(areaInSqFt * bricksPerSqFt * 1.1); // +10% waste
+    return { pixelLength, pathWidthPx, areaInSqFt, bricksPerSqFt, brickCount, cost: brickCount * placedItem.price, noScale: false };
 }
 
 // Keyword-based coverage lookup — handles typos, truncation, any naming variation
