@@ -1391,35 +1391,48 @@ function applyBrickPathShape(item) {
     const NS    = 'http://www.w3.org/2000/svg';
     const ns    = tag => document.createElementNS(NS, tag);
     const patId = `brickPat${item.dataset.id}`;
-    // Fixed 40×26 tile — scale=1 for fill (bricks always same real-world size)
-    const patW = 40, patH = 26;
     const patScale = fillMode ? '1' : (pathWidth / 40).toFixed(3);
+
+    const imageUrl   = item.dataset.imageUrl || '';
+    const isRealImage = /^(https?:|\/|data:|blob:)/.test(imageUrl);
 
     const defs = ns('defs');
     const pat  = ns('pattern');
     pat.id = patId;
     pat.setAttribute('patternUnits', 'userSpaceOnUse');
-    pat.setAttribute('width', patW); pat.setAttribute('height', patH);
     pat.setAttribute('patternTransform', `scale(${patScale})`);
 
-    const bg = ns('rect');
-    bg.setAttribute('width', patW); bg.setAttribute('height', patH);
-    bg.setAttribute('fill', '#c8a882');
-    pat.appendChild(bg);
-    [[2, 2, 16, 11], [22, 2, 16, 11]].forEach(([x, y, w, h]) => {
-        const r = ns('rect');
-        r.setAttribute('x', x); r.setAttribute('y', y);
-        r.setAttribute('width', w); r.setAttribute('height', h);
-        r.setAttribute('rx', '1'); r.setAttribute('fill', '#b5631a');
-        pat.appendChild(r);
-    });
-    [[0, 15, 8, 11], [12, 15, 16, 11], [32, 15, 8, 11]].forEach(([x, y, w, h]) => {
-        const r = ns('rect');
-        r.setAttribute('x', x); r.setAttribute('y', y);
-        r.setAttribute('width', w); r.setAttribute('height', h);
-        r.setAttribute('rx', '1'); r.setAttribute('fill', '#b5631a');
-        pat.appendChild(r);
-    });
+    if (isRealImage) {
+        const tileSize = 80;
+        pat.setAttribute('width', tileSize); pat.setAttribute('height', tileSize);
+        const imgEl = ns('image');
+        imgEl.setAttribute('href', imageUrl);
+        imgEl.setAttribute('width', tileSize); imgEl.setAttribute('height', tileSize);
+        imgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+        pat.appendChild(imgEl);
+    } else {
+        // SVG-drawn brick fallback (emoji / no real image)
+        const patW = 40, patH = 26;
+        pat.setAttribute('width', patW); pat.setAttribute('height', patH);
+        const bg = ns('rect');
+        bg.setAttribute('width', patW); bg.setAttribute('height', patH);
+        bg.setAttribute('fill', '#c8a882');
+        pat.appendChild(bg);
+        [[2, 2, 16, 11], [22, 2, 16, 11]].forEach(([x, y, w, h]) => {
+            const r = ns('rect');
+            r.setAttribute('x', x); r.setAttribute('y', y);
+            r.setAttribute('width', w); r.setAttribute('height', h);
+            r.setAttribute('rx', '1'); r.setAttribute('fill', '#b5631a');
+            pat.appendChild(r);
+        });
+        [[0, 15, 8, 11], [12, 15, 16, 11], [32, 15, 8, 11]].forEach(([x, y, w, h]) => {
+            const r = ns('rect');
+            r.setAttribute('x', x); r.setAttribute('y', y);
+            r.setAttribute('width', w); r.setAttribute('height', h);
+            r.setAttribute('rx', '1'); r.setAttribute('fill', '#b5631a');
+            pat.appendChild(r);
+        });
+    }
     defs.appendChild(pat);
     svg.appendChild(defs);
 
@@ -1504,6 +1517,32 @@ function applyGenericPathFillShape(item) {
     else if (name.includes('wood') || name.includes('chip')) { fillColor = '#8d6038'; strokeColor = '#5d3c1e'; }
     else if (name.includes('gravel') || name.includes('pea')) { fillColor = '#bcaaa4'; strokeColor = '#795548'; }
 
+    const imageUrl    = item.dataset.imageUrl || '';
+    const isRealImage = /^(https?:|\/|data:|blob:)/.test(imageUrl);
+
+    const NS = 'http://www.w3.org/2000/svg';
+    const gns = tag => document.createElementNS(NS, tag);
+
+    // Build pattern or solid fill reference
+    let fillRef = fillColor;
+    if (isRealImage) {
+        const patId   = `pathPat${item.dataset.id}`;
+        const tileSize = 80;
+        const defs = gns('defs');
+        const pat  = gns('pattern');
+        pat.id = patId;
+        pat.setAttribute('patternUnits', 'userSpaceOnUse');
+        pat.setAttribute('width', tileSize); pat.setAttribute('height', tileSize);
+        const imgEl = gns('image');
+        imgEl.setAttribute('href', imageUrl);
+        imgEl.setAttribute('width', tileSize); imgEl.setAttribute('height', tileSize);
+        imgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+        pat.appendChild(imgEl);
+        defs.appendChild(pat);
+        svg.appendChild(defs);
+        fillRef = `url(#${patId})`;
+    }
+
     const n = points.length;
     const px = i => points[i % n].x - minX + pad;
     const py = i => points[i % n].y - minY + pad;
@@ -1515,15 +1554,14 @@ function applyGenericPathFillShape(item) {
     }
     d += ' Z';
 
-    const NS = 'http://www.w3.org/2000/svg';
-    const shadow = document.createElementNS(NS, 'path');
+    const shadow = gns('path');
     shadow.setAttribute('d', d); shadow.setAttribute('fill', 'rgba(0,0,0,0.15)');
     shadow.setAttribute('transform', 'translate(3,3)');
     svg.appendChild(shadow);
 
-    const fill = document.createElementNS(NS, 'path');
-    fill.setAttribute('d', d); fill.setAttribute('fill', fillColor);
-    fill.setAttribute('fill-opacity', '0.9');
+    const fill = gns('path');
+    fill.setAttribute('d', d); fill.setAttribute('fill', fillRef);
+    if (!isRealImage) fill.setAttribute('fill-opacity', '0.9');
     fill.setAttribute('stroke', strokeColor); fill.setAttribute('stroke-width', '2.5');
     fill.setAttribute('stroke-linejoin', 'round');
     svg.appendChild(fill);
