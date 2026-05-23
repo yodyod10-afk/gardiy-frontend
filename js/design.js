@@ -685,7 +685,7 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
         item.dataset.polyPoints = JSON.stringify(polyPoints);
 
         if (itemData.type === 'image') {
-            _appendMirrorTileSvg(item, itemData.image, 150, 150);
+            _applyTextureMask(item, itemData.image);
         } else {
             item.style.backgroundColor = 'rgba(120,190,90,0.3)';
             item.innerHTML = `<span style="font-size:64px;opacity:0.7;pointer-events:none;">${itemData.image}</span>`;
@@ -982,43 +982,13 @@ function addPolyDot(canvasX, canvasY, item) {
     updateControlPanelPosition(item);
 }
 
-// Single cover image SVG — fills item area, clipped to polygon via parent CSS clip-path
-function _appendMirrorTileSvg(item, imageUrl, tileW, tileH) {
+// Photoshop-style mask: single texture fills the bounding box, clip-path defines the shape
+function _applyTextureMask(item, imageUrl) {
     item.querySelectorAll('svg.poly-texture').forEach(s => s.remove());
-    const NS = 'http://www.w3.org/2000/svg';
-    const ns = t => document.createElementNS(NS, t);
-    const svg = ns('svg');
-    svg.classList.add('poly-texture');
-    svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;';
-    const patId = `mirrorPat${item.dataset.id}`;
-    const defs = ns('defs');
-    const pat  = ns('pattern');
-    pat.id = patId;
-    pat.setAttribute('patternUnits', 'userSpaceOnUse');
-    pat.setAttribute('width',  tileW * 2);
-    pat.setAttribute('height', tileH * 2);
-    [
-        null,
-        `translate(${tileW * 2},0) scale(-1,1)`,
-        `translate(0,${tileH * 2}) scale(1,-1)`,
-        `translate(${tileW * 2},${tileH * 2}) scale(-1,-1)`,
-    ].forEach(transform => {
-        const img = ns('image');
-        img.setAttribute('href', imageUrl);
-        img.setAttribute('x', '0'); img.setAttribute('y', '0');
-        img.setAttribute('width', tileW); img.setAttribute('height', tileH);
-        img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-        if (transform) img.setAttribute('transform', transform);
-        pat.appendChild(img);
-    });
-    defs.appendChild(pat);
-    svg.appendChild(defs);
-    const bg = ns('rect');
-    bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
-    bg.setAttribute('width', '99999'); bg.setAttribute('height', '99999');
-    bg.setAttribute('fill', `url(#${patId})`);
-    svg.appendChild(bg);
-    item.appendChild(svg);
+    item.style.backgroundImage    = `url('${imageUrl}')`;
+    item.style.backgroundSize     = 'cover';
+    item.style.backgroundPosition = 'center';
+    item.style.backgroundRepeat   = 'no-repeat';
 }
 
 // Apply clip-path polygon from canvas-absolute dot coordinates
