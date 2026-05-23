@@ -317,7 +317,7 @@ body {
     user-select: none;
     font-size: 48px;
     transition: transform 0.1s;
-    z-index: 20 !important;
+    z-index: 20;
 }
 
 .draggable-item:hover {
