@@ -684,7 +684,12 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
         ];
         item.dataset.polyPoints = JSON.stringify(polyPoints);
 
-        _applyTextureMask(item, itemData.image);
+        if (itemData.type === 'image') {
+            _appendMirrorTileSvg(item, itemData.image, 150, 150);
+        } else {
+            item.style.backgroundColor = 'rgba(120,190,90,0.3)';
+            item.innerHTML = `<span style="font-size:64px;opacity:0.7;pointer-events:none;">${itemData.image}</span>`;
+        }
 
         // Double-click on item → add dot at that exact position
         item.addEventListener('dblclick', e => {
@@ -977,24 +982,43 @@ function addPolyDot(canvasX, canvasY, item) {
     updateControlPanelPosition(item);
 }
 
-// Photoshop-style mask: full-canvas img anchored to canvas coords, item is the mask
-function _applyTextureMask(item, imageUrl) {
-    item.querySelectorAll('svg.poly-texture, img.texture-img').forEach(s => s.remove());
-    const cat = item.dataset.category || '';
-    const isRealImage = imageUrl && /^(https?:|\/|data:|blob:|images\/)/.test(imageUrl);
-    const textureUrl = (cat === 'grass')
-        ? 'images/texture-grass.png'
-        : isRealImage ? imageUrl : null;
-    if (!textureUrl) {
-        item.style.backgroundColor = cat === 'hardscapes' ? 'rgba(180,160,120,0.6)' : 'rgba(120,190,90,0.4)';
-        return;
-    }
-    const img = document.createElement('img');
-    img.className = 'texture-img';
-    img.src = textureUrl;
-    img.style.cssText = 'position:absolute;pointer-events:none;object-fit:cover;display:block;';
-    item.appendChild(img);
-    item.dataset.hasTexture = 'true';
+// Mirror-tile SVG fill — 4 mirrored copies eliminate visible seams
+function _appendMirrorTileSvg(item, imageUrl, tileW, tileH) {
+    item.querySelectorAll('svg.poly-texture').forEach(s => s.remove());
+    const NS = 'http://www.w3.org/2000/svg';
+    const ns = t => document.createElementNS(NS, t);
+    const svg = ns('svg');
+    svg.classList.add('poly-texture');
+    svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;';
+    const patId = `mirrorPat${item.dataset.id}`;
+    const defs = ns('defs');
+    const pat  = ns('pattern');
+    pat.id = patId;
+    pat.setAttribute('patternUnits', 'userSpaceOnUse');
+    pat.setAttribute('width',  tileW * 2);
+    pat.setAttribute('height', tileH * 2);
+    [
+        null,
+        `translate(${tileW * 2},0) scale(-1,1)`,
+        `translate(0,${tileH * 2}) scale(1,-1)`,
+        `translate(${tileW * 2},${tileH * 2}) scale(-1,-1)`,
+    ].forEach(transform => {
+        const img = ns('image');
+        img.setAttribute('href', imageUrl);
+        img.setAttribute('x', '0'); img.setAttribute('y', '0');
+        img.setAttribute('width', tileW); img.setAttribute('height', tileH);
+        img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+        if (transform) img.setAttribute('transform', transform);
+        pat.appendChild(img);
+    });
+    defs.appendChild(pat);
+    svg.appendChild(defs);
+    const bg = ns('rect');
+    bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
+    bg.setAttribute('width', '99999'); bg.setAttribute('height', '99999');
+    bg.setAttribute('fill', `url(#${patId})`);
+    svg.appendChild(bg);
+    item.appendChild(svg);
 }
 
 // Apply clip-path polygon from canvas-absolute dot coordinates
@@ -1012,20 +1036,6 @@ function applyPolyShape(item) {
     item.style.top    = minY + 'px';
     item.style.width  = W + 'px';
     item.style.height = H + 'px';
-
-    // Canvas-anchored masking: img fills full canvas, negative offset aligns it
-    if (item.dataset.hasTexture === 'true') {
-        const canvasEl = document.getElementById('designCanvas');
-        const cW = canvasEl ? canvasEl.offsetWidth  : 900;
-        const cH = canvasEl ? canvasEl.offsetHeight : 700;
-        const img = item.querySelector('img.texture-img');
-        if (img) {
-            img.style.width  = cW + 'px';
-            img.style.height = cH + 'px';
-            img.style.left   = (-minX) + 'px';
-            img.style.top    = (-minY) + 'px';
-        }
-    }
 
     // Sort by angle for correct polygon winding
     const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
