@@ -710,7 +710,7 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
         item.dataset.pathWidth  = '40';
     } else {
         if (itemData.type === 'image') {
-            item.innerHTML = `<img src="${itemData.image}" style="width:100%;height:100%;object-fit:contain;pointer-events:none;border-radius:8px;">`;
+            item.innerHTML = `<img src="${itemData.image}" style="width:100%;height:100%;object-fit:contain;pointer-events:none;mix-blend-mode:multiply;">`;
         } else {
             item.innerHTML = `<span style="font-size:48px;pointer-events:none;">${itemData.image}</span>`;
         }
