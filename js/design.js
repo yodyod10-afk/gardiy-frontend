@@ -982,13 +982,15 @@ function addPolyDot(canvasX, canvasY, item) {
     updateControlPanelPosition(item);
 }
 
-// Photoshop-style mask: texture tiles at natural scale, clip-path defines the shape
+// Photoshop-style mask: one texture covers the full canvas, clip-path is the mask
 function _applyTextureMask(item, imageUrl) {
     item.querySelectorAll('svg.poly-texture').forEach(s => s.remove());
-    item.style.backgroundImage    = `url('${imageUrl}')`;
-    item.style.backgroundSize     = '150px 150px';
-    item.style.backgroundRepeat   = 'repeat';
-    item.style.backgroundPosition = '0 0';
+    const textureUrl = (item.dataset.category === 'grass')
+        ? 'images/texture-grass.png'
+        : imageUrl;
+    item.style.backgroundImage  = `url('${textureUrl}')`;
+    item.style.backgroundRepeat = 'no-repeat';
+    item.dataset.hasTexture     = 'true';
 }
 
 // Apply clip-path polygon from canvas-absolute dot coordinates
@@ -1006,6 +1008,15 @@ function applyPolyShape(item) {
     item.style.top    = minY + 'px';
     item.style.width  = W + 'px';
     item.style.height = H + 'px';
+
+    // Canvas-anchored masking: texture is fixed to canvas coords, element is the mask
+    if (item.dataset.hasTexture === 'true') {
+        const canvas = document.getElementById('designCanvas');
+        const cW = canvas ? canvas.offsetWidth  : 800;
+        const cH = canvas ? canvas.offsetHeight : 600;
+        item.style.backgroundSize     = `${cW}px ${cH}px`;
+        item.style.backgroundPosition = `-${minX}px -${minY}px`;
+    }
 
     // Sort by angle for correct polygon winding
     const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
