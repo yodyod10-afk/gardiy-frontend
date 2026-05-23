@@ -982,13 +982,13 @@ function addPolyDot(canvasX, canvasY, item) {
     updateControlPanelPosition(item);
 }
 
-// Photoshop-style mask: single texture fills the bounding box, clip-path defines the shape
+// Photoshop-style mask: texture tiles at natural scale, clip-path defines the shape
 function _applyTextureMask(item, imageUrl) {
     item.querySelectorAll('svg.poly-texture').forEach(s => s.remove());
     item.style.backgroundImage    = `url('${imageUrl}')`;
-    item.style.backgroundSize     = 'cover';
-    item.style.backgroundPosition = 'center';
-    item.style.backgroundRepeat   = 'no-repeat';
+    item.style.backgroundSize     = '150px 150px';
+    item.style.backgroundRepeat   = 'repeat';
+    item.style.backgroundPosition = '0 0';
 }
 
 // Apply clip-path polygon from canvas-absolute dot coordinates
