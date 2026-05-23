@@ -660,7 +660,8 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
     item.dataset.name     = itemData.name;
     item.dataset.category = itemData.category;
     item.dataset.type     = itemData.type;
-    item.dataset.rotation = '0';
+    item.dataset.rotation  = '0';
+    item.dataset.rotationX = '0';
     item.dataset.imageUrl = itemData.image;
 
     item.style.cssText = `
@@ -1082,11 +1083,19 @@ function createControlPanel(item) {
     }
 
     html += `
-        <div class="rotation-dial" data-item-id="${item.dataset.id}" title="Rotate">
+        <div class="rotation-dial" data-item-id="${item.dataset.id}" title="Rotate (Z)">
             <div class="dial-handle" style="transform:rotate(${item.dataset.rotation||0}deg);"></div>
         </div>
-        <button class="control-btn delete-btn" onclick="deleteItem('${item.dataset.id}')">🗑️</button>
     `;
+
+    if (!isMesh && !isPathEl) {
+        html += `
+        <button class="control-btn" onclick="tiltItem('${item.dataset.id}', 15)"  title="Tilt forward (X+)" style="font-size:11px;padding:4px 6px;">X+</button>
+        <button class="control-btn" onclick="tiltItem('${item.dataset.id}', -15)" title="Tilt back (X−)"    style="font-size:11px;padding:4px 6px;">X−</button>
+        `;
+    }
+
+    html += `<button class="control-btn delete-btn" onclick="deleteItem('${item.dataset.id}')">🗑️</button>`;
 
     panel.innerHTML = html;
     canvas.appendChild(panel);
@@ -1133,6 +1142,25 @@ function removeControlPanel() {
     if (controlPanel) { controlPanel.remove(); controlPanel = null; }
 }
 
+// ── Transform helpers ─────────────────────────────────────────────────────────
+function applyItemTransform(item) {
+    const z = parseFloat(item.dataset.rotation  || 0);
+    const x = parseFloat(item.dataset.rotationX || 0);
+    item.style.transform = x !== 0
+        ? `perspective(600px) rotateX(${x}deg) rotate(${z}deg)`
+        : `rotate(${z}deg)`;
+}
+
+window.tiltItem = function(itemId, delta) {
+    const item = document.querySelector(`[data-id="${itemId}"]`);
+    if (!item) return;
+    const current = parseFloat(item.dataset.rotationX || 0);
+    const next    = Math.max(-80, Math.min(80, current + delta));
+    item.dataset.rotationX = next;
+    applyItemTransform(item);
+    saveDesign();
+};
+
 // ── Rotation ──────────────────────────────────────────────────────────────────
 function startRotation(e) {
     e.stopPropagation(); e.preventDefault();
@@ -1155,7 +1183,7 @@ function startRotation(e) {
                                mv.clientX - cRect.left - rotationCenter.x) * 180 / Math.PI;
         angle = ((angle + 90) % 360 + 360) % 360;
         item.dataset.rotation = Math.round(angle);
-        item.style.transform  = `rotate(${angle}deg)`;
+        applyItemTransform(item);
         const dh = e.currentTarget.querySelector('.dial-handle');
         if (dh) dh.style.transform = `rotate(${angle}deg)`;
     };
@@ -1366,7 +1394,8 @@ function saveDesign() {
                 name: i.name, category: i.category, type: i.type,
                 x:    parseInt(i.element.style.left), y: parseInt(i.element.style.top),
                 width: parseInt(i.element.style.width), height: parseInt(i.element.style.height),
-                rotation: parseInt(i.element.dataset.rotation || 0),
+                rotation:  parseInt(i.element.dataset.rotation  || 0),
+                rotationX: parseInt(i.element.dataset.rotationX || 0),
                 zIndex:   parseInt(i.element.style.zIndex) || 1,
                 price:    i.price,
                 polyPoints:  i.element.dataset.polyPoints,
@@ -1392,8 +1421,9 @@ async function loadSavedDesign() {
             if (!item) continue;
             item.style.width     = d.width  + 'px';
             item.style.height    = d.height + 'px';
-            item.dataset.rotation = d.rotation || 0;
-            item.style.transform  = `rotate(${d.rotation || 0}deg)`;
+            item.dataset.rotation  = d.rotation  || 0;
+            item.dataset.rotationX = d.rotationX || 0;
+            applyItemTransform(item);
             item.style.zIndex     = d.zIndex || 1;
             if (d.polyPoints) { item.dataset.polyPoints = d.polyPoints; applyPolyShape(item); }
             if (d.pathPoints) { item.dataset.pathPoints = d.pathPoints; item.dataset.pathWidth = d.pathWidth || '40'; if (d.pathFill) item.dataset.pathFill = d.pathFill; applyPathShape(item); }
