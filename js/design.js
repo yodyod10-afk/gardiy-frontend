@@ -684,12 +684,7 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
         ];
         item.dataset.polyPoints = JSON.stringify(polyPoints);
 
-        if (itemData.type === 'image') {
-            _applyTextureMask(item, itemData.image);
-        } else {
-            item.style.backgroundColor = 'rgba(120,190,90,0.3)';
-            item.innerHTML = `<span style="font-size:64px;opacity:0.7;pointer-events:none;">${itemData.image}</span>`;
-        }
+        _applyTextureMask(item, itemData.image);
 
         // Double-click on item → add dot at that exact position
         item.addEventListener('dblclick', e => {
@@ -985,9 +980,17 @@ function addPolyDot(canvasX, canvasY, item) {
 // Photoshop-style mask: one texture covers the full canvas, clip-path is the mask
 function _applyTextureMask(item, imageUrl) {
     item.querySelectorAll('svg.poly-texture').forEach(s => s.remove());
-    const textureUrl = (item.dataset.category === 'grass')
+    const cat = item.dataset.category || '';
+    // Grass always uses the dedicated top-down texture
+    const isRealImage = imageUrl && /^(https?:|\/|data:|blob:|images\/)/.test(imageUrl);
+    const textureUrl = (cat === 'grass')
         ? 'images/texture-grass.png'
-        : imageUrl;
+        : isRealImage ? imageUrl : null;
+    if (!textureUrl) {
+        // Emoji fallback: tinted fill
+        item.style.backgroundColor = cat === 'hardscapes' ? 'rgba(180,160,120,0.6)' : 'rgba(120,190,90,0.4)';
+        return;
+    }
     item.style.backgroundImage  = `url('${textureUrl}')`;
     item.style.backgroundRepeat = 'no-repeat';
     item.dataset.hasTexture     = 'true';
