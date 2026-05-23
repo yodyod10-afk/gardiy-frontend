@@ -977,23 +977,24 @@ function addPolyDot(canvasX, canvasY, item) {
     updateControlPanelPosition(item);
 }
 
-// Photoshop-style mask: one texture covers the full canvas, clip-path is the mask
+// Photoshop-style mask: full-canvas img anchored to canvas coords, item is the mask
 function _applyTextureMask(item, imageUrl) {
-    item.querySelectorAll('svg.poly-texture').forEach(s => s.remove());
+    item.querySelectorAll('svg.poly-texture, img.texture-img').forEach(s => s.remove());
     const cat = item.dataset.category || '';
-    // Grass always uses the dedicated top-down texture
     const isRealImage = imageUrl && /^(https?:|\/|data:|blob:|images\/)/.test(imageUrl);
     const textureUrl = (cat === 'grass')
         ? 'images/texture-grass.png'
         : isRealImage ? imageUrl : null;
     if (!textureUrl) {
-        // Emoji fallback: tinted fill
         item.style.backgroundColor = cat === 'hardscapes' ? 'rgba(180,160,120,0.6)' : 'rgba(120,190,90,0.4)';
         return;
     }
-    item.style.backgroundImage  = `url('${textureUrl}')`;
-    item.style.backgroundRepeat = 'no-repeat';
-    item.dataset.hasTexture     = 'true';
+    const img = document.createElement('img');
+    img.className = 'texture-img';
+    img.src = textureUrl;
+    img.style.cssText = 'position:absolute;pointer-events:none;object-fit:cover;display:block;';
+    item.appendChild(img);
+    item.dataset.hasTexture = 'true';
 }
 
 // Apply clip-path polygon from canvas-absolute dot coordinates
@@ -1012,13 +1013,18 @@ function applyPolyShape(item) {
     item.style.width  = W + 'px';
     item.style.height = H + 'px';
 
-    // Canvas-anchored masking: texture is fixed to canvas coords, element is the mask
+    // Canvas-anchored masking: img fills full canvas, negative offset aligns it
     if (item.dataset.hasTexture === 'true') {
-        const canvas = document.getElementById('designCanvas');
-        const cW = canvas ? canvas.offsetWidth  : 800;
-        const cH = canvas ? canvas.offsetHeight : 600;
-        item.style.backgroundSize     = `${cW}px ${cH}px`;
-        item.style.backgroundPosition = `-${minX}px -${minY}px`;
+        const canvasEl = document.getElementById('designCanvas');
+        const cW = canvasEl ? canvasEl.offsetWidth  : 900;
+        const cH = canvasEl ? canvasEl.offsetHeight : 700;
+        const img = item.querySelector('img.texture-img');
+        if (img) {
+            img.style.width  = cW + 'px';
+            img.style.height = cH + 'px';
+            img.style.left   = (-minX) + 'px';
+            img.style.top    = (-minY) + 'px';
+        }
     }
 
     // Sort by angle for correct polygon winding
