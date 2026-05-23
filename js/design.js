@@ -1134,32 +1134,28 @@ function removeControlPanel() {
 }
 
 // ── Rotation ──────────────────────────────────────────────────────────────────
+// Linear drag: drag left/right to rotate. ~2px per degree — much easier to control.
 function startRotation(e) {
     e.stopPropagation(); e.preventDefault();
     isRotating = true;
-    const itemId = e.currentTarget.dataset.itemId;
-    const item   = document.querySelector(`[data-id="${itemId}"]`);
+    const itemId   = e.currentTarget.dataset.itemId;
+    const item     = document.querySelector(`[data-id="${itemId}"]`);
     if (!item) return;
 
-    const canvas = document.getElementById('designCanvas');
-    const cRect  = canvas.getBoundingClientRect();
-    const iRect  = item.getBoundingClientRect();
-    rotationCenter = {
-        x: iRect.left + iRect.width  / 2 - cRect.left,
-        y: iRect.top  + iRect.height / 2 - cRect.top,
-    };
+    const startX    = e.clientX;
+    const startAngle = parseFloat(item.dataset.rotation || 0);
+    const SENSITIVITY = 0.5; // degrees per pixel
 
     const onMove = mv => {
         if (!isRotating) return;
-        let angle = Math.atan2(mv.clientY - cRect.top  - rotationCenter.y,
-                               mv.clientX - cRect.left - rotationCenter.x) * 180 / Math.PI;
-        angle = ((angle + 90) % 360 + 360) % 360;
+        const dx    = mv.clientX - startX;
+        const angle = ((startAngle + dx * SENSITIVITY) % 360 + 360) % 360;
         item.dataset.rotation = Math.round(angle);
         item.style.transform  = `rotate(${angle}deg)`;
         const dh = e.currentTarget.querySelector('.dial-handle');
         if (dh) dh.style.transform = `rotate(${angle}deg)`;
     };
-    const onUp = () => { isRotating = false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    const onUp = () => { isRotating = false; saveDesign(); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
 }
