@@ -741,6 +741,7 @@ function makeDraggable(item) {
     item.addEventListener('mousedown', e => {
         if (e.target.classList.contains('poly-dot')) return;
         if (e.target.classList.contains('mesh-dot')) return;
+        if (e.target.classList.contains('rotate-handle')) return;
         if (isRotating) return;
         selectItem(item);
         dragging = true; sx = e.clientX; sy = e.clientY;
@@ -794,11 +795,13 @@ function selectItem(item) {
         createCornerHandles(item);
     }
     createControlPanel(item);
+    addRotateHandle(item);
 }
 
 function deselectItem() {
     if (!selectedItem) return;
     selectedItem.classList.remove('selected');
+    removeRotateHandle(selectedItem);
     selectedItem = null;
     removePolyDots();
     removeMeshDots();
@@ -1082,9 +1085,6 @@ function createControlPanel(item) {
     }
 
     html += `
-        <div class="rotation-dial" data-item-id="${item.dataset.id}" title="Rotate">
-            <div class="dial-handle" style="transform:rotate(${item.dataset.rotation||0}deg);"></div>
-        </div>
         <button class="control-btn delete-btn" onclick="deleteItem('${item.dataset.id}')">🗑️</button>
     `;
 
@@ -1095,8 +1095,6 @@ function createControlPanel(item) {
     updateControlPanelPosition(item);
     updateDotCount();
 
-    const dial = panel.querySelector('.rotation-dial');
-    if (dial) dial.addEventListener('mousedown', startRotation);
 }
 
 function updateDotCount() {
@@ -1134,30 +1132,61 @@ function removeControlPanel() {
 }
 
 // ── Rotation ──────────────────────────────────────────────────────────────────
-// Linear drag: drag left/right to rotate. ~2px per degree — much easier to control.
+// Circular drag around item center — like MS Word's rotate handle.
 function startRotation(e) {
     e.stopPropagation(); e.preventDefault();
     isRotating = true;
-    const itemId   = e.currentTarget.dataset.itemId;
-    const item     = document.querySelector(`[data-id="${itemId}"]`);
+    const itemId = e.currentTarget.dataset.itemId;
+    const item   = document.querySelector(`[data-id="${itemId}"]`);
     if (!item) return;
 
-    const startX    = e.clientX;
-    const startAngle = parseFloat(item.dataset.rotation || 0);
-    const SENSITIVITY = 0.5; // degrees per pixel
+    // Remove the current rotation so getBoundingClientRect returns the un-rotated center
+    const currentAngle = parseFloat(item.dataset.rotation || 0);
+    const rect   = item.getBoundingClientRect();
+    const cx     = rect.left + rect.width  / 2;
+    const cy     = rect.top  + rect.height / 2;
+
+    // The initial offset angle so the item doesn't jump when you first grab
+    const startMouseAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI;
+    const startItemAngle  = currentAngle;
 
     const onMove = mv => {
         if (!isRotating) return;
-        const dx    = mv.clientX - startX;
-        const angle = ((startAngle + dx * SENSITIVITY) % 360 + 360) % 360;
+        const mouseAngle = Math.atan2(mv.clientY - cy, mv.clientX - cx) * 180 / Math.PI;
+        const delta  = mouseAngle - startMouseAngle;
+        const angle  = ((startItemAngle + delta) % 360 + 360) % 360;
         item.dataset.rotation = Math.round(angle);
         item.style.transform  = `rotate(${angle}deg)`;
-        const dh = e.currentTarget.querySelector('.dial-handle');
-        if (dh) dh.style.transform = `rotate(${angle}deg)`;
     };
-    const onUp = () => { isRotating = false; saveDesign(); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    const onUp = () => {
+        isRotating = false;
+        saveDesign();
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+    };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
+}
+
+function addRotateHandle(item) {
+    removeRotateHandle(item);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'rotate-handle-wrapper';
+    const stem = document.createElement('div');
+    stem.className = 'rotate-handle-stem';
+    const handle = document.createElement('div');
+    handle.className = 'rotate-handle';
+    handle.dataset.itemId = item.dataset.id;
+    handle.title = 'Drag to rotate';
+    handle.innerHTML = '↻';
+    wrapper.appendChild(stem);
+    wrapper.appendChild(handle);
+    item.appendChild(wrapper);
+    handle.addEventListener('mousedown', startRotation);
+}
+
+function removeRotateHandle(item) {
+    if (item) item.querySelectorAll('.rotate-handle-wrapper').forEach(el => el.remove());
 }
 
 // ── Item actions ──────────────────────────────────────────────────────────────
@@ -1938,18 +1967,26 @@ document.head.appendChild(Object.assign(document.createElement('style'), { textC
     .control-btn:hover { background:#e2e8f0; transform:translateY(-2px); }
     .control-btn.delete-btn:hover { background:#fee; color:#e53e3e; }
 
-    .rotation-dial {
-        width:36px; height:36px; border-radius:50%;
+    .rotate-handle-wrapper {
+        position:absolute; top:-52px; left:50%;
+        transform:translateX(-50%);
+        display:flex; flex-direction:column; align-items:center;
+        pointer-events:none; z-index:9999;
+    }
+    .rotate-handle-stem {
+        width:2px; height:20px;
+        background:rgba(102,126,234,0.7);
+        pointer-events:none;
+    }
+    .rotate-handle {
+        width:28px; height:28px; border-radius:50%;
         background:linear-gradient(135deg,#667eea,#764ba2);
-        cursor:grab; position:relative; display:flex;
-        align-items:center; justify-content:center;
-        box-shadow:0 2px 8px rgba(0,0,0,0.2);
+        cursor:grab; display:flex; align-items:center; justify-content:center;
+        color:white; font-size:15px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.3);
+        pointer-events:auto; user-select:none;
     }
-    .rotation-dial:active { cursor:grabbing; }
-    .dial-handle {
-        width:4px; height:16px; background:white; border-radius:2px;
-        position:absolute; top:4px; transform-origin:center 14px;
-    }
+    .rotate-handle:active { cursor:grabbing; }
 ` }));
 
 // ── Plant recommendation color coding ─────────────────────────────────────────
