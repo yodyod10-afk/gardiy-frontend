@@ -620,13 +620,14 @@ document.addEventListener('click', async e => {
     const p = productRegistry[pid];
     if (!p) return;
 
-    // Path items use freehand drawing mode instead of instant placement
-    if (isPathItem(p.name, p.category)) {
-        if (drawingMode && drawingProduct?.name === p.name) {
-            exitPathDrawingMode(); // toggle off
+    // Grass, hardscape, and path items → brush fill mode
+    if (isPathItem(p.name, p.category) || isMeshItem(p.name, p.category)) {
+        if (_brushMode && _brushProduct?.name === p.name) {
+            exitBrushFillMode();
         } else {
+            exitBrushFillMode();
             exitPathDrawingMode();
-            enterPathDrawingMode(p, item);
+            enterBrushFillMode(p);
         }
         return;
     }
@@ -638,10 +639,7 @@ document.addEventListener('click', async e => {
         type: p.type, category: p.category,
         price: parseFloat(p.price),
     };
-    const isMesh = isMeshItem(data.name, data.category);
-    const x = isMesh ? rect.width  / 2 - 100 : rect.width  / 2 - 40;
-    const y = isMesh ? rect.height / 2 - 65  : rect.height / 2 - 40;
-    await addItemToCanvas(data, x, y);
+    await addItemToCanvas(data, rect.width / 2 - 40, rect.height / 2 - 40);
 });
 
 // ── Add item to canvas ────────────────────────────────────────────────────────
@@ -2366,6 +2364,217 @@ async function placeAutoDesignItems(items, styleName) {
     overlay.remove();
     deselectItem();
     updateMaterialsList();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BRUSH FILL MODE
+// For grass, hardscape, and path products: user paints an area freehand,
+// the drawn shape is filled with the product texture using canvas compositing.
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _brushMode    = false;
+let _brushProduct = null;
+let _brushPts     = [];
+let _brushActive  = false;
+let _brushCanvas  = null;
+
+// Inject CSS for the active-product highlight once
+(function() {
+    const s = document.createElement('style');
+    s.textContent = `.product-item.brush-active{outline:2px solid #16a34a;background:#f0fdf4;}`;
+    document.head.appendChild(s);
+})();
+
+function enterBrushFillMode(productData) {
+    if (_brushMode) exitBrushFillMode();
+    _brushMode    = true;
+    _brushProduct = productData;
+    _brushPts     = [];
+    _brushActive  = false;
+
+    const dc = document.getElementById('designCanvas');
+    if (!dc) return;
+
+    // Highlight active product in sidebar
+    document.querySelectorAll('.product-item').forEach(el => el.classList.remove('brush-active'));
+    document.querySelector(`.product-item[data-pid="${productData.id}"]`)?.classList.add('brush-active');
+
+    // Overlay canvas — captures all mouse events
+    _brushCanvas = document.createElement('canvas');
+    _brushCanvas.id = 'brushOverlay';
+    const dpr = window.devicePixelRatio || 1;
+    _brushCanvas.width  = Math.round(dc.offsetWidth  * dpr);
+    _brushCanvas.height = Math.round(dc.offsetHeight * dpr);
+    _brushCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:9500;cursor:crosshair;pointer-events:auto;';
+    dc.appendChild(_brushCanvas);
+
+    // Instruction hint
+    const hint = document.createElement('div');
+    hint.id = 'brushHint';
+    hint.innerHTML = `<b>✏️ ${productData.name}</b> — hold & drag to paint area, release to fill &nbsp;<span style="opacity:0.6;font-size:11px;">Esc to cancel</span>`;
+    hint.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(15,15,15,0.78);color:#fff;padding:7px 18px;border-radius:22px;font-size:13px;z-index:9600;pointer-events:none;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,0.3);';
+    dc.appendChild(hint);
+
+    _brushCanvas.addEventListener('mousedown',  _bDown);
+    _brushCanvas.addEventListener('mousemove',  _bMove);
+    _brushCanvas.addEventListener('mouseup',    _bUp);
+    _brushCanvas.addEventListener('mouseleave', _bUp);
+    document.addEventListener('keydown', _bKey);
+}
+
+function exitBrushFillMode() {
+    _brushMode    = false;
+    _brushProduct = null;
+    _brushPts     = [];
+    _brushActive  = false;
+    _brushCanvas  = null;
+    document.getElementById('brushOverlay')?.remove();
+    document.getElementById('brushHint')?.remove();
+    document.querySelectorAll('.product-item').forEach(el => el.classList.remove('brush-active'));
+    document.removeEventListener('keydown', _bKey);
+}
+
+function _bKey(e) { if (e.key === 'Escape') exitBrushFillMode(); }
+
+function _bDown(e) {
+    e.preventDefault();
+    _brushActive = true;
+    _brushPts    = [];
+    const r = _brushCanvas.getBoundingClientRect();
+    _brushPts.push({ x: e.clientX - r.left, y: e.clientY - r.top });
+}
+
+function _bMove(e) {
+    if (!_brushActive) return;
+    const r    = _brushCanvas.getBoundingClientRect();
+    const x    = e.clientX - r.left;
+    const y    = e.clientY - r.top;
+    const last = _brushPts[_brushPts.length - 1];
+    if (last && Math.hypot(x - last.x, y - last.y) < 4) return;
+    _brushPts.push({ x, y });
+    _bPreview();
+}
+
+function _bUp() {
+    if (!_brushActive) return;
+    _brushActive = false;
+    if (_brushPts.length < 8) { exitBrushFillMode(); return; }
+    _bFinalize();
+}
+
+function _bPreview() {
+    if (!_brushCanvas || _brushPts.length < 2) return;
+    const dpr = window.devicePixelRatio || 1;
+    const ctx  = _brushCanvas.getContext('2d');
+    const w    = _brushCanvas.width  / dpr;
+    const h    = _brushCanvas.height / dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.beginPath();
+    ctx.moveTo(_brushPts[0].x, _brushPts[0].y);
+    _brushPts.forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.closePath();
+    ctx.fillStyle   = 'rgba(80,200,80,0.22)';
+    ctx.strokeStyle = 'rgba(30,140,60,0.85)';
+    ctx.lineWidth   = 2;
+    ctx.fill();
+    ctx.stroke();
+}
+
+async function _bFinalize() {
+    const product = _brushProduct;
+    const pts     = _brushPts.slice();
+    exitBrushFillMode();
+
+    const dc = document.getElementById('designCanvas');
+    if (!dc || !product || pts.length < 8) return;
+
+    // Bounding box of painted shape
+    const minX = Math.min(...pts.map(p => p.x));
+    const minY = Math.min(...pts.map(p => p.y));
+    const maxX = Math.max(...pts.map(p => p.x));
+    const maxY = Math.max(...pts.map(p => p.y));
+    const bW   = Math.max(10, Math.ceil(maxX - minX));
+    const bH   = Math.max(10, Math.ceil(maxY - minY));
+
+    // Offscreen canvas: fill texture then mask to painted shape
+    const off = document.createElement('canvas');
+    off.width  = bW;
+    off.height = bH;
+    const ctx  = off.getContext('2d');
+
+    // Build fill style
+    const src = product.imageUrl || product.image;
+    if (product.type === 'image' && src) {
+        const img = await new Promise(res => {
+            const i = new Image();
+            i.crossOrigin = 'anonymous';
+            i.onload  = () => res(i);
+            i.onerror = () => res(null);
+            i.src = src;
+        });
+        if (img) {
+            // Tile at ~1/2.5 of the painted area width so it looks natural
+            const tileW = Math.max(80, Math.round(bW / 2.5));
+            const tileH = Math.round(tileW * (img.naturalHeight || img.height) / (img.naturalWidth || img.width)) || tileW;
+            const tile  = document.createElement('canvas');
+            tile.width  = tileW;
+            tile.height = tileH;
+            tile.getContext('2d').drawImage(img, 0, 0, tileW, tileH);
+            ctx.fillStyle = ctx.createPattern(tile, 'repeat') || 'rgba(80,180,60,0.85)';
+        } else {
+            ctx.fillStyle = 'rgba(80,180,60,0.85)';
+        }
+    } else {
+        const cat = (product.category || '').toLowerCase();
+        ctx.fillStyle = cat === 'grass'      ? 'rgba(80,180,60,0.85)'
+                      : cat === 'paths'      ? 'rgba(180,150,90,0.85)'
+                      : cat === 'hardscapes' ? 'rgba(150,150,155,0.85)'
+                      : 'rgba(120,120,120,0.85)';
+    }
+    ctx.fillRect(0, 0, bW, bH);
+
+    // Mask: keep only pixels inside painted path
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x - minX, pts[0].y - minY);
+    pts.forEach(p => ctx.lineTo(p.x - minX, p.y - minY));
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    const dataUrl = off.toDataURL('image/png');
+
+    // Place item on canvas
+    const item = document.createElement('div');
+    item.className        = 'draggable-item';
+    item.dataset.id       = itemIdCounter++;
+    item.dataset.name     = product.name;
+    item.dataset.category = product.category;
+    item.dataset.type     = 'brush-fill';
+    item.dataset.rotation = '0';
+    item.dataset.brushUrl = dataUrl;   // store so delete/copy can reference it
+    item.style.cssText = `
+        position:absolute; left:${minX}px; top:${minY}px;
+        width:${bW}px; height:${bH}px;
+        cursor:move; user-select:none; pointer-events:auto;
+        z-index:${Math.min(itemIdCounter, 100)};
+        background-image:url(${dataUrl});
+        background-size:100% 100%;
+        background-repeat:no-repeat;
+    `;
+    dc.appendChild(item);
+
+    const priceVal = ((await getItemPrices())[product.name]) || parseFloat(product.price) || 0;
+    placedItems.push({
+        id: item.dataset.id, element: item,
+        name: product.name, category: product.category,
+        type: 'brush-fill', price: priceVal,
+    });
+
+    makeDraggable(item);
+    updateMaterialsList();
+    selectItem(item);
 }
 
 console.log('✅ Design page ready');
