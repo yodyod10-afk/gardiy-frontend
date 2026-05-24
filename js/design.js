@@ -425,8 +425,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         const canvas = document.getElementById('designCanvas');
         if (!canvas) return;
         const rect = canvas.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
+        const { x: mx, y: my } = getCanvasCoords(e.clientX, e.clientY);
 
         // Freehand path drawing
         if (drawingMode && isMouseDownDraw) {
@@ -656,12 +655,13 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
 
     const item = document.createElement('div');
     item.className        = 'draggable-item';
-    item.dataset.id       = itemIdCounter++;
-    item.dataset.name     = itemData.name;
-    item.dataset.category = itemData.category;
-    item.dataset.type     = itemData.type;
-    item.dataset.rotation = '0';
-    item.dataset.imageUrl = itemData.image;
+    item.dataset.id          = itemIdCounter++;
+    item.dataset.name        = itemData.name;
+    item.dataset.category    = itemData.category;
+    item.dataset.type        = itemData.type;
+    item.dataset.rotation    = '0';
+    item.dataset.imageUrl    = itemData.image;
+    item.dataset.aspectRatio = (w / h).toFixed(6);  // stored once; enforced by lock
 
     item.style.cssText = `
         position:absolute; left:${x}px; top:${y}px;
@@ -697,7 +697,8 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
             e.preventDefault(); e.stopPropagation();
             if (item !== selectedItem) { selectItem(item); return; }
             const r = canvas.getBoundingClientRect();
-            addPolyDot(e.clientX - r.left, e.clientY - r.top, item);
+            const _pcc = getCanvasCoords(e.clientX, e.clientY);
+            addPolyDot(_pcc.x, _pcc.y, item);
         });
 
     } else if (isPath) {
@@ -923,18 +924,22 @@ function startCornerResize(e) {
         const dy = mv.clientY - startY;
         let l = startL, t = startT, w = startW, h = startH;
 
+        const ar = window._lockAspect ? parseFloat(item.dataset.aspectRatio || 0) : 0;
+
         if (pos === 'nw') {
             w = Math.max(MIN, startW - dx); l = startL + (startW - w);
-            h = Math.max(MIN, startH - dy); t = startT + (startH - h);
+            h = ar ? w / ar : Math.max(MIN, startH - dy);
+            if (ar) t = startT + (startH - h);
         } else if (pos === 'ne') {
             w = Math.max(MIN, startW + dx);
-            h = Math.max(MIN, startH - dy); t = startT + (startH - h);
+            h = ar ? w / ar : Math.max(MIN, startH - dy);
+            if (ar) t = startT + (startH - h);
         } else if (pos === 'se') {
             w = Math.max(MIN, startW + dx);
-            h = Math.max(MIN, startH + dy);
+            h = ar ? w / ar : Math.max(MIN, startH + dy);
         } else if (pos === 'sw') {
             w = Math.max(MIN, startW - dx); l = startL + (startW - w);
-            h = Math.max(MIN, startH + dy);
+            h = ar ? w / ar : Math.max(MIN, startH + dy);
         }
 
         item.style.left = l + 'px'; item.style.top  = t + 'px';
@@ -985,14 +990,20 @@ function addPolyDot(canvasX, canvasY, item) {
     updateControlPanelPosition(item);
 }
 
-// Mirror-tile SVG fill — 4 mirrored copies eliminate visible seams
+// Mirror-tile SVG fill — 4 mirrored copies eliminate visible seams.
+// Tile dimensions are multiplied by devicePixelRatio so textures stay crisp
+// on retina / high-DPI screens.
 function _appendMirrorTileSvg(item, imageUrl, tileW, tileH) {
     item.querySelectorAll('svg.poly-texture').forEach(s => s.remove());
+    const dpr = Math.min(window.devicePixelRatio || 1, 3); // cap at 3× to avoid huge patterns
+    tileW = Math.round(tileW * dpr);
+    tileH = Math.round(tileH * dpr);
+
     const NS = 'http://www.w3.org/2000/svg';
     const ns = t => document.createElementNS(NS, t);
     const svg = ns('svg');
     svg.classList.add('poly-texture');
-    svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;';
+    svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;image-rendering:crisp-edges;image-rendering:pixelated;';
     const patId = `mirrorPat${item.dataset.id}`;
     const defs = ns('defs');
     const pat  = ns('pattern');
@@ -1067,6 +1078,12 @@ function createControlPanel(item) {
         <button class="control-btn" onclick="sendToBack('${item.dataset.id}')"    title="Send to back"    style="font-size:11px;padding:4px 7px;">Back</button>
         <button class="control-btn" onclick="bringToFront('${item.dataset.id}')"  title="Bring to front"  style="font-size:11px;padding:4px 7px;">Front</button>
         <button class="control-btn" onclick="copyItem('${item.dataset.id}')"      title="Copy">⧉</button>
+        <button class="control-btn" id="lockRatioBtn"
+            onclick="window._toggleLockRatio(this)"
+            title="${window._lockAspect ? 'Unlock proportions' : 'Lock proportions'}"
+            style="font-size:13px;padding:4px 7px;${window._lockAspect ? 'background:#d1fae5;color:#065f46;' : ''}">
+            ${window._lockAspect ? '🔗' : '⛓️‍💥'}
+        </button>
     `;
 
     if (isMesh) {
@@ -1769,9 +1786,9 @@ function applyGenericPathFillShape(item) {
 
 function addPathPoint(clientX, clientY) {
     if (!selectedItem || !selectedItem.dataset.pathPoints) return;
-    const rect = document.getElementById('designCanvas').getBoundingClientRect();
     const pts  = JSON.parse(selectedItem.dataset.pathPoints);
-    pts.push({ id: dotIdCounter++, x: clientX - rect.left, y: clientY - rect.top });
+    const _apc = getCanvasCoords(clientX, clientY);
+    pts.push({ id: dotIdCounter++, x: _apc.x, y: _apc.y });
     selectedItem.dataset.pathPoints = JSON.stringify(pts);
     createPathControls(selectedItem);
 }
@@ -2092,7 +2109,8 @@ function enterPathDrawingMode(product, sidebarItem) {
         isMouseDownDraw = true;
         drawingPoints   = [];
         const rect = canvas.getBoundingClientRect();
-        drawingPoints.push({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        const _dpc = getCanvasCoords(e.clientX, e.clientY);
+        drawingPoints.push({ x: _dpc.x, y: _dpc.y });
 
         // Live preview SVG
         drawingPreviewSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -2333,4 +2351,376 @@ async function placeAutoDesignItems(items, styleName) {
 }
 
 console.log('✅ Design page ready');
+
+// ══════════════════════════════════════════════════════════════════════════════
+// T9 — Perspective-correct canvas view
+// Manual 4×4 column-major matrix math (no external libraries).
+// Applies matrix3d to #designCanvas so all placed tiles warp with perspective.
+// getCanvasCoords() inverts the transform so existing drag/dot code stays exact.
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _perspEnabled = false;
+let _perspTilt    = 18;    // degrees — subtle default that preserves interactivity
+let _perspDist    = 1400;  // perspective focal-length in px
+
+// Column-major 4×4 multiply: C = A × B
+function _m4mul(A, B) {
+    const C = new Float64Array(16);
+    for (let r = 0; r < 4; r++)
+        for (let c = 0; c < 4; c++)
+            for (let k = 0; k < 4; k++)
+                C[c*4+r] += A[k*4+r] * B[c*4+k];
+    return C;
+}
+
+// RotateX(deg) — column-major CSS layout
+function _m4rotX(deg) {
+    const a = deg * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
+    return new Float64Array([1,0,0,0, 0,co,si,0, 0,-si,co,0, 0,0,0,1]);
+}
+
+// Perspective(d) — column-major CSS layout
+function _m4persp(d) {
+    return new Float64Array([1,0,0,0, 0,1,0,0, 0,0,1,-1/d, 0,0,0,1]);
+}
+
+function _m4css(M) {
+    return 'matrix3d(' + Array.from(M).map(v => v.toFixed(8)).join(',') + ')';
+}
+
+// Apply (or remove) the perspective 3D transform on #designCanvas
+function applyCanvasPerspective() {
+    const canvas = document.getElementById('designCanvas');
+    if (!canvas) return;
+    if (!_perspEnabled || _perspTilt === 0) {
+        canvas.style.transform       = 'none';
+        canvas.style.transformOrigin = '';
+        canvas.style.transformStyle  = '';
+        return;
+    }
+    const M = _m4mul(_m4persp(_perspDist), _m4rotX(_perspTilt));
+    canvas.style.transformOrigin = '50% 50%';
+    canvas.style.transformStyle  = 'preserve-3d';
+    canvas.style.transform       = _m4css(M);
+}
+
+// Convert screen clientX/Y → canvas-local px, correcting for any active 3D transform.
+// All existing mouse handlers call this instead of (e.clientX - rect.left).
+function getCanvasCoords(clientX, clientY) {
+    const canvas = document.getElementById('designCanvas');
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    if (!_perspEnabled || _perspTilt === 0) {
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+    // Perspective-correct: invert the CSS transform via DOMMatrix
+    const originX = rect.left + canvas.offsetWidth  / 2;
+    const originY = rect.top  + canvas.offsetHeight / 2;
+    const M  = _m4mul(_m4persp(_perspDist), _m4rotX(_perspTilt));
+    const p  = new DOMMatrix(_m4css(M)).inverse()
+                   .transformPoint({ x: clientX - originX, y: clientY - originY, z: 0, w: 1 });
+    return {
+        x: p.x + canvas.offsetWidth  / 2,
+        y: p.y + canvas.offsetHeight / 2
+    };
+}
+
+// Inject floating glass toolbar at top of #designCanvas
+function injectPerspectiveToolbar() {
+    if (document.getElementById('perspToolbar')) return;
+    const canvas = document.getElementById('designCanvas');
+    if (!canvas) return;
+
+    const style = document.createElement('style');
+    style.textContent = `
+        #perspToolbar {
+            position:absolute; top:10px; left:50%; transform:translateX(-50%);
+            z-index:10010; display:flex; align-items:center; gap:10px;
+            background:rgba(255,255,255,0.90); backdrop-filter:blur(12px);
+            border:1px solid rgba(100,140,100,0.22);
+            border-radius:50px; padding:5px 16px;
+            box-shadow:0 4px 20px rgba(0,0,0,0.10);
+            font-size:12px; color:#374151; user-select:none; pointer-events:auto;
+            white-space:nowrap;
+        }
+        #perspToolbar label { display:flex; align-items:center; gap:5px; cursor:pointer; font-weight:500; }
+        #perspTiltSlider { width:80px; accent-color:#667eea; cursor:pointer; }
+        #perspTiltVal { font-size:11px; color:#9ca3af; min-width:26px; text-align:right; font-variant-numeric:tabular-nums; }
+        .pt-sep { width:1px; height:14px; background:rgba(0,0,0,0.10); }
+    `;
+    document.head.appendChild(style);
+
+    const bar = document.createElement('div');
+    bar.id = 'perspToolbar';
+    bar.innerHTML = `
+        <label title="Toggle perspective garden view">
+            <input type="checkbox" id="perspToggle"> ◈ Perspective
+        </label>
+        <div class="pt-sep"></div>
+        <span style="color:#9ca3af;font-size:11px;">Tilt</span>
+        <input type="range" id="perspTiltSlider" min="0" max="55" value="${_perspTilt}" step="1">
+        <span id="perspTiltVal">${_perspTilt}°</span>
+    `;
+    canvas.appendChild(bar);
+
+    document.getElementById('perspToggle').addEventListener('change', e => {
+        _perspEnabled = e.target.checked;
+        applyCanvasPerspective();
+    });
+    document.getElementById('perspTiltSlider').addEventListener('input', e => {
+        _perspTilt = parseInt(e.target.value, 10);
+        document.getElementById('perspTiltVal').textContent = _perspTilt + '°';
+        if (_perspEnabled) applyCanvasPerspective();
+    });
+}
+
+// Initialise toolbar once DOM is ready
+document.addEventListener('DOMContentLoaded', injectPerspectiveToolbar);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// T12 — HiDPI grid overlay + scale bar on the design canvas
+//
+// A transparent <canvas id="designGrid"> is injected as the first child of
+// #designCanvas so it sits below all items.  drawDesignGrid() redraws it
+// whenever the canvas resizes or the grid is toggled.
+// The scale bar (bottom-right corner) shows a 10-square reference bar and
+// derives its real-world length from the manualAreaInput if available.
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _showDesignGrid = false;
+
+function _injectGridCanvas() {
+    const parent = document.getElementById('designCanvas');
+    if (!parent || document.getElementById('designGrid')) return;
+
+    const gc = document.createElement('canvas');
+    gc.id = 'designGrid';
+    gc.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;image-rendering:crisp-edges;image-rendering:pixelated;';
+    parent.insertBefore(gc, parent.firstChild);
+
+    // Scale bar
+    const sb = document.createElement('div');
+    sb.id = 'designScaleBar';
+    sb.style.cssText = `
+        position:absolute; bottom:12px; right:12px; z-index:9990;
+        background:rgba(255,255,255,0.82); backdrop-filter:blur(8px);
+        border:1px solid rgba(100,140,100,0.25); border-radius:6px;
+        padding:5px 10px; display:flex; flex-direction:column;
+        align-items:flex-end; gap:3px; pointer-events:none;
+    `;
+    sb.innerHTML = `
+        <div id="designScaleRuler" style="height:6px;border-left:2px solid #374151;border-right:2px solid #374151;border-bottom:2px solid #374151;background:linear-gradient(to right,#374151 50%,transparent 50%);background-size:50% 100%;"></div>
+        <div id="designScaleLabel" style="font-size:10px;color:#6b7280;"></div>
+    `;
+    parent.appendChild(sb);
+}
+
+function drawDesignGrid() {
+    const gc = document.getElementById('designGrid');
+    if (!gc) return;
+    const parent = document.getElementById('designCanvas');
+    const cssW = parent.offsetWidth;
+    const cssH = parent.offsetHeight;
+    const dpr  = window.devicePixelRatio || 1;
+    gc.width  = Math.round(cssW * dpr);
+    gc.height = Math.round(cssH * dpr);
+    gc.style.width  = cssW + 'px';
+    gc.style.height = cssH + 'px';
+
+    const ctx = gc.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    if (!_showDesignGrid) return;
+
+    const COLS = 20, ROWS = 15;  // 20×15 grid cells
+    const cW = cssW / COLS, cH = cssH / ROWS;
+
+    // Minor lines
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(80,120,60,0.13)';
+    ctx.lineWidth   = 0.5;
+    for (let c = 0; c <= COLS; c++) { ctx.moveTo(c*cW,0); ctx.lineTo(c*cW,cssH); }
+    for (let r = 0; r <= ROWS; r++) { ctx.moveTo(0,r*cH); ctx.lineTo(cssW,r*cH); }
+    ctx.stroke();
+
+    // Major lines (every 5 cells)
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(80,140,60,0.28)';
+    ctx.lineWidth   = 1;
+    for (let c = 0; c <= COLS; c += 5) { ctx.moveTo(c*cW,0); ctx.lineTo(c*cW,cssH); }
+    for (let r = 0; r <= ROWS; r += 5) { ctx.moveTo(0,r*cH); ctx.lineTo(cssW,r*cH); }
+    ctx.stroke();
+
+    // Labels (major intersections)
+    ctx.fillStyle    = 'rgba(80,130,60,0.4)';
+    ctx.font         = `${Math.max(8,Math.round(cW*0.22))}px monospace`;
+    ctx.textAlign    = 'left';
+    ctx.textBaseline = 'top';
+    for (let c = 0; c <= COLS; c += 5) {
+        ctx.fillText(c, c*cW + 2, 2);
+    }
+}
+
+function updateDesignScaleBar() {
+    const ruler = document.getElementById('designScaleRuler');
+    const label = document.getElementById('designScaleLabel');
+    const parent = document.getElementById('designCanvas');
+    if (!ruler || !label || !parent) return;
+
+    // Derive real-world scale from manual area input (if set)
+    const areaInput = document.getElementById('manualAreaInput');
+    const areaSqFt  = areaInput ? parseFloat(areaInput.value) : NaN;
+    const canvasPx2 = parent.offsetWidth * parent.offsetHeight;
+
+    if (!isNaN(areaSqFt) && areaSqFt > 0 && canvasPx2 > 0) {
+        // px per foot along one axis (approximate square layout)
+        const pxPerFt  = Math.sqrt(canvasPx2 / areaSqFt);
+        const barFt    = 10;   // show a 10 ft reference bar
+        ruler.style.width = (barFt * pxPerFt) + 'px';
+        label.textContent = '10 ft';
+    } else {
+        // Fallback: show 1/10 of canvas width as "–"
+        ruler.style.width = (parent.offsetWidth / 10) + 'px';
+        label.textContent = '1/10 canvas';
+    }
+}
+
+// Expose grid toggle for the perspective toolbar button (added below)
+window._toggleDesignGrid = function(btn) {
+    _showDesignGrid = !_showDesignGrid;
+    btn.style.background = _showDesignGrid ? '#d1fae5' : '';
+    btn.style.color      = _showDesignGrid ? '#065f46' : '';
+    drawDesignGrid();
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    _injectGridCanvas();
+    drawDesignGrid();
+    updateDesignScaleBar();
+
+    // Wire the area input so scale bar updates live
+    const ai = document.getElementById('manualAreaInput');
+    if (ai) ai.addEventListener('input', updateDesignScaleBar);
+
+    // Add grid toggle to the perspective toolbar once it's injected
+    requestAnimationFrame(() => {
+        const bar = document.getElementById('perspToolbar');
+        if (!bar) return;
+        const sep = document.createElement('div');
+        sep.className = 'pt-sep';
+        const btn = document.createElement('button');
+        btn.style.cssText = 'background:none;border:1px solid rgba(0,0,0,0.12);border-radius:20px;padding:2px 10px;font-size:11px;cursor:pointer;color:#374151;';
+        btn.title = 'Toggle grid overlay';
+        btn.textContent = '⊞ Grid';
+        btn.onclick = () => window._toggleDesignGrid(btn);
+        bar.appendChild(sep);
+        bar.appendChild(btn);
+    });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// T10 — Proportional scaling: all placed items rescale when the canvas resizes.
+//
+// Every item's position is stored in raw canvas pixels.  When the canvas grows
+// or shrinks (sidebar toggle, window resize, mobile rotation) we compute the
+// ratio newSize/oldSize and multiply every coordinate by that ratio.
+// Poly-dot and path-point arrays are rescaled the same way.
+// ══════════════════════════════════════════════════════════════════════════════
+
+let _lastCanvasW = 0;
+let _lastCanvasH = 0;
+
+function _rescaleAllItems(scaleX, scaleY) {
+    if (!placedItems.length) return;
+
+    placedItems.forEach(pi => {
+        const el = pi.element;
+
+        // ── Regular items (left/top/width/height in px) ───────────────────
+        if (!el.dataset.polyPoints && !el.dataset.pathPoints) {
+            el.style.left   = (parseFloat(el.style.left)   * scaleX) + 'px';
+            el.style.top    = (parseFloat(el.style.top)    * scaleY) + 'px';
+            el.style.width  = (parseFloat(el.style.width)  * scaleX) + 'px';
+            el.style.height = (parseFloat(el.style.height) * scaleY) + 'px';
+        }
+
+        // ── Mesh / grass items (polyPoints array) ─────────────────────────
+        if (el.dataset.polyPoints) {
+            const pts = JSON.parse(el.dataset.polyPoints).map(p => ({
+                ...p, x: p.x * scaleX, y: p.y * scaleY
+            }));
+            el.dataset.polyPoints = JSON.stringify(pts);
+            applyPolyShape(el);
+        }
+
+        // ── Path items (pathPoints array) ─────────────────────────────────
+        if (el.dataset.pathPoints) {
+            const pts = JSON.parse(el.dataset.pathPoints).map(p => ({
+                ...p, x: p.x * scaleX, y: p.y * scaleY
+            }));
+            el.dataset.pathPoints = JSON.stringify(pts);
+            applyPathShape(el);
+        }
+    });
+
+    // Reposition any live handles / control panel for the selected item
+    if (selectedItem) {
+        if (isMeshItem(selectedItem.dataset.name, selectedItem.dataset.category)) {
+            updatePolyDotPositions(selectedItem);
+        } else if (!isPathItem(selectedItem.dataset.name, selectedItem.dataset.category)) {
+            positionCornerHandles(selectedItem);
+        }
+        updateControlPanelPosition(selectedItem);
+    }
+}
+
+function _onCanvasResize(newW, newH) {
+    if (_lastCanvasW === 0 || _lastCanvasH === 0) {
+        // First observation — just record the size, nothing to rescale yet
+        _lastCanvasW = newW;
+        _lastCanvasH = newH;
+        return;
+    }
+    const scaleX = newW / _lastCanvasW;
+    const scaleY = newH / _lastCanvasH;
+    _lastCanvasW = newW;
+    _lastCanvasH = newH;
+
+    // Skip trivial or degenerate changes
+    if (Math.abs(scaleX - 1) < 0.001 && Math.abs(scaleY - 1) < 0.001) return;
+
+    _rescaleAllItems(scaleX, scaleY);
+    if (typeof drawDesignGrid === 'function') drawDesignGrid();
+    if (typeof updateDesignScaleBar === 'function') updateDesignScaleBar();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// T11 — Aspect ratio lock state + HiDPI mirror-tile textures
+// ══════════════════════════════════════════════════════════════════════════════
+
+window._lockAspect = false;
+
+// Toggle called by the 🔗 button in the control panel
+window._toggleLockRatio = function(btn) {
+    window._lockAspect = !window._lockAspect;
+    btn.title     = window._lockAspect ? 'Unlock proportions' : 'Lock proportions';
+    btn.textContent = window._lockAspect ? '🔗' : '⛓️‍💥';
+    btn.style.background = window._lockAspect ? '#d1fae5' : '';
+    btn.style.color      = window._lockAspect ? '#065f46' : '';
+};
+
+// Attach ResizeObserver once the canvas exists
+document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('designCanvas');
+    if (!canvas) return;
+    _lastCanvasW = canvas.offsetWidth;
+    _lastCanvasH = canvas.offsetHeight;
+    const ro = new ResizeObserver(entries => {
+        for (const entry of entries) {
+            const { width, height } = entry.contentRect;
+            _onCanvasResize(Math.round(width), Math.round(height));
+        }
+    });
+    ro.observe(canvas);
+});
 

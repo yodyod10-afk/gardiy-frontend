@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Garden Layout Designer</title>
+<style>
+/* ── Reset & tokens ─────────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg:        #0f1117;
+  --panel:     #181c2a;
+  --surface:   #222840;
+  --surface2:  #2a3154;
+  --border:    #2d3560;
+  --accent:    #667eea;
+  --accent2:   #4ade80;
+  --text:      #dde3f0;
+  --muted:     #7a88aa;
+  --danger:    #ef4444;
+  --handle:    #667eea;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  font-size: 13px;
+}
+
+/* ── App shell ──────────────────────────────────────────────────────────── */
+#app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ── Shared panel chrome ────────────────────────────────────────────────── */
+.panel {
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+}
+.panel-header {
+  padding: 12px 14px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+.panel-section {
+  padding: 12px 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* ── Left panel ─────────────────────────────────────────────────────────── */
+#leftPanel { width: 200px; border-right: 1px solid var(--border); }
+
+/* Texture swatches */
+.swatch {
+  width: 100%;
+  height: 72px;
+  border-radius: 6px;
+  border: 2px solid var(--border);
+  margin-bottom: 8px;
+  cursor: grab;
+  position: relative;
+  overflow: hidden;
+  background-size: 64px 64px;
+  image-rendering: crisp-edges;
+  transition: border-color 0.15s, transform 0.1s;
+  user-select: none;
+}
+.swatch:hover  { border-color: var(--accent); transform: scale(1.02); }
+.swatch:active { cursor: grabbing; transform: scale(0.98); }
+.swatch-label {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 3px 8px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(4px);
+}
+
+/* Tool buttons */
+.tools-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.tool-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.tool-btn:hover   { background: var(--surface2); border-color: var(--accent); }
+.tool-btn.active  { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tool-btn.danger  { border-color: transparent; }
+.tool-btn.danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* Lock row */
+.lock-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+.lock-btn {
+  width: 32px; height: 32px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+}
+.lock-btn:hover   { border-color: var(--accent2); color: var(--accent2); }
+.lock-btn.locked  { background: var(--accent2); border-color: var(--accent2); color: #0f1117; }
+.lock-label { font-size: 11px; color: var(--muted); }
+
+/* Sliders */
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.slider-label { font-size: 11px; color: var(--muted); width: 32px; flex-shrink: 0; }
+.slider-row input[type=range] {
+  flex: 1;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.slider-val {
+  font-size: 11px;
+  color: var(--text);
+  width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* ── Center canvas area ──────────────────────────────────────────────────── */
+#canvasArea {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, #1a2035 0%, #0f1117 70%);
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* The perspective stage — children can be 3D-transformed */
+#perspStage {
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+/* The garden canvas — receives matrix3d perspective via JS */
+#gardenCanvas {
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  background: #1e2a14;
+  border: 1px solid rgba(80,110,60,0.35);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 24px 80px rgba(0,0,0,0.7);
+}
+
+/* Grid canvas — sits at z-index 1, pointer-events none */
+#gridCanvas {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 1;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+/* ── Placed items ────────────────────────────────────────────────────────── */
+.placed-item {
+  position: absolute;
+  cursor: move;
+  user-select: none;
+  transform-origin: center center;
+  z-index: 10;
+  border: 2px solid transparent;
+  border-radius: 2px;
+  background-repeat: repeat;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  transition: border-color 0.1s;
+}
+.placed-item:hover   { border-color: rgba(102,126,234,0.45); }
+.placed-item.selected {
+  border-color: var(--handle);
+  box-shadow: 0 0 0 1px var(--handle);
+}
+
+/* ── Resize handles ──────────────────────────────────────────────────────── */
+.resize-handle {
+  position: absolute;
+  width: 11px; height: 11px;
+  background: #fff;
+  border: 2px solid var(--handle);
+  border-radius: 2px;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 4px rgba(102,126,234,0.5);
+  pointer-events: all;
+}
+.resize-handle[data-pos=nw] { cursor: nw-resize; }
+.resize-handle[data-pos=ne] { cursor: ne-resize; }
+.resize-handle[data-pos=se] { cursor: se-resize; }
+.resize-handle[data-pos=sw] { cursor: sw-resize; }
+
+/* ── Rotate handle ───────────────────────────────────────────────────────── */
+.rotate-handle {
+  position: absolute;
+  width: 20px; height: 20px;
+  background: #fff;
+  border: 2px solid var(--handle);
+  border-radius: 50%;
+  cursor: grab;
+  z-index: 9999;
+  transform: translate(-50%, 0);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; line-height: 1;
+  box-shadow: 0 1px 5px rgba(102,126,234,0.55);
+  user-select: none;
+}
+.rotate-handle::before {
+  content: '↻';
+  color: var(--accent);
+  font-weight: 700;
+}
+.rotate-handle:active { cursor: grabbing; }
+
+.rotate-stem {
+  position: absolute;
+  width: 1px;
+  background: var(--handle);
+  z-index: 9998;
+  pointer-events: none;
+  transform-origin: top center;
+}
+
+/* ── Scale bar ───────────────────────────────────────────────────────────── */
+#scaleBar {
+  position: absolute;
+  bottom: 14px; right: 14px;
+  background: rgba(15,17,23,0.82);
+  border: 1px solid rgba(102,126,234,0.3);
+  border-radius: 6px;
+  padding: 6px 10px 5px;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  z-index: 50;
+}
+#scaleRuler {
+  height: 6px;
+  border-left: 2px solid var(--text);
+  border-right: 2px solid var(--text);
+  border-bottom: 2px solid var(--text);
+  background: linear-gradient(to right, var(--text) 50%, transparent 50%);
+  background-size: 50% 100%;
+}
+#scaleLabel {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+}
+
+/* Drop hint when canvas is empty */
+#dropHint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+#dropHint p {
+  font-size: 13px;
+  color: rgba(100,120,160,0.35);
+  text-align: center;
+  line-height: 2;
+  letter-spacing: 0.3px;
+}
+
+/* ── Right panel ─────────────────────────────────────────────────────────── */
+#rightPanel { width: 168px; border-left: 1px solid var(--border); }
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(45,53,96,0.5);
+}
+.info-row:last-of-type { border-bottom: none; }
+.info-label { font-size: 11px; color: var(--muted); }
+.info-val   { font-size: 11px; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.hint-msg {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  padding: 20px 12px;
+  line-height: 1.6;
+}
+
+.delete-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 7px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--danger);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.delete-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Left panel: Materials ─────────────────────────────────────────── -->
+  <aside id="leftPanel" class="panel">
+    <div class="panel-header">Materials</div>
+
+    <div class="panel-section">
+      <div class="section-label">Textures</div>
+      <div class="swatch" id="grassSwatch" draggable="true" data-type="grass">
+        <span class="swatch-label">Grass</span>
+      </div>
+      <div class="swatch" id="gravelSwatch" draggable="true" data-type="gravel">
+        <span class="swatch-label">Gravel</span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Proportions</div>
+      <div class="lock-row">
+        <button class="lock-btn" id="lockBtn" title="Lock aspect ratio">🔗</button>
+        <span class="lock-label">Lock ratio</span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">View</div>
+      <div class="tools-row">
+        <button class="tool-btn active" id="gridBtn">⊞ Grid</button>
+        <button class="tool-btn active" id="perspBtn">◈ 3D</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Perspective</div>
+      <div class="slider-row">
+        <span class="slider-label">Tilt</span>
+        <input type="range" id="tiltSlider" min="0" max="70" value="45">
+        <span class="slider-val" id="tiltVal">45°</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Dist</span>
+        <input type="range" id="distSlider" min="400" max="2400" value="1200">
+        <span class="slider-val" id="distVal">1200</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Center: canvas area ───────────────────────────────────────────── -->
+  <main id="canvasArea">
+    <div id="perspStage">
+      <div id="gardenCanvas">
+        <canvas id="gridCanvas"></canvas>
+        <div id="dropHint"><p>Drag grass or gravel<br>onto the canvas</p></div>
+      </div>
+    </div>
+
+    <div id="scaleBar">
+      <div id="scaleRuler"></div>
+      <div id="scaleLabel">10 m</div>
+    </div>
+  </main>
+
+  <!-- ── Right panel: Inspector ────────────────────────────────────────── -->
+  <aside id="rightPanel" class="panel">
+    <div class="panel-header">Inspector</div>
+
+    <div class="panel-section" id="noSelMsg">
+      <p class="hint-msg">Select an item<br>to inspect</p>
+    </div>
+
+    <div class="panel-section" id="selInfo" style="display:none">
+      <div class="section-label">Transform</div>
+      <div class="info-row"><span class="info-label">Type</span><span class="info-val" id="iType">—</span></div>
+      <div class="info-row"><span class="info-label">X</span>   <span class="info-val" id="iX">—</span></div>
+      <div class="info-row"><span class="info-label">Y</span>   <span class="info-val" id="iY">—</span></div>
+      <div class="info-row"><span class="info-label">W</span>   <span class="info-val" id="iW">—</span></div>
+      <div class="info-row"><span class="info-label">H</span>   <span class="info-val" id="iH">—</span></div>
+      <div class="info-row"><span class="info-label">Rot</span> <span class="info-val" id="iRot">—</span></div>
+      <button class="delete-btn" id="deleteBtn">Delete Item</button>
+    </div>
+  </aside>
+
+</div>
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TASK 2 — Manual 4×4 matrix math + CSS perspective transform
+// All matrices stored in column-major order to match CSS matrix3d().
+//
+// CSS matrix3d(a1,b1,c1,d1, a2,b2,c2,d2, a3,b3,c3,d3, a4,b4,c4,d4)
+// encodes columns:  col0=[a1,b1,c1,d1]  col1=[a2,b2,c2,d2] …
+// Element access:   M[col*4 + row]
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── 4×4 identity ─────────────────────────────────────────────────────────
+function mat4Identity() {
+  return new Float64Array([
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    0,0,0,1
+  ]);
+}
+
+// ── Multiply A × B (both column-major, 16-element Float64Array) ──────────
+function mat4Mul(A, B) {
+  const C = new Float64Array(16);
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      let sum = 0;
+      for (let k = 0; k < 4; k++) {
+        sum += A[k*4 + row] * B[col*4 + k];
+      }
+      C[col*4 + row] = sum;
+    }
+  }
+  return C;
+}
+
+// ── Rotation around X axis by `deg` degrees ──────────────────────────────
+// Row-major form:
+//   [1,    0,     0, 0]
+//   [0,  cos, -sin,  0]
+//   [0,  sin,  cos,  0]
+//   [0,    0,     0, 1]
+// Column-major layout for CSS:
+//   col0=[1,0,0,0]  col1=[0,c,s,0]  col2=[0,-s,c,0]  col3=[0,0,0,1]
+function mat4RotX(deg) {
+  const r  = deg * Math.PI / 180;
+  const co = Math.cos(r);
+  const si = Math.sin(r);
+  return new Float64Array([
+    1,  0,  0, 0,   // col 0
+    0, co, si, 0,   // col 1
+    0,-si, co, 0,   // col 2
+    0,  0,  0, 1    // col 3
+  ]);
+}
+
+// ── Perspective matrix for focal-length d ────────────────────────────────
+// Homogeneous perspective: w' = -z/d + w
+// Row-major form:
+//   [1, 0,    0, 0]
+//   [0, 1,    0, 0]
+//   [0, 0,    1, 0]
+//   [0, 0, -1/d, 1]
+// Column-major layout:
+//   col0=[1,0,0,0]  col1=[0,1,0,0]  col2=[0,0,1,-1/d]  col3=[0,0,0,1]
+function mat4Persp(d) {
+  return new Float64Array([
+    1, 0,    0, 0,   // col 0
+    0, 1,    0, 0,   // col 1
+    0, 0,    1,-1/d, // col 2
+    0, 0,    0, 1    // col 3
+  ]);
+}
+
+// ── Serialise to CSS matrix3d() string ───────────────────────────────────
+function mat4ToCSS(M) {
+  // CSS expects exactly the column-major values we store, rounded to 8dp
+  return 'matrix3d(' + Array.from(M).map(v => v.toFixed(8)).join(',') + ')';
+}
+
+// ── Build the combined Perspective × RotateX matrix ──────────────────────
+function buildViewMatrix(tiltDeg, perspDist) {
+  return mat4Mul(mat4Persp(perspDist), mat4RotX(tiltDeg));
+}
+
+// ── Apply (or remove) the 3D transform on the canvas element ─────────────
+let perspEnabled = true;
+let tiltAngle    = 45;
+let perspDist    = 1200;
+
+function updateCanvasTransform() {
+  const canvas = document.getElementById('gardenCanvas');
+  if (!perspEnabled || tiltAngle === 0) {
+    canvas.style.transform = 'none';
+    return;
+  }
+  const M = buildViewMatrix(tiltAngle, perspDist);
+  canvas.style.transform = mat4ToCSS(M);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TASK 3 — ViewBox coordinate system + proportional window-resize
+//
+// Internal world: WORLD_W × WORLD_H meters (like a viewBox).
+// scale  = canvasCSSPixels / WORLD_W   (px per meter)
+// Every item stores worldX,worldY,worldW,worldH in meters.
+// On resize: scale is recomputed, then positionElement() restores all items.
+// screenToCanvas() inverts the CSS perspective matrix so drag-drops land
+// at the correct world position even when the canvas is 3D-tilted.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const WORLD_W = 40;   // garden width  in meters
+const WORLD_H = 30;   // garden height in meters
+
+let scale   = 1;      // CSS pixels per world meter (updated on resize)
+let items   = [];     // all placed items  (see Task 5 for item shape)
+
+// ── Map world coords → CSS pixels and apply to element ───────────────────
+function positionElement(it) {
+  const el = it.el;
+  el.style.left   = (it.worldX * scale) + 'px';
+  el.style.top    = (it.worldY * scale) + 'px';
+  el.style.width  = (it.worldW * scale) + 'px';
+  el.style.height = (it.worldH * scale) + 'px';
+  el.style.transform = `rotate(${it.rotation}deg)`;
+  // Tile size tracks scale so texture stays at a consistent real-world size
+  const tilePx = Math.round(4 * scale); // 4 m tile
+  el.style.backgroundSize = tilePx + 'px ' + tilePx + 'px';
+}
+
+// ── Fit canvas to available area, maintain WORLD_W:WORLD_H ratio ─────────
+function updateCanvasSize() {
+  const area   = document.getElementById('canvasArea');
+  const avail  = area.getBoundingClientRect();
+  const aW     = avail.width  - 32;
+  const aH     = avail.height - 48;
+  const ratio  = WORLD_W / WORLD_H;
+
+  let cW = aW, cH = aW / ratio;
+  if (cH > aH) { cH = aH; cW = aH * ratio; }
+  cW = Math.floor(cW);
+  cH = Math.floor(cH);
+
+  const canvas = document.getElementById('gardenCanvas');
+  canvas.style.width  = cW + 'px';
+  canvas.style.height = cH + 'px';
+
+  scale = cW / WORLD_W;
+
+  // Resize the HiDPI grid canvas (handled in Task 4)
+  if (typeof resizeGridCanvas === 'function') resizeGridCanvas(cW, cH);
+
+  // Reposition every placed item proportionally
+  items.forEach(positionElement);
+
+  // Update resize/rotate handles for selected item
+  if (typeof updateHandles === 'function' && selectedId !== null) {
+    const it = items.find(i => i.id === selectedId);
+    if (it) updateHandles(it);
+  }
+
+  if (typeof drawGrid      === 'function') drawGrid();
+  if (typeof updateScaleBar=== 'function') updateScaleBar();
+  updateCanvasTransform();
+}
+
+// ── Inverse-perspective: screen coords → canvas world coords ─────────────
+// Uses DOMMatrix.inverse() so no extra math library is needed.
+function screenToCanvas(screenX, screenY) {
+  const canvas = document.getElementById('gardenCanvas');
+  const rect   = canvas.getBoundingClientRect();
+
+  if (!perspEnabled || tiltAngle === 0) {
+    return {
+      x: (screenX - rect.left) / scale,
+      y: (screenY - rect.top)  / scale
+    };
+  }
+
+  // transform-origin defaults to 50% 50% — screen position of that origin:
+  const originX = rect.left + canvas.offsetWidth  / 2;
+  const originY = rect.top  + canvas.offsetHeight / 2;
+
+  // Invert our computed matrix (same values used in updateCanvasTransform)
+  const M   = buildViewMatrix(tiltAngle, perspDist);
+  const dm  = new DOMMatrix(mat4ToCSS(M));
+  const inv = dm.inverse();
+
+  // Transform the screen point (relative to canvas center) through the inverse
+  const p = inv.transformPoint({
+    x: screenX - originX,
+    y: screenY - originY,
+    z: 0, w: 1
+  });
+
+  // Convert back to canvas-local 0,0 = top-left, then to world units
+  return {
+    x: (p.x + canvas.offsetWidth  / 2) / scale,
+    y: (p.y + canvas.offsetHeight / 2) / scale
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TASK 4 — HiDPI grid overlay + scale bar
+//
+// The grid canvas is sized at physical pixels (× devicePixelRatio) so lines
+// are crisp on retina/high-DPI screens.  Grid is drawn in world units:
+//   minor lines  every 1 m
+//   major lines  every 5 m
+//   labels       every 10 m
+// ═══════════════════════════════════════════════════════════════════════════
+
+let showGrid = true;
+
+// ── Resize grid canvas to match garden canvas at full DPI ────────────────
+function resizeGridCanvas(cssW, cssH) {
+  const gc  = document.getElementById('gridCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  gc.width  = Math.round(cssW * dpr);
+  gc.height = Math.round(cssH * dpr);
+  gc.style.width  = cssW + 'px';
+  gc.style.height = cssH + 'px';
+}
+
+// ── Draw the meter grid ───────────────────────────────────────────────────
+function drawGrid() {
+  const gc  = document.getElementById('gridCanvas');
+  const ctx = gc.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W   = gc.width  / dpr;   // CSS pixels
+  const H   = gc.height / dpr;
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  if (!showGrid) return;
+
+  // ── Minor grid: every 1 m ──
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(100,130,70,0.13)';
+  ctx.lineWidth   = 0.5;
+  for (let wx = 0; wx <= WORLD_W; wx++) {
+    const px = wx * scale;
+    ctx.moveTo(px, 0); ctx.lineTo(px, H);
+  }
+  for (let wy = 0; wy <= WORLD_H; wy++) {
+    const py = wy * scale;
+    ctx.moveTo(0, py); ctx.lineTo(W, py);
+  }
+  ctx.stroke();
+
+  // ── Major grid: every 5 m ──
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(120,160,80,0.28)';
+  ctx.lineWidth   = 1;
+  for (let wx = 0; wx <= WORLD_W; wx += 5) {
+    const px = wx * scale;
+    ctx.moveTo(px, 0); ctx.lineTo(px, H);
+  }
+  for (let wy = 0; wy <= WORLD_H; wy += 5) {
+    const py = wy * scale;
+    ctx.moveTo(0, py); ctx.lineTo(W, py);
+  }
+  ctx.stroke();
+
+  // ── Axis labels every 10 m ──
+  const fontSize = Math.max(9, Math.min(12, scale * 0.6));
+  ctx.font        = `${fontSize}px 'SF Mono', 'Consolas', monospace`;
+  ctx.fillStyle   = 'rgba(160,200,110,0.45)';
+
+  // X labels along the top edge
+  ctx.textAlign   = 'center';
+  ctx.textBaseline = 'top';
+  for (let wx = 0; wx <= WORLD_W; wx += 10) {
+    ctx.fillText(wx + 'm', wx * scale, 3);
+  }
+
+  // Y labels along the left edge
+  ctx.textAlign   = 'left';
+  ctx.textBaseline = 'middle';
+  for (let wy = 10; wy <= WORLD_H; wy += 10) {
+    ctx.fillText(wy + 'm', 3, wy * scale);
+  }
+}
+
+// ── Scale bar: shows a 10 m reference bar ────────────────────────────────
+function updateScaleBar() {
+  const barMeters = 10;
+  const barPx     = barMeters * scale;
+  document.getElementById('scaleRuler').style.width = barPx + 'px';
+  document.getElementById('scaleLabel').textContent  = barMeters + ' m';
+}
+
+// ── Grid toggle button ────────────────────────────────────────────────────
+function setupGridControl() {
+  const btn = document.getElementById('gridBtn');
+  btn.addEventListener('click', () => {
+    showGrid = !showGrid;
+    btn.classList.toggle('active', showGrid);
+    drawGrid();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TASK 5 — Textures, materials panel swatches, drag-and-drop placement
+//
+// Grass  → images/texture-grass.png  (real file, tiled via background-image)
+// Gravel → procedurally generated PNG (canvas → dataURL), same tiling
+//
+// Drag a swatch from the left panel and drop on the garden canvas.
+// The drop position is converted from screen → world coords via
+// screenToCanvas() (perspective-aware, from Task 3).
+// ═══════════════════════════════════════════════════════════════════════════
+
+let idCounter    = 0;
+let dragType     = null;   // type string set on swatch dragstart
+let gravelDataUrl = null;  // generated once in init
+
+// ── Procedural gravel texture ─────────────────────────────────────────────
+function generateGravelTexture() {
+  const SIZE = 256;
+  const c    = document.createElement('canvas');
+  c.width = c.height = SIZE;
+  const g = c.getContext('2d');
+
+  // Base coat
+  g.fillStyle = '#b8ab9a';
+  g.fillRect(0, 0, SIZE, SIZE);
+
+  // Micro-noise
+  for (let i = 0; i < 3000; i++) {
+    const x  = Math.random() * SIZE;
+    const y  = Math.random() * SIZE;
+    const v  = 130 + Math.random() * 70 | 0;
+    g.fillStyle = `rgb(${v},${v-8},${v-18})`;
+    g.fillRect(x, y, 2, 2);
+  }
+
+  // Individual pebbles
+  for (let i = 0; i < 90; i++) {
+    const x      = Math.random() * SIZE;
+    const y      = Math.random() * SIZE;
+    const rx     = 4  + Math.random() * 9;
+    const ry     = 3  + Math.random() * 7;
+    const angle  = Math.random() * Math.PI;
+    const base   = 120 + Math.random() * 80 | 0;
+
+    const grad = g.createRadialGradient(
+      x - rx * 0.3, y - ry * 0.3, 0,
+      x, y, Math.max(rx, ry)
+    );
+    grad.addColorStop(0, `rgba(${base+45},${base+38},${base+28},1)`);
+    grad.addColorStop(1, `rgba(${base-30},${base-36},${base-42},1)`);
+
+    g.save();
+    g.translate(x, y);
+    g.rotate(angle);
+    g.beginPath();
+    g.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+    g.fillStyle = grad;
+    g.fill();
+    g.restore();
+  }
+
+  return c.toDataURL('image/png');
+}
+
+// ── Apply textures to the left-panel swatches ─────────────────────────────
+function setupSwatches() {
+  const grassSwatch  = document.getElementById('grassSwatch');
+  const gravelSwatch = document.getElementById('gravelSwatch');
+
+  grassSwatch.style.backgroundImage  = 'url(images/texture-grass.png)';
+  grassSwatch.style.backgroundSize   = '64px 64px';
+
+  gravelDataUrl = generateGravelTexture();
+  gravelSwatch.style.backgroundImage = `url(${gravelDataUrl})`;
+  gravelSwatch.style.backgroundSize  = '64px 64px';
+}
+
+// ── Create an item object + its DOM element ───────────────────────────────
+function createItem(type, worldX, worldY) {
+  const worldW = 8;   // default 8 m × 8 m tile
+  const worldH = 8;
+  const it = {
+    id:          idCounter++,
+    type,
+    worldX, worldY,
+    worldW, worldH,
+    rotation:    0,
+    aspectRatio: worldW / worldH,  // stored at creation; enforced when locked
+    el:          null
+  };
+
+  const el = document.createElement('div');
+  el.className       = 'placed-item';
+  el.dataset.id      = it.id;
+  const texUrl       = type === 'grass' ? 'images/texture-grass.png' : gravelDataUrl;
+  el.style.backgroundImage = `url(${texUrl})`;
+
+  it.el = el;
+  document.getElementById('gardenCanvas').appendChild(el);
+  positionElement(it);
+  items.push(it);
+
+  // Hide the "drop hint" once first item is placed
+  const hint = document.getElementById('dropHint');
+  if (hint) hint.style.display = 'none';
+
+  // Wire selection (Task 7)
+  el.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    if (typeof selectItem === 'function') selectItem(it.id);
+    if (typeof startDragItem === 'function') startDragItem(it, e);
+  });
+
+  return it;
+}
+
+// ── Swatch drag-start / canvas drop ──────────────────────────────────────
+function setupDragDrop() {
+  // Swatch → dragstart
+  ['grassSwatch', 'gravelSwatch'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('dragstart', e => {
+      dragType = el.dataset.type;
+      e.dataTransfer.effectAllowed = 'copy';
+      // Ghost image
+      const ghost = el.cloneNode(true);
+      ghost.style.cssText = 'position:fixed;top:-200px;left:-200px;width:80px;height:50px;opacity:0.8;border-radius:6px;';
+      document.body.appendChild(ghost);
+      e.dataTransfer.setDragImage(ghost, 40, 25);
+      setTimeout(() => ghost.remove(), 0);
+    });
+    el.addEventListener('dragend', () => { dragType = null; });
+  });
+
+  // Canvas → dragover + drop
+  const canvas = document.getElementById('gardenCanvas');
+  canvas.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  canvas.addEventListener('drop', e => {
+    e.preventDefault();
+    if (!dragType) return;
+    const world = screenToCanvas(e.clientX, e.clientY);
+    // Centre the default 8×8 tile on the drop point
+    createItem(dragType, world.x - 4, world.y - 4);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TASK 6 — Aspect ratio lock + corner resize handles
+//
+// Four corner handles (nw/ne/se/sw) are absolutely-positioned divs placed
+// over the garden canvas.  Dragging one resizes the item in world units.
+// When lockAspect is true every resize enforces item.aspectRatio so the
+// tile never distorts.  The ratio is captured once at item creation time.
+// ═══════════════════════════════════════════════════════════════════════════
+
+let lockAspect   = false;
+let resizeHandles = [];
+let selectedId    = null;   // declared here; used by Tasks 7 & 8 too
+
+const MIN_WORLD = 1;   // minimum item dimension in meters
+
+// ── Lock-toggle button ────────────────────────────────────────────────────
+function setupLockControl() {
+  const btn = document.getElementById('lockBtn');
+  btn.addEventListener('click', () => {
+    lockAspect = !lockAspect;
+    btn.classList.toggle('locked', lockAspect);
+    btn.title = lockAspect ? 'Unlock aspect ratio' : 'Lock aspect ratio';
+  });
+}
+
+// ── Position one corner handle in CSS-pixel canvas coords ────────────────
+function placeHandle(h, it) {
+  const l  = it.worldX * scale;
+  const t  = it.worldY * scale;
+  const r  = (it.worldX + it.worldW) * scale;
+  const b  = (it.worldY + it.worldH) * scale;
+  const coords = { nw:[l,t], ne:[r,t], se:[r,b], sw:[l,b] };
+  const [hx, hy] = coords[h.dataset.pos];
+  h.style.left = hx + 'px';
+  h.style.top  = hy + 'px';
+}
+
+// ── Reposition all four handles (called after any move/resize) ────────────
+function updateHandles(it) {
+  resizeHandles.forEach(h => placeHandle(h, it));
+
+  // Also reposition the rotate handle if it exists (created in Task 7)
+  const rh = document.getElementById('rotateHandle');
+  if (rh) {
+    const cx = (it.worldX + it.worldW / 2) * scale;
+    const ty = it.worldY * scale;
+    rh.style.left = cx + 'px';
+    rh.style.top  = (ty - 26) + 'px';
+    const stem = document.getElementById('rotateStem');
+    if (stem) {
+      stem.style.left   = cx + 'px';
+      stem.style.top    = (ty - 16) + 'px';
+      stem.style.height = '16px';
+    }
+  }
+}
+
+// ── Create the four corner handles for a selected item ───────────────────
+function createResizeHandles(it) {
+  removeResizeHandles();
+  const canvas = document.getElementById('gardenCanvas');
+  ['nw','ne','se','sw'].forEach(pos => {
+    const h = document.createElement('div');
+    h.className    = 'resize-handle';
+    h.dataset.pos  = pos;
+    h.dataset.itemId = it.id;
+    canvas.appendChild(h);
+    resizeHandles.push(h);
+    placeHandle(h, it);
+    h.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      startResize(pos, it, e);
+    });
+  });
+}
+
+function removeResizeHandles() {
+  resizeHandles.forEach(h => h.remove());
+  resizeHandles = [];
+}
+
+// ── Corner-drag resize logic ──────────────────────────────────────────────
+function startResize(pos, it, e) {
+  const startMX = e.clientX, startMY = e.clientY;
+  const origX   = it.worldX, origY   = it.worldY;
+  const origW   = it.worldW, origH   = it.worldH;
+
+  function onMove(mv) {
+    // Delta in world units (screen px ÷ scale, no perspective correction
+    // needed here because handles are flat 2D overlay in canvas-space)
+    const dx = (mv.clientX - startMX) / scale;
+    const dy = (mv.clientY - startMY) / scale;
+
+    let wx = origX, wy = origY, ww = origW, wh = origH;
+
+    if (pos === 'se') {
+      ww = Math.max(MIN_WORLD, origW + dx);
+      wh = lockAspect
+        ? ww / it.aspectRatio
+        : Math.max(MIN_WORLD, origH + dy);
+
+    } else if (pos === 'sw') {
+      ww = Math.max(MIN_WORLD, origW - dx);
+      wx = origX + (origW - ww);
+      wh = lockAspect
+        ? ww / it.aspectRatio
+        : Math.max(MIN_WORLD, origH + dy);
+
+    } else if (pos === 'ne') {
+      ww = Math.max(MIN_WORLD, origW + dx);
+      wh = lockAspect
+        ? ww / it.aspectRatio
+        : Math.max(MIN_WORLD, origH - dy);
+      wy = origY + (origH - wh);
+
+    } else if (pos === 'nw') {
+      ww = Math.max(MIN_WORLD, origW - dx);
+      wx = origX + (origW - ww);
+      wh = lockAspect
+        ? ww / it.aspectRatio
+        : Math.max(MIN_WORLD, origH - dy);
+      wy = origY + (origH - wh);
+    }
+
+    it.worldX = wx; it.worldY = wy;
+    it.worldW = ww; it.worldH = wh;
+    // Only update stored ratio when NOT locked (free resize)
+    if (!lockAspect) it.aspectRatio = ww / wh;
+
+    positionElement(it);
+    updateHandles(it);
+    if (typeof updateInspector === 'function') updateInspector(it);
+  }
+
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TASK 7 — Rotation handle + drag-to-move + selection lifecycle
+//
+// selectItem(id)   → highlights item, creates corner + rotate handles
+// deselectItem()   → removes all handles, clears inspector
+// startDragItem()  → translates item in world coords on mousemove
+// startRotate()    → circular atan2 drag mapped to item.rotation degrees
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Selection ─────────────────────────────────────────────────────────────
+function selectItem(id) {
+  if (selectedId === id) return;
+  deselectItem();
+  selectedId = id;
+
+  const it = items.find(i => i.id === id);
+  if (!it) return;
+
+  it.el.classList.add('selected');
+  createResizeHandles(it);
+  createRotateHandle(it);
+  if (typeof updateInspector === 'function') updateInspector(it);
+}
+
+function deselectItem() {
+  if (selectedId === null) return;
+  const it = items.find(i => i.id === selectedId);
+  if (it) it.el.classList.remove('selected');
+
+  removeResizeHandles();
+  removeRotateHandle();
+  selectedId = null;
+  if (typeof updateInspector === 'function') updateInspector(null);
+}
+
+// ── Rotate handle ─────────────────────────────────────────────────────────
+function createRotateHandle(it) {
+  removeRotateHandle();
+  const canvas = document.getElementById('gardenCanvas');
+
+  // Stem (thin vertical line connecting handle to item top edge)
+  const stem = document.createElement('div');
+  stem.id        = 'rotateStem';
+  stem.className = 'rotate-stem';
+  const cx = (it.worldX + it.worldW / 2) * scale;
+  const ty = it.worldY * scale;
+  stem.style.left   = cx + 'px';
+  stem.style.top    = (ty - 16) + 'px';
+  stem.style.height = '16px';
+  canvas.appendChild(stem);
+
+  // Circle handle
+  const rh = document.createElement('div');
+  rh.id        = 'rotateHandle';
+  rh.className = 'rotate-handle';
+  rh.title     = 'Drag to rotate';
+  rh.style.left = cx + 'px';
+  rh.style.top  = (ty - 26) + 'px';
+  canvas.appendChild(rh);
+
+  rh.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    startRotate(it, e);
+  });
+}
+
+function removeRotateHandle() {
+  document.getElementById('rotateHandle')?.remove();
+  document.getElementById('rotateStem')?.remove();
+}
+
+// ── Circular rotation drag ────────────────────────────────────────────────
+function startRotate(it, e) {
+  // Centre of item in screen space (accounting for canvas position)
+  const canvas  = document.getElementById('gardenCanvas');
+  const rect    = canvas.getBoundingClientRect();
+  const centerX = (it.worldX + it.worldW / 2) * scale + rect.left;
+  const centerY = (it.worldY + it.worldH / 2) * scale + rect.top;
+
+  const startMouseAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180 / Math.PI;
+  const startRotation   = it.rotation;
+
+  function onMove(mv) {
+    const angle = Math.atan2(mv.clientY - centerY, mv.clientX - centerX) * 180 / Math.PI;
+    it.rotation = ((startRotation + (angle - startMouseAngle)) % 360 + 360) % 360;
+    positionElement(it);
+    updateHandles(it);
+    if (typeof updateInspector === 'function') updateInspector(it);
+  }
+
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+}
+
+// ── Drag-to-move ──────────────────────────────────────────────────────────
+function startDragItem(it, e) {
+  const startMX = e.clientX, startMY = e.clientY;
+  const origX   = it.worldX, origY   = it.worldY;
+
+  function onMove(mv) {
+    it.worldX = origX + (mv.clientX - startMX) / scale;
+    it.worldY = origY + (mv.clientY - startMY) / scale;
+    positionElement(it);
+    updateHandles(it);
+    if (typeof updateInspector === 'function') updateInspector(it);
+  }
+
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+}
+
+// ── Click canvas background to deselect ───────────────────────────────────
+function setupCanvasDeselect() {
+  const canvas = document.getElementById('gardenCanvas');
+  canvas.addEventListener('mousedown', e => {
+    if (e.target === canvas || e.target === document.getElementById('gridCanvas')) {
+      deselectItem();
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TASK 8 — Inspector panel + delete + init() wiring
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Inspector: fill right panel with selected item's world-unit values ────
+function updateInspector(it) {
+  const noSel  = document.getElementById('noSelMsg');
+  const selInfo = document.getElementById('selInfo');
+  if (!it) {
+    noSel.style.display  = '';
+    selInfo.style.display = 'none';
+    return;
+  }
+  noSel.style.display  = 'none';
+  selInfo.style.display = '';
+  document.getElementById('iType').textContent = it.type;
+  document.getElementById('iX').textContent    = it.worldX.toFixed(1) + ' m';
+  document.getElementById('iY').textContent    = it.worldY.toFixed(1) + ' m';
+  document.getElementById('iW').textContent    = it.worldW.toFixed(1) + ' m';
+  document.getElementById('iH').textContent    = it.worldH.toFixed(1) + ' m';
+  document.getElementById('iRot').textContent  = Math.round(it.rotation) + '°';
+}
+
+// ── Delete selected item ───────────────────────────────────────────────────
+function deleteSelected() {
+  if (selectedId === null) return;
+  const idx = items.findIndex(i => i.id === selectedId);
+  if (idx === -1) return;
+  items[idx].el.remove();
+  items.splice(idx, 1);
+  deselectItem();
+  // Show drop hint again if canvas is empty
+  if (items.length === 0) {
+    const hint = document.getElementById('dropHint');
+    if (hint) hint.style.display = '';
+  }
+}
+
+function setupDeleteControl() {
+  document.getElementById('deleteBtn').addEventListener('click', deleteSelected);
+  // Keyboard shortcut
+  document.addEventListener('keydown', e => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId !== null) {
+      // Don't fire if user is typing in an input
+      if (document.activeElement.tagName === 'INPUT') return;
+      e.preventDefault();
+      deleteSelected();
+    }
+    // Escape deselects
+    if (e.key === 'Escape') deselectItem();
+  });
+}
+
+// ── Wire perspective sliders and toggle ───────────────────────────────────
+function setupPerspectiveControls() {
+  const tiltSlider = document.getElementById('tiltSlider');
+  const tiltVal    = document.getElementById('tiltVal');
+  tiltSlider.addEventListener('input', () => {
+    tiltAngle = parseInt(tiltSlider.value, 10);
+    tiltVal.textContent = tiltAngle + '°';
+    updateCanvasTransform();
+  });
+
+  const distSlider = document.getElementById('distSlider');
+  const distVal    = document.getElementById('distVal');
+  distSlider.addEventListener('input', () => {
+    perspDist = parseInt(distSlider.value, 10);
+    distVal.textContent = perspDist;
+    updateCanvasTransform();
+  });
+
+  const perspBtn = document.getElementById('perspBtn');
+  perspBtn.addEventListener('click', () => {
+    perspEnabled = !perspEnabled;
+    perspBtn.classList.toggle('active', perspEnabled);
+    tiltSlider.disabled = !perspEnabled;
+    distSlider.disabled = !perspEnabled;
+    updateCanvasTransform();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT — wire everything together
+// ═══════════════════════════════════════════════════════════════════════════
+function init() {
+  setupSwatches();
+  setupDragDrop();
+  setupLockControl();
+  setupGridControl();
+  setupPerspectiveControls();
+  setupCanvasDeselect();
+  setupDeleteControl();
+
+  // Initial layout pass
+  updateCanvasSize();
+
+  // Click on a swatch also places a tile at canvas center (fallback)
+  ['grassSwatch','gravelSwatch'].forEach(id => {
+    document.getElementById(id).addEventListener('click', () => {
+      const type = id === 'grassSwatch' ? 'grass' : 'gravel';
+      const cx   = WORLD_W / 2 - 4;
+      const cy   = WORLD_H / 2 - 4;
+      createItem(type, cx, cy);
+    });
+  });
+
+  // Proportional resize: recalculate scale and reposition everything
+  window.addEventListener('resize', updateCanvasSize);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
