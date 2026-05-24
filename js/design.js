@@ -2574,42 +2574,21 @@ async function _bFinalize() {
     if (!product) { console.warn('[AI Fill] No product');      return; }
     if (pts.length < 3) { console.warn('[AI Fill] Not enough points:', pts.length); return; }
 
-    // ── 1. Build composite ───────────────────────────────────────────────────────
-    const bgImg = document.getElementById('canvasImage');
-    console.log('[AI Fill] bgImg src:', bgImg?.src?.slice(0, 80));
-    if (!bgImg || !bgImg.src) { alert('No yard photo loaded — please upload a photo first.'); return; }
-
-    const W = dc.offsetWidth;
-    const H = dc.offsetHeight;
-    console.log('[AI Fill] Canvas size:', W, 'x', H);
-
-    const comp = document.createElement('canvas');
-    comp.width = W; comp.height = H;
-    const ctx = comp.getContext('2d');
-
-    try {
-        ctx.drawImage(bgImg, 0, 0, W, H);
-        console.log('[AI Fill] Drew background image (same-origin)');
-    } catch (e) {
-        console.warn('[AI Fill] drawImage failed, retrying with crossOrigin:', e.message);
-        const reload = await new Promise(res => {
-            const i = new Image(); i.crossOrigin = 'anonymous';
-            i.onload = () => res(i); i.onerror = () => res(null); i.src = bgImg.src;
-        });
-        if (!reload) { alert('Could not load your yard photo for AI processing.'); return; }
-        ctx.drawImage(reload, 0, 0, W, H);
-        console.log('[AI Fill] Drew background image (crossOrigin reload)');
-    }
-
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    pts.forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(255,0,220,0.72)';
-    ctx.fill();
-
-    const compositeImage = comp.toDataURL('image/jpeg', 0.88);
-    console.log('[AI Fill] Composite image size (chars):', compositeImage.length);
+    // ── 1. Bounding box + aspect ratio ───────────────────────────────────────────
+    const minX = Math.min(...pts.map(p => p.x));
+    const minY = Math.min(...pts.map(p => p.y));
+    const maxX = Math.max(...pts.map(p => p.x));
+    const maxY = Math.max(...pts.map(p => p.y));
+    const bW   = Math.max(10, Math.ceil(maxX - minX));
+    const bH   = Math.max(10, Math.ceil(maxY - minY));
+    const ratio = bW / bH;
+    // Pick closest Imagen aspect ratio
+    const aspectRatio = ratio > 3    ? '16:9'
+                      : ratio > 1.2  ? '4:3'
+                      : ratio > 0.83 ? '1:1'
+                      : ratio > 0.5  ? '3:4'
+                      :                '9:16';
+    console.log('[AI Fill] Bbox:', bW, 'x', bH, '| aspectRatio:', aspectRatio);
 
     // ── 2. Loading overlay ───────────────────────────────────────────────────────
     const loader = document.createElement('div');
@@ -2626,7 +2605,7 @@ async function _bFinalize() {
         const resp = await fetch('https://gardiy-backend-production.up.railway.app/api/fill-area', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ compositeImage, productPrompt: prompt })
+            body: JSON.stringify({ productPrompt: prompt, aspectRatio })
         });
 
         console.log('[AI Fill] Backend response status:', resp.status);
@@ -2639,11 +2618,55 @@ async function _bFinalize() {
             return;
         }
 
-        // ── 4. Replace canvas background ────────────────────────────────────────
-        const origSrc = bgImg.src;
-        bgImg.src = data.image;
-        console.log('[AI Fill] Done — canvas background replaced.');
-        _showAiUndoBtn(bgImg, origSrc);
+        // ── 4. Mask the Imagen result to the drawn polygon shape ─────────────────
+        const aiImg = await new Promise(res => {
+            const i = new Image();
+            i.onload = () => res(i); i.onerror = () => res(null); i.src = data.image;
+        });
+        if (!aiImg) { alert('Could not load the generated image.'); return; }
+
+        const off = document.createElement('canvas');
+        off.width = bW; off.height = bH;
+        const octx = off.getContext('2d');
+
+        // Draw Imagen result scaled to bounding box
+        octx.drawImage(aiImg, 0, 0, bW, bH);
+
+        // Mask to the drawn polygon
+        octx.globalCompositeOperation = 'destination-in';
+        octx.beginPath();
+        octx.moveTo(pts[0].x - minX, pts[0].y - minY);
+        pts.forEach(p => octx.lineTo(p.x - minX, p.y - minY));
+        octx.closePath();
+        octx.fill();
+        octx.globalCompositeOperation = 'source-over';
+
+        const maskedUrl = off.toDataURL('image/png');
+
+        // Place as overlay item on canvas
+        const item = document.createElement('div');
+        item.className        = 'draggable-item';
+        item.dataset.id       = itemIdCounter++;
+        item.dataset.name     = product.name;
+        item.dataset.category = product.category;
+        item.dataset.type     = 'brush-fill';
+        item.dataset.rotation = '0';
+        item.style.cssText = `
+            position:absolute; left:${minX}px; top:${minY}px;
+            width:${bW}px; height:${bH}px;
+            cursor:move; user-select:none; pointer-events:auto;
+            z-index:${Math.min(itemIdCounter, 100)};
+            background-image:url(${maskedUrl});
+            background-size:100% 100%; background-repeat:no-repeat;
+        `;
+        dc.appendChild(item);
+
+        const priceVal = ((await getItemPrices())[product.name]) || parseFloat(product.price) || 0;
+        placedItems.push({ id: item.dataset.id, element: item, name: product.name, category: product.category, type: 'brush-fill', price: priceVal });
+        makeDraggable(item);
+        updateMaterialsList();
+        selectItem(item);
+        console.log('[AI Fill] Done — AI fill placed on canvas.');
 
     } catch (err) {
         loader.remove();
