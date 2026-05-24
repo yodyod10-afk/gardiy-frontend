@@ -2367,18 +2367,17 @@ async function placeAutoDesignItems(items, styleName) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// BRUSH FILL MODE
-// For grass, hardscape, and path products: user paints an area freehand,
-// the drawn shape is filled with the product texture using canvas compositing.
+// POLYGON FILL MODE
+// Click to place corner points around any area, close the shape, then approve
+// before sending to Gemini. Much easier than freehand drag.
 // ══════════════════════════════════════════════════════════════════════════════
 
 let _brushMode    = false;
 let _brushProduct = null;
-let _brushPts     = [];
-let _brushActive  = false;
+let _brushPts     = [];      // placed polygon corner points
 let _brushCanvas  = null;
 
-// Inject CSS for the active-product highlight once
+// Inject CSS once
 (function() {
     const s = document.createElement('style');
     s.textContent = `.product-item.brush-active{outline:2px solid #16a34a;background:#f0fdf4;}`;
@@ -2387,19 +2386,18 @@ let _brushCanvas  = null;
 
 function enterBrushFillMode(productData) {
     if (_brushMode) exitBrushFillMode();
-    _brushMode    = true;
-    _brushProduct = productData;
-    _brushPts     = [];
-    _brushActive  = false;
+    _brushMode     = true;
+    _brushProduct  = productData;
+    _brushPts      = [];
+    _brushApproved = false;
 
     const dc = document.getElementById('designCanvas');
     if (!dc) return;
 
-    // Highlight active product in sidebar
     document.querySelectorAll('.product-item').forEach(el => el.classList.remove('brush-active'));
     document.querySelector(`.product-item[data-pid="${productData.id}"]`)?.classList.add('brush-active');
 
-    // Overlay canvas — captures all mouse events
+    // Overlay canvas
     _brushCanvas = document.createElement('canvas');
     _brushCanvas.id = 'brushOverlay';
     const dpr = window.devicePixelRatio || 1;
@@ -2408,17 +2406,16 @@ function enterBrushFillMode(productData) {
     _brushCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:9500;cursor:crosshair;pointer-events:auto;';
     dc.appendChild(_brushCanvas);
 
-    // Instruction hint
+    // Hint bar
     const hint = document.createElement('div');
     hint.id = 'brushHint';
-    hint.innerHTML = `<b>✏️ ${productData.name}</b> — hold & drag to paint area, release to fill &nbsp;<span style="opacity:0.6;font-size:11px;">Esc to cancel</span>`;
-    hint.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(15,15,15,0.78);color:#fff;padding:7px 18px;border-radius:22px;font-size:13px;z-index:9600;pointer-events:none;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,0.3);';
+    hint.innerHTML = `<b>📍 ${productData.name}</b> — click to place corners around your area &nbsp;·&nbsp; double-click last point to finish &nbsp;<span style="opacity:0.55;font-size:11px;">Esc to cancel</span>`;
+    hint.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(15,15,15,0.80);color:#fff;padding:7px 18px;border-radius:22px;font-size:13px;z-index:9600;pointer-events:none;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,0.3);';
     dc.appendChild(hint);
 
-    _brushCanvas.addEventListener('mousedown',  _bDown);
-    _brushCanvas.addEventListener('mousemove',  _bMove);
-    _brushCanvas.addEventListener('mouseup',    _bUp);
-    _brushCanvas.addEventListener('mouseleave', _bUp);
+    _brushCanvas.addEventListener('click',     _bClick);
+    _brushCanvas.addEventListener('dblclick',  _bDblClick);
+    _brushCanvas.addEventListener('mousemove', _bHover);
     document.addEventListener('keydown', _bKey);
 }
 
@@ -2426,59 +2423,123 @@ function exitBrushFillMode() {
     _brushMode    = false;
     _brushProduct = null;
     _brushPts     = [];
-    _brushActive  = false;
     _brushCanvas  = null;
     document.getElementById('brushOverlay')?.remove();
     document.getElementById('brushHint')?.remove();
+    document.getElementById('brushApproval')?.remove();
     document.querySelectorAll('.product-item').forEach(el => el.classList.remove('brush-active'));
     document.removeEventListener('keydown', _bKey);
 }
 
-function _bKey(e) { if (e.key === 'Escape') exitBrushFillMode(); }
+function _bKey(e) {
+    if (e.key === 'Escape') { exitBrushFillMode(); return; }
+    // Backspace removes last placed point
+    if ((e.key === 'Backspace' || e.key === 'Delete') && _brushPts.length > 0) {
+        _brushPts.pop();
+        _bDraw(null, null);
+    }
+}
 
-function _bDown(e) {
-    e.preventDefault();
-    _brushActive = true;
-    _brushPts    = [];
+// Track mouse position for rubber-band line
+let _bMouseX = 0, _bMouseY = 0;
+function _bHover(e) {
     const r = _brushCanvas.getBoundingClientRect();
-    _brushPts.push({ x: e.clientX - r.left, y: e.clientY - r.top });
+    _bMouseX = e.clientX - r.left;
+    _bMouseY = e.clientY - r.top;
+    _bDraw(_bMouseX, _bMouseY);
 }
 
-function _bMove(e) {
-    if (!_brushActive) return;
-    const r    = _brushCanvas.getBoundingClientRect();
-    const x    = e.clientX - r.left;
-    const y    = e.clientY - r.top;
-    const last = _brushPts[_brushPts.length - 1];
-    if (last && Math.hypot(x - last.x, y - last.y) < 4) return;
+function _bClick(e) {
+    if (e.detail >= 2) return; // ignore — dblclick fires click twice
+    const r = _brushCanvas.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+
+    // Snap-close: clicking near the first point (within 18px) closes the shape
+    if (_brushPts.length >= 3) {
+        const first = _brushPts[0];
+        if (Math.hypot(x - first.x, y - first.y) < 18) { _bClose(); return; }
+    }
     _brushPts.push({ x, y });
-    _bPreview();
+    _bDraw(x, y);
 }
 
-function _bUp() {
-    if (!_brushActive) return;
-    _brushActive = false;
-    if (_brushPts.length < 8) { exitBrushFillMode(); return; }
-    _bFinalize();
+function _bDblClick(e) {
+    if (_brushPts.length < 3) return;
+    _bClose();
 }
 
-function _bPreview() {
-    if (!_brushCanvas || _brushPts.length < 2) return;
+function _bDraw(mouseX, mouseY) {
+    if (!_brushCanvas) return;
     const dpr = window.devicePixelRatio || 1;
     const ctx  = _brushCanvas.getContext('2d');
     const w    = _brushCanvas.width  / dpr;
     const h    = _brushCanvas.height / dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
+    if (_brushPts.length === 0) return;
+
+    // Filled polygon (closed)
     ctx.beginPath();
     ctx.moveTo(_brushPts[0].x, _brushPts[0].y);
     _brushPts.forEach(p => ctx.lineTo(p.x, p.y));
+    if (mouseX !== null) ctx.lineTo(mouseX, mouseY);
     ctx.closePath();
-    ctx.fillStyle   = 'rgba(80,200,80,0.22)';
-    ctx.strokeStyle = 'rgba(30,140,60,0.85)';
+    ctx.fillStyle   = 'rgba(80,200,80,0.20)';
+    ctx.strokeStyle = 'rgba(30,140,60,0.90)';
     ctx.lineWidth   = 2;
     ctx.fill();
     ctx.stroke();
+
+    // Placed corner dots
+    _brushPts.forEach((p, i) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, i === 0 ? 7 : 5, 0, Math.PI * 2);
+        ctx.fillStyle   = i === 0 ? '#16a34a' : '#fff';
+        ctx.strokeStyle = '#16a34a';
+        ctx.lineWidth   = 2;
+        ctx.fill(); ctx.stroke();
+    });
+
+    // "Close" hint on first dot when near it
+    if (_brushPts.length >= 3 && mouseX !== null) {
+        const first = _brushPts[0];
+        if (Math.hypot(mouseX - first.x, mouseY - first.y) < 18) {
+            ctx.beginPath();
+            ctx.arc(first.x, first.y, 12, 0, Math.PI * 2);
+            ctx.strokeStyle = '#16a34a';
+            ctx.lineWidth   = 2.5;
+            ctx.stroke();
+        }
+    }
+}
+
+function _bClose() {
+    if (_brushPts.length < 3) return;
+    // Remove live-drawing mouse events, keep canvas visible for approval
+    _brushCanvas.removeEventListener('click',     _bClick);
+    _brushCanvas.removeEventListener('dblclick',  _bDblClick);
+    _brushCanvas.removeEventListener('mousemove', _bHover);
+
+    // Draw final closed shape, no rubber-band
+    _bDraw(null, null);
+
+    // Show approval panel
+    const dc = document.getElementById('designCanvas');
+    document.getElementById('brushHint')?.remove();
+
+    const panel = document.createElement('div');
+    panel.id = 'brushApproval';
+    panel.style.cssText = 'position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:9600;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.96);border:1px solid #e5e7eb;border-radius:28px;padding:8px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.15);font-size:13px;white-space:nowrap;';
+    panel.innerHTML = `
+        <span style="color:#374151;">Fill this area with <b>${_brushProduct?.name}</b>?</span>
+        <button id="bApproveBtn" style="background:#16a34a;color:#fff;border:none;border-radius:20px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;">✨ Yes, fill it</button>
+        <button id="bCancelBtn"  style="background:none;color:#6b7280;border:1px solid #d1d5db;border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;">✗ Cancel</button>
+    `;
+    dc.appendChild(panel);
+
+    document.getElementById('bApproveBtn').onclick = () => { panel.remove(); _bFinalize(); };
+    document.getElementById('bCancelBtn').onclick  = () => exitBrushFillMode();
 }
 
 function _getProductPrompt(product) {
