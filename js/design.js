@@ -2481,6 +2481,26 @@ function _bPreview() {
     ctx.stroke();
 }
 
+function _getProductPrompt(product) {
+    const name = (product.name || '').toLowerCase();
+    const cat  = (product.category || '').toLowerCase();
+    if (cat === 'grass' || name.includes('grass') || name.includes('lawn'))
+        return 'lush ' + product.name + ' lawn — dense, healthy green grass blades viewed from directly above, natural lighting';
+    if (name.includes('brick'))
+        return 'red brick paving in herringbone pattern, viewed from directly above';
+    if (name.includes('stone') || name.includes('flagstone'))
+        return 'natural flagstone pavers with sand joints, viewed from directly above';
+    if (name.includes('gravel') || name.includes('pea'))
+        return 'decorative pea gravel ground cover, viewed from directly above';
+    if (name.includes('concrete') || name.includes('paver'))
+        return 'smooth concrete pavers, viewed from directly above';
+    if (cat === 'hardscapes' || cat === 'rocks_pavers')
+        return product.name + ' hardscape surface, viewed from directly above';
+    if (cat === 'paths')
+        return product.name + ' garden pathway material, viewed from directly above';
+    return product.name + ', garden landscaping material, viewed from directly above';
+}
+
 async function _bFinalize() {
     const product = _brushProduct;
     const pts     = _brushPts.slice();
@@ -2489,92 +2509,92 @@ async function _bFinalize() {
     const dc = document.getElementById('designCanvas');
     if (!dc || !product || pts.length < 8) return;
 
-    // Bounding box of painted shape
-    const minX = Math.min(...pts.map(p => p.x));
-    const minY = Math.min(...pts.map(p => p.y));
-    const maxX = Math.max(...pts.map(p => p.x));
-    const maxY = Math.max(...pts.map(p => p.y));
-    const bW   = Math.max(10, Math.ceil(maxX - minX));
-    const bH   = Math.max(10, Math.ceil(maxY - minY));
+    // ── 1. Build composite: yard photo + magenta overlay on drawn shape ─────────
+    const bgImg = document.getElementById('canvasImage');
+    if (!bgImg || !bgImg.src) return;
 
-    // Offscreen canvas: fill texture then mask to painted shape
-    const off = document.createElement('canvas');
-    off.width  = bW;
-    off.height = bH;
-    const ctx  = off.getContext('2d');
+    const W = dc.offsetWidth;
+    const H = dc.offsetHeight;
 
-    // Build fill style
-    const src = product.imageUrl || product.image;
-    if (product.type === 'image' && src) {
-        const img = await new Promise(res => {
-            const i = new Image();
-            i.crossOrigin = 'anonymous';
-            i.onload  = () => res(i);
-            i.onerror = () => res(null);
-            i.src = src;
+    const comp = document.createElement('canvas');
+    comp.width  = W;
+    comp.height = H;
+    const ctx = comp.getContext('2d');
+
+    // Draw the background photo
+    try {
+        ctx.drawImage(bgImg, 0, 0, W, H);
+    } catch {
+        // Cross-origin fallback: load fresh with crossOrigin
+        const reload = await new Promise(res => {
+            const i = new Image(); i.crossOrigin = 'anonymous';
+            i.onload = () => res(i); i.onerror = () => res(null); i.src = bgImg.src;
         });
-        if (img) {
-            // Tile at ~1/2.5 of the painted area width so it looks natural
-            const tileW = Math.max(80, Math.round(bW / 2.5));
-            const tileH = Math.round(tileW * (img.naturalHeight || img.height) / (img.naturalWidth || img.width)) || tileW;
-            const tile  = document.createElement('canvas');
-            tile.width  = tileW;
-            tile.height = tileH;
-            tile.getContext('2d').drawImage(img, 0, 0, tileW, tileH);
-            ctx.fillStyle = ctx.createPattern(tile, 'repeat') || 'rgba(80,180,60,0.85)';
-        } else {
-            ctx.fillStyle = 'rgba(80,180,60,0.85)';
-        }
-    } else {
-        const cat = (product.category || '').toLowerCase();
-        ctx.fillStyle = cat === 'grass'      ? 'rgba(80,180,60,0.85)'
-                      : cat === 'paths'      ? 'rgba(180,150,90,0.85)'
-                      : cat === 'hardscapes' ? 'rgba(150,150,155,0.85)'
-                      : 'rgba(120,120,120,0.85)';
+        if (!reload) return;
+        ctx.drawImage(reload, 0, 0, W, H);
     }
-    ctx.fillRect(0, 0, bW, bH);
 
-    // Mask: keep only pixels inside painted path
-    ctx.globalCompositeOperation = 'destination-in';
+    // Overlay bright magenta on the painted path
     ctx.beginPath();
-    ctx.moveTo(pts[0].x - minX, pts[0].y - minY);
-    pts.forEach(p => ctx.lineTo(p.x - minX, p.y - minY));
+    ctx.moveTo(pts[0].x, pts[0].y);
+    pts.forEach(p => ctx.lineTo(p.x, p.y));
     ctx.closePath();
+    ctx.fillStyle = 'rgba(255,0,220,0.72)';
     ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
 
-    const dataUrl = off.toDataURL('image/png');
+    const compositeImage = comp.toDataURL('image/jpeg', 0.88);
 
-    // Place item on canvas
-    const item = document.createElement('div');
-    item.className        = 'draggable-item';
-    item.dataset.id       = itemIdCounter++;
-    item.dataset.name     = product.name;
-    item.dataset.category = product.category;
-    item.dataset.type     = 'brush-fill';
-    item.dataset.rotation = '0';
-    item.dataset.brushUrl = dataUrl;   // store so delete/copy can reference it
-    item.style.cssText = `
-        position:absolute; left:${minX}px; top:${minY}px;
-        width:${bW}px; height:${bH}px;
-        cursor:move; user-select:none; pointer-events:auto;
-        z-index:${Math.min(itemIdCounter, 100)};
-        background-image:url(${dataUrl});
-        background-size:100% 100%;
-        background-repeat:no-repeat;
-    `;
-    dc.appendChild(item);
+    // ── 2. Show loading overlay ──────────────────────────────────────────────────
+    const loader = document.createElement('div');
+    loader.id = 'aiFillLoader';
+    loader.innerHTML = `<div style="font-size:2rem;">✨</div><div style="margin-top:8px;font-size:14px;font-weight:600;color:#065f46;">AI is filling your area…</div><div style="margin-top:4px;font-size:12px;color:#6b7280;">Usually takes 10–20 seconds</div>`;
+    loader.style.cssText = 'position:absolute;inset:0;background:rgba(255,255,255,0.82);backdrop-filter:blur(3px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9800;border-radius:inherit;';
+    dc.appendChild(loader);
 
-    const priceVal = ((await getItemPrices())[product.name]) || parseFloat(product.price) || 0;
-    placedItems.push({
-        id: item.dataset.id, element: item,
-        name: product.name, category: product.category,
-        type: 'brush-fill', price: priceVal,
-    });
+    // ── 3. Call backend ──────────────────────────────────────────────────────────
+    try {
+        const resp = await fetch('https://gardiy-backend-production.up.railway.app/api/fill-area', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                compositeImage,
+                productPrompt: _getProductPrompt(product)
+            })
+        });
 
-    makeDraggable(item);
-    updateMaterialsList();
-    selectItem(item);
+        const data = await resp.json();
+        loader.remove();
+
+        if (!resp.ok || !data.success) {
+            alert('AI fill failed: ' + (data.message || 'Unknown error'));
+            return;
+        }
+
+        // ── 4. Replace the canvas background with the AI result ──────────────────
+        const origSrc = bgImg.src;
+        bgImg.src = data.image;
+        bgImg.dataset.aiFillPrev = origSrc;   // stored so user could undo manually
+
+        // Show a subtle "Undo" button in the control bar area
+        _showAiUndoBtn(bgImg, origSrc);
+
+    } catch (err) {
+        loader.remove();
+        console.error('AI fill error:', err);
+        alert('AI fill failed — please check your connection and try again.');
+    }
+}
+
+function _showAiUndoBtn(bgImg, origSrc) {
+    document.getElementById('aiFillUndoBtn')?.remove();
+    const dc = document.getElementById('designCanvas');
+    if (!dc) return;
+    const btn = document.createElement('button');
+    btn.id = 'aiFillUndoBtn';
+    btn.textContent = '↩ Undo AI fill';
+    btn.style.cssText = 'position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:9700;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:6px 16px;font-size:12px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.12);';
+    btn.onclick = () => { bgImg.src = origSrc; btn.remove(); };
+    dc.appendChild(btn);
 }
 
 console.log('✅ Design page ready');
