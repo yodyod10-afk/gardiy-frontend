@@ -272,7 +272,7 @@ function getMockProducts() {
         { id: 1,  name: 'Stone Pathway',   category: 'paths',      type: 'emoji', image: '🛤️', price: 150  },
         { id: 2,  name: 'Wood Chips Path', category: 'paths',      type: 'emoji', image: '🟤', price: 120  },
         { id: 3,  name: 'Brick Path',      category: 'paths',      type: 'emoji', image: '🧱', price: 200  },
-        { id: 4,  name: 'Lawn',            category: 'grass',      type: 'emoji', image: '🌿', price: 0.50 },
+        { id: 4,  name: 'Kentucky Bluegrass', category: 'grass', type: 'image', image: 'images/texture-grass-hd.png', imageUrl: 'images/texture-grass-hd.png', price: 0.50 },
         { id: 5,  name: 'Grass Field',     category: 'grass',      type: 'emoji', image: '🌾', price: 0.40 },
         { id: 6,  name: 'Small Plant',     category: 'plants',     type: 'emoji', image: '🌱', price: 25   },
         { id: 7,  name: 'Potted Plant',    category: 'plants',     type: 'emoji', image: '🪴', price: 45   },
