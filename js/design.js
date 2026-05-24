@@ -665,10 +665,13 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
     if (customW) {
         w = customW; h = customH || customW;
     } else if (isMesh) {
-        w = 200; h = 130;
+        w = Math.round(canvas.offsetWidth  * 0.50) || 300;
+        h = Math.round(canvas.offsetHeight * 0.50) || 300;
+        x = canvas.offsetWidth  / 2 - w / 2;
+        y = canvas.offsetHeight / 2 - h / 2;
     } else if (!isPath && itemData.type === 'image') {
         const dims = await _loadImageDims(itemData.imageUrl || itemData.image);
-        const maxW = Math.round(canvas.offsetWidth * 0.40) || 350;
+        const maxW = Math.round(canvas.offsetWidth * 0.50) || 400;
         const scale = Math.min(1, maxW / dims.w);
         w = Math.max(80, Math.round(dims.w * scale));
         h = Math.max(80, Math.round(dims.h * scale));
@@ -709,10 +712,10 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
         item.dataset.polyPoints = JSON.stringify(polyPoints);
 
         if (itemData.type === 'image') {
-            item.style.backgroundImage  = `url(${itemData.imageUrl || itemData.image})`;
-            item.style.backgroundSize   = '160px 160px';
-            item.style.backgroundRepeat = 'repeat';
-            item.style.imageRendering   = 'crisp-edges';
+            item.style.backgroundImage    = `url(${itemData.imageUrl || itemData.image})`;
+            item.style.backgroundSize     = 'cover';
+            item.style.backgroundRepeat   = 'no-repeat';
+            item.style.backgroundPosition = 'center';
         } else {
             item.style.backgroundColor = 'rgba(120,190,90,0.3)';
             item.innerHTML = `<span style="font-size:64px;opacity:0.7;pointer-events:none;">${itemData.image}</span>`;
