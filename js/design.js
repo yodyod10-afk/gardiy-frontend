@@ -2567,35 +2567,40 @@ async function _bFinalize() {
     const pts     = _brushPts.slice();
     exitBrushFillMode();
 
-    const dc = document.getElementById('designCanvas');
-    if (!dc || !product || pts.length < 8) return;
+    console.log('[AI Fill] Starting. Product:', product?.name, '| Points:', pts.length);
 
-    // ── 1. Build composite: yard photo + magenta overlay on drawn shape ─────────
+    const dc = document.getElementById('designCanvas');
+    if (!dc)      { console.warn('[AI Fill] No designCanvas'); return; }
+    if (!product) { console.warn('[AI Fill] No product');      return; }
+    if (pts.length < 3) { console.warn('[AI Fill] Not enough points:', pts.length); return; }
+
+    // ── 1. Build composite ───────────────────────────────────────────────────────
     const bgImg = document.getElementById('canvasImage');
-    if (!bgImg || !bgImg.src) return;
+    console.log('[AI Fill] bgImg src:', bgImg?.src?.slice(0, 80));
+    if (!bgImg || !bgImg.src) { alert('No yard photo loaded — please upload a photo first.'); return; }
 
     const W = dc.offsetWidth;
     const H = dc.offsetHeight;
+    console.log('[AI Fill] Canvas size:', W, 'x', H);
 
     const comp = document.createElement('canvas');
-    comp.width  = W;
-    comp.height = H;
+    comp.width = W; comp.height = H;
     const ctx = comp.getContext('2d');
 
-    // Draw the background photo
     try {
         ctx.drawImage(bgImg, 0, 0, W, H);
-    } catch {
-        // Cross-origin fallback: load fresh with crossOrigin
+        console.log('[AI Fill] Drew background image (same-origin)');
+    } catch (e) {
+        console.warn('[AI Fill] drawImage failed, retrying with crossOrigin:', e.message);
         const reload = await new Promise(res => {
             const i = new Image(); i.crossOrigin = 'anonymous';
             i.onload = () => res(i); i.onerror = () => res(null); i.src = bgImg.src;
         });
-        if (!reload) return;
+        if (!reload) { alert('Could not load your yard photo for AI processing.'); return; }
         ctx.drawImage(reload, 0, 0, W, H);
+        console.log('[AI Fill] Drew background image (crossOrigin reload)');
     }
 
-    // Overlay bright magenta on the painted path
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].y);
     pts.forEach(p => ctx.lineTo(p.x, p.y));
@@ -2604,8 +2609,9 @@ async function _bFinalize() {
     ctx.fill();
 
     const compositeImage = comp.toDataURL('image/jpeg', 0.88);
+    console.log('[AI Fill] Composite image size (chars):', compositeImage.length);
 
-    // ── 2. Show loading overlay ──────────────────────────────────────────────────
+    // ── 2. Loading overlay ───────────────────────────────────────────────────────
     const loader = document.createElement('div');
     loader.id = 'aiFillLoader';
     loader.innerHTML = `<div style="font-size:2rem;">✨</div><div style="margin-top:8px;font-size:14px;font-weight:600;color:#065f46;">AI is filling your area…</div><div style="margin-top:4px;font-size:12px;color:#6b7280;">Usually takes 10–20 seconds</div>`;
@@ -2613,17 +2619,19 @@ async function _bFinalize() {
     dc.appendChild(loader);
 
     // ── 3. Call backend ──────────────────────────────────────────────────────────
+    const prompt = _getProductPrompt(product);
+    console.log('[AI Fill] Sending to backend. Prompt:', prompt);
+
     try {
         const resp = await fetch('https://gardiy-backend-production.up.railway.app/api/fill-area', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                compositeImage,
-                productPrompt: _getProductPrompt(product)
-            })
+            body: JSON.stringify({ compositeImage, productPrompt: prompt })
         });
 
+        console.log('[AI Fill] Backend response status:', resp.status);
         const data = await resp.json();
+        console.log('[AI Fill] Backend response:', { success: data.success, message: data.message, hasImage: !!data.image });
         loader.remove();
 
         if (!resp.ok || !data.success) {
@@ -2631,18 +2639,16 @@ async function _bFinalize() {
             return;
         }
 
-        // ── 4. Replace the canvas background with the AI result ──────────────────
+        // ── 4. Replace canvas background ────────────────────────────────────────
         const origSrc = bgImg.src;
         bgImg.src = data.image;
-        bgImg.dataset.aiFillPrev = origSrc;   // stored so user could undo manually
-
-        // Show a subtle "Undo" button in the control bar area
+        console.log('[AI Fill] Done — canvas background replaced.');
         _showAiUndoBtn(bgImg, origSrc);
 
     } catch (err) {
         loader.remove();
-        console.error('AI fill error:', err);
-        alert('AI fill failed — please check your connection and try again.');
+        console.error('[AI Fill] Fetch error:', err);
+        alert('AI fill failed: ' + err.message);
     }
 }
 
