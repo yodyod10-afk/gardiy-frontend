@@ -294,6 +294,7 @@ function getMockProducts() {
         { id: 22, name: 'Flagstone',            category: 'rocks_pavers', type: 'emoji', image: '🟫', price: 8.00  },
         { id: 23, name: 'Pea Gravel',           category: 'rocks_pavers', type: 'emoji', image: '⚫', price: 2.50  },
         { id: 24, name: 'Decomposed Granite',   category: 'rocks_pavers', type: 'emoji', image: '🟡', price: 2.00  },
+        { id: 25, name: 'Colorado Rose 1.5"',   category: 'rocks_pavers', type: 'image', image: 'images/colorado-rose.jpg', imageUrl: 'images/colorado-rose.jpg', price: 100.00 },
     ];
 }
 
