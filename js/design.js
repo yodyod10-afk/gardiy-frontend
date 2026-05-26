@@ -41,17 +41,18 @@ function getSqFtScale() {
     const manualInput = document.getElementById('manualAreaInput');
     const manualVal   = manualInput ? parseFloat(manualInput.value) : NaN;
     if (!isNaN(manualVal) && manualVal > 0) {
-        // Manual SF covers the full photo frame — need display area for scale
+        // manualVal is the GROUND area — convert to frame SF using groundFraction
+        const gf = parseFloat(analysis?.groundFraction) || 0;
+        const frameSF = (gf > 0 && gf <= 1) ? manualVal / gf : manualVal;
         const natW = analysis?.imageNaturalWidth  || _imgNatW;
         const natH = analysis?.imageNaturalHeight || _imgNatH;
         if (natW && natH) {
             const s = Math.min(canvas.offsetWidth / natW, canvas.offsetHeight / natH);
             const areaPx = (natW * s) * (natH * s);
-            console.log('[SF] manual override:', manualVal, 'SF | scale:', (manualVal / areaPx).toExponential(4));
-            return manualVal / areaPx;
+            console.log('[SF] manual override:', manualVal, 'SF | gf:', gf, '| frameSF:', frameSF.toFixed(1), '| scale:', (frameSF / areaPx).toExponential(4));
+            return frameSF / areaPx;
         }
-        // Fallback: full canvas area
-        return manualVal / (canvas.offsetWidth * canvas.offsetHeight);
+        return frameSF / (canvas.offsetWidth * canvas.offsetHeight);
     }
 
     // ── Primary path: backend-computed sqFtPerNaturalPx2 ─────────────────────
