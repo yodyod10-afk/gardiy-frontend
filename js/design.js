@@ -36,9 +36,22 @@ function getSqFtScale() {
 
     if (isNaN(totalSqFt)) { console.warn('[SF] No total area — enter it in the materials panel'); return null; }
 
-    const px = canvas.offsetWidth * canvas.offsetHeight;
-    console.log('[SF] canvas px²:', px, '| scale:', totalSqFt / px);
-    return totalSqFt / px;
+    // Use actual displayed photo area, not full canvas (object-fit:contain letterboxes the image)
+    const img = document.getElementById('canvasImage');
+    let areaPx;
+    if (img && img.naturalWidth && img.naturalHeight) {
+        const scaleX = canvas.offsetWidth  / img.naturalWidth;
+        const scaleY = canvas.offsetHeight / img.naturalHeight;
+        const s      = Math.min(scaleX, scaleY);
+        const dispW  = img.naturalWidth  * s;
+        const dispH  = img.naturalHeight * s;
+        areaPx = dispW * dispH;
+        console.log('[SF] img natural:', img.naturalWidth, 'x', img.naturalHeight, '| displayed:', Math.round(dispW), 'x', Math.round(dispH));
+    } else {
+        areaPx = canvas.offsetWidth * canvas.offsetHeight;
+    }
+    console.log('[SF] photo areaPx:', Math.round(areaPx), '| scale:', (totalSqFt / areaPx).toFixed(6));
+    return totalSqFt / areaPx;
 }
 
 // Shoelace formula — polygon area in pixels²
