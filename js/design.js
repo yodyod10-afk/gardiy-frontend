@@ -15,6 +15,22 @@ const HARDSCAPE_COVERAGE = {
 };
 
 // Returns SF-per-pixel² based on Claude's analysis OR the manual area input
+// Cache natural image dimensions — updated when the canvas image loads
+let _imgNatW = 0, _imgNatH = 0;
+function _cacheImgDims() {
+    const img = document.getElementById('canvasImage');
+    if (img && img.naturalWidth) {
+        _imgNatW = img.naturalWidth;
+        _imgNatH = img.naturalHeight;
+        console.log('[SF] Cached image dims:', _imgNatW, 'x', _imgNatH);
+        updateMaterialsList();
+    }
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const img = document.getElementById('canvasImage');
+    if (img) { img.addEventListener('load', _cacheImgDims); _cacheImgDims(); }
+});
+
 function getSqFtScale() {
     const canvas = document.getElementById('designCanvas');
     if (!canvas) { console.warn('[SF] designCanvas not found'); return null; }
@@ -43,18 +59,18 @@ function getSqFtScale() {
     if (isNaN(frameForScale)) { console.warn('[SF] No total area — enter it in the materials panel'); return null; }
 
     // Use actual displayed photo area, not full canvas (object-fit:contain letterboxes the image)
-    const img = document.getElementById('canvasImage');
     let areaPx;
-    if (img && img.naturalWidth && img.naturalHeight) {
-        const scaleX = canvas.offsetWidth  / img.naturalWidth;
-        const scaleY = canvas.offsetHeight / img.naturalHeight;
+    if (_imgNatW && _imgNatH) {
+        const scaleX = canvas.offsetWidth  / _imgNatW;
+        const scaleY = canvas.offsetHeight / _imgNatH;
         const s      = Math.min(scaleX, scaleY);
-        const dispW  = img.naturalWidth  * s;
-        const dispH  = img.naturalHeight * s;
+        const dispW  = _imgNatW * s;
+        const dispH  = _imgNatH * s;
         areaPx = dispW * dispH;
-        console.log('[SF] img natural:', img.naturalWidth, 'x', img.naturalHeight, '| displayed:', Math.round(dispW), 'x', Math.round(dispH));
+        console.log('[SF] img natural:', _imgNatW, 'x', _imgNatH, '| displayed:', Math.round(dispW), 'x', Math.round(dispH));
     } else {
         areaPx = canvas.offsetWidth * canvas.offsetHeight;
+        console.log('[SF] img not loaded yet — using full canvas area');
     }
     console.log('[SF] photo areaPx:', Math.round(areaPx), '| scale:', (frameForScale / areaPx).toFixed(6));
     return frameForScale / areaPx;
