@@ -80,8 +80,7 @@ function setupEventListeners() {
         window.scrollTo(0, 0);
     });
 
-    if (analyzeBtn)      analyzeBtn.addEventListener('click', () => analyzeWithLocation());
-    if (skipLocationBtn) skipLocationBtn.addEventListener('click', e => { e.preventDefault(); analyzeWithLocation(); });
+    if (analyzeBtn) analyzeBtn.addEventListener('click', () => analyzeWithLocation());
 
     if (startDesignBtn) {
         startDesignBtn.addEventListener('click', e => {
@@ -349,7 +348,37 @@ async function handleFileUpload(file) {
 }
 
 // ── Start analysis with location data ─────────────────────────────────────────
+function isColoradoZip(zip) {
+    const n = parseInt(zip, 10);
+    return !isNaN(n) && n >= 80001 && n <= 81658;
+}
+
+function showZipError(msg) {
+    const el = document.getElementById('zipError');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+function clearZipError() {
+    const el = document.getElementById('zipError');
+    if (el) el.style.display = 'none';
+}
+
 function analyzeWithLocation() {
+    clearZipError();
+
+    // ZIP code is required
+    const zip = zipCodeInput?.value.trim() || '';
+    if (!zip || zip.length < 5) {
+        showZipError('Please enter your ZIP code to continue.');
+        zipCodeInput?.focus();
+        return;
+    }
+    if (!isColoradoZip(zip)) {
+        showZipError('GarDIY is currently only available in Colorado. We\'re expanding soon — check back later!');
+        return;
+    }
+
     if (window.GarDIYSubscriptions) {
         const check = GarDIYSubscriptions.checkScanLimit();
         if (!check.allowed) {
@@ -361,7 +390,7 @@ function analyzeWithLocation() {
     }
 
     const locationData = {
-        zipCode: zipCodeInput?.value.trim() || '',
+        zipCode: zip,
     };
 
     if (locationData.zipCode || locationData.direction || locationData.timeOfDay) {
