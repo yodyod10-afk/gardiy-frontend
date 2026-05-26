@@ -36,6 +36,17 @@ function getSqFtScale() {
     if (!canvas) { console.warn('[SF] designCanvas not found'); return null; }
 
     const analysis = window.GarDIYStorage?.getAnalysis();
+    const natW = analysis?.imageNaturalWidth  || _imgNatW;
+    const natH = analysis?.imageNaturalHeight || _imgNatH;
+
+    // ── Calibration always wins (most accurate — user provided real measurement) ──
+    const calibScale = analysis?.calibrationSqFtPerNaturalPx2;
+    if (calibScale && natW && natH) {
+        const displayScale = Math.min(canvas.offsetWidth / natW, canvas.offsetHeight / natH);
+        const sf = calibScale / (displayScale * displayScale);
+        console.log('[SF] using calibration:', calibScale.toExponential(4), '→ SF/dispPx²:', sf.toExponential(4));
+        return sf;
+    }
 
     // Manual override always wins
     const manualInput = document.getElementById('manualAreaInput');
@@ -117,6 +128,141 @@ function getItemSqFt(placedItem) {
     const sqFt = w * h * scale;
     console.log(`[SF] "${placedItem.name}" rect ${w}×${h}px → ${sqFt.toFixed(1)} sqFt`);
     return sqFt;
+}
+
+// ── Calibration tool ─────────────────────────────────────────────────────────
+let _calibMode = false;
+let _calibPts  = [];
+let _calibDotEls = [];
+
+function setupCalibration() {
+    const startBtn  = document.getElementById('startCalibBtn');
+    const panel     = document.getElementById('calibPanel');
+    const step1     = document.getElementById('calibStep1');
+    const step2     = document.getElementById('calibStep2');
+    const step3     = document.getElementById('calibStep3');
+    const applyBtn  = document.getElementById('applyCalibBtn');
+    const cancelBtn = document.getElementById('cancelCalibBtn');
+    const preset    = document.getElementById('calibPreset');
+    const feetInput = document.getElementById('calibFeetInput');
+    if (!startBtn) return;
+
+    startBtn.addEventListener('click', () => {
+        _calibMode = true;
+        _calibPts  = [];
+        _clearCalibDots();
+        panel.style.display = 'block';
+        step1.style.display = 'block';
+        step2.style.display = 'none';
+        step3.style.display = 'none';
+        document.getElementById('calibActive').style.display = 'none';
+        startBtn.textContent = '📏 Calibrating… (click photo)';
+        startBtn.style.background = '#fef3c7';
+    });
+
+    preset.addEventListener('change', () => {
+        if (preset.value) feetInput.value = preset.value;
+    });
+
+    applyBtn.addEventListener('click', () => {
+        const feet = parseFloat(feetInput.value);
+        if (!feet || feet <= 0) { alert('Enter a valid distance in feet'); return; }
+        _applyCalibration(feet);
+        panel.style.display = 'block';
+        step1.style.display = 'none';
+        step2.style.display = 'none';
+        step3.style.display = 'none';
+        document.getElementById('calibActive').style.display = 'block';
+        startBtn.textContent = '📏 Re-Calibrate Scale';
+        startBtn.style.background = '#f0fdf4';
+        _calibMode = false;
+    });
+
+    cancelBtn.addEventListener('click', _cancelCalib);
+}
+
+function _cancelCalib() {
+    _calibMode = false;
+    _calibPts  = [];
+    _clearCalibDots();
+    const panel = document.getElementById('calibPanel');
+    if (panel) panel.style.display = 'none';
+    const btn = document.getElementById('startCalibBtn');
+    if (btn) { btn.textContent = '📏 Calibrate Scale from Known Distance'; btn.style.background = '#fff'; }
+}
+
+function _clearCalibDots() {
+    _calibDotEls.forEach(el => el.remove());
+    _calibDotEls = [];
+    const line = document.getElementById('_calibLine');
+    if (line) line.remove();
+}
+
+function handleCalibCanvasClick(e) {
+    if (!_calibMode) return false;
+    const canvas = document.getElementById('designCanvas');
+    const rect   = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Draw dot
+    const dot = document.createElement('div');
+    dot.style.cssText = `position:absolute;width:10px;height:10px;background:#f59e0b;border:2px solid #fff;
+        border-radius:50%;left:${x - 5}px;top:${y - 5}px;z-index:9999;pointer-events:none;`;
+    canvas.appendChild(dot);
+    _calibDotEls.push(dot);
+    _calibPts.push({ x, y });
+
+    if (_calibPts.length === 1) {
+        document.getElementById('calibStep1').style.display = 'none';
+        document.getElementById('calibStep2').style.display = 'block';
+    } else if (_calibPts.length === 2) {
+        // Draw line between points
+        const [p1, p2] = _calibPts;
+        const len  = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        const ang  = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+        const line = document.createElement('div');
+        line.id = '_calibLine';
+        line.style.cssText = `position:absolute;height:2px;background:#f59e0b;
+            left:${p1.x}px;top:${p1.y}px;width:${len}px;
+            transform-origin:0 50%;transform:rotate(${ang}deg);z-index:9998;pointer-events:none;`;
+        canvas.appendChild(line);
+        _calibDotEls.push(line);
+
+        document.getElementById('calibStep2').style.display = 'none';
+        document.getElementById('calibStep3').style.display = 'block';
+    }
+    return true;
+}
+
+function _applyCalibration(feet) {
+    const [p1, p2] = _calibPts;
+    const displayDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    if (displayDist < 5) { alert('Points too close together — try again'); return; }
+
+    const analysis  = window.GarDIYStorage?.getAnalysis() || {};
+    const natW = analysis.imageNaturalWidth  || _imgNatW;
+    const natH = analysis.imageNaturalHeight || _imgNatH;
+    const canvas = document.getElementById('designCanvas');
+
+    let sqFtPerNatPx2;
+    if (natW && natH) {
+        const displayScale = Math.min(canvas.offsetWidth / natW, canvas.offsetHeight / natH);
+        const naturalDist  = displayDist / displayScale;
+        const natPxPerFt   = naturalDist / feet;
+        sqFtPerNatPx2 = 1 / (natPxPerFt * natPxPerFt);
+    } else {
+        // Fallback: use display pixels directly
+        const displayPxPerFt = displayDist / feet;
+        sqFtPerNatPx2 = 1 / (displayPxPerFt * displayPxPerFt);
+    }
+
+    analysis.calibrationSqFtPerNaturalPx2 = sqFtPerNatPx2;
+    analysis.calibrationFeet = feet;
+    window.GarDIYStorage.saveAnalysis(analysis);
+
+    console.log(`[Calib] ${feet} ft = ${displayDist.toFixed(1)} display px → sqFtPerNatPx2=${sqFtPerNatPx2.toExponential(4)}`);
+    updateMaterialsList();
 }
 
 // Bricks per sq ft by product name — add entries here as new products are defined
@@ -458,6 +604,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     setupCategoryButtons();
     setupCategoryFilters();
     setupCanvasClick();
+    setupCalibration();
     setupCheckoutButtons();
     loadSavedDesign();
 
@@ -653,6 +800,7 @@ function setupCanvasClick() {
     const canvas = document.getElementById('designCanvas');
     if (!canvas) return;
     canvas.addEventListener('click', e => {
+        if (handleCalibCanvasClick(e)) return;
         if (drawingMode) return;
         if (e.target.closest('.draggable-item') ||
             e.target.closest('.control-panel')  ||

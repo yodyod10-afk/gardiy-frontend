@@ -54,11 +54,47 @@
                 <h3>📋 Materials List</h3>
 
                 <!-- Total area input for SF calculations -->
-                <div id="areaInputRow" style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:8px 10px;background:#f0fdf4;border:1px solid #6ee7b7;border-radius:8px;">
+                <div id="areaInputRow" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:8px 10px;background:#f0fdf4;border:1px solid #6ee7b7;border-radius:8px;">
                     <span style="font-size:13px;white-space:nowrap;color:#065f46;font-weight:600;">📐 Total area:</span>
                     <input id="manualAreaInput" type="number" min="1" placeholder="e.g. 450"
                         style="width:80px;padding:4px 6px;border:1px solid #a7f3d0;border-radius:6px;font-size:13px;text-align:right;">
                     <span style="font-size:12px;color:#6b7280;">sq ft</span>
+                </div>
+
+                <!-- Calibration tool -->
+                <div style="margin-bottom:10px;">
+                    <button id="startCalibBtn" style="width:100%;padding:7px;background:#fff;border:1px dashed #10b981;border-radius:8px;color:#065f46;font-size:12px;font-weight:600;cursor:pointer;">
+                        📏 Calibrate Scale from Known Distance
+                    </button>
+                    <div id="calibPanel" style="display:none;margin-top:6px;padding:10px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;font-size:12px;">
+                        <div id="calibStep1" style="color:#92400e;">
+                            <strong>Step 1:</strong> Click the <em>start</em> of a known distance on the photo
+                        </div>
+                        <div id="calibStep2" style="display:none;color:#92400e;">
+                            <strong>Step 2:</strong> Click the <em>end</em> of that distance
+                        </div>
+                        <div id="calibStep3" style="display:none;">
+                            <div style="color:#065f46;font-weight:600;margin-bottom:6px;">✓ Distance marked — how long is it?</div>
+                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                <select id="calibPreset" style="padding:4px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;">
+                                    <option value="">Custom...</option>
+                                    <option value="8">Fence panel (8 ft)</option>
+                                    <option value="6">Fence panel (6 ft)</option>
+                                    <option value="15">Car length (15 ft)</option>
+                                    <option value="6">Car width (6 ft)</option>
+                                    <option value="4">Sidewalk slab (4 ft)</option>
+                                    <option value="3">Door width (3 ft)</option>
+                                    <option value="3">Window width (3 ft)</option>
+                                </select>
+                                <input id="calibFeetInput" type="number" min="0.5" max="200" step="0.5" placeholder="ft"
+                                    style="width:60px;padding:4px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;">
+                                <span style="color:#6b7280;">ft</span>
+                                <button id="applyCalibBtn" style="padding:4px 10px;background:#10b981;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">Apply</button>
+                                <button id="cancelCalibBtn" style="padding:4px 8px;background:#f3f4f6;color:#374151;border:none;border-radius:6px;font-size:12px;cursor:pointer;">Cancel</button>
+                            </div>
+                        </div>
+                        <div id="calibActive" style="display:none;margin-top:4px;font-size:11px;color:#10b981;font-weight:600;">✓ Scale calibrated from real measurement</div>
+                    </div>
                 </div>
 
                 <div id="materialsList" class="materials-list">
@@ -94,7 +130,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="js/api.js?v=2"></script>
     <script src="js/common.js?v=3"></script>
-    <script src="js/design.js?v=5"></script>
+    <script src="js/design.js?v=6"></script>
     <script src="js/mobile.js?v=2"></script>
     
     <script>
