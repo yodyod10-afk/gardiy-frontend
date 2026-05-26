@@ -6,7 +6,7 @@ let previewImage, photoPreview, scanOverlay;
 let changePhotoBtn, backToUploadBtn, analysisLoading, analysisResults;
 let startDesignBtn;
 let locationForm, zipCodeInput;
-let analyzeBtn, skipLocationBtn;
+let analyzeBtn;
 let exifStatusBanner, exifStatusText;
 let zipBadge;
 
@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', function () {
     locationForm     = document.getElementById('locationForm');
     zipCodeInput     = document.getElementById('zipCodeInput');
     analyzeBtn       = document.getElementById('analyzeBtn');
-    skipLocationBtn  = document.getElementById('skipLocationBtn');
     exifStatusBanner = document.getElementById('exifStatusBanner');
     exifStatusText   = document.getElementById('exifStatusText');
     zipBadge         = document.getElementById('zipBadge');
