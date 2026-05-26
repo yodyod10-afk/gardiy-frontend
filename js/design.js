@@ -1942,7 +1942,7 @@ async function submitDesignForCheckout() {
             })
         }).catch(() => {});
 
-        placedItems = []; updateMaterialsList();
+        placedItems = []; updateMaterialsList(); saveDesign();
         window.location.href = 'checkout.html';
     } catch (e) { alert('⚠️ Storage error. Try clearing browser storage.'); }
 }
@@ -2309,7 +2309,7 @@ async function placeAutoDesignItems(items, styleName) {
     // Clear current design first
     deselectItem();
     [...placedItems].forEach(pi => pi.element.remove());
-    placedItems = [];
+    placedItems = []; saveDesign();
     removePolyDots();
     removeMeshDots();
     removeCornerHandles();
