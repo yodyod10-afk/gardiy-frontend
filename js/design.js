@@ -35,44 +35,56 @@ function getSqFtScale() {
     const canvas = document.getElementById('designCanvas');
     if (!canvas) { console.warn('[SF] designCanvas not found'); return null; }
 
-    // 1. Try manual input first
+    const analysis = window.GarDIYStorage?.getAnalysis();
+
+    // Manual override always wins
     const manualInput = document.getElementById('manualAreaInput');
     const manualVal   = manualInput ? parseFloat(manualInput.value) : NaN;
+    if (!isNaN(manualVal) && manualVal > 0) {
+        // Manual SF covers the full photo frame — need display area for scale
+        const natW = analysis?.imageNaturalWidth  || _imgNatW;
+        const natH = analysis?.imageNaturalHeight || _imgNatH;
+        if (natW && natH) {
+            const s = Math.min(canvas.offsetWidth / natW, canvas.offsetHeight / natH);
+            const areaPx = (natW * s) * (natH * s);
+            console.log('[SF] manual override:', manualVal, 'SF | scale:', (manualVal / areaPx).toExponential(4));
+            return manualVal / areaPx;
+        }
+        // Fallback: full canvas area
+        return manualVal / (canvas.offsetWidth * canvas.offsetHeight);
+    }
 
-    // 2. Try Claude analysis
-    const analysis    = window.GarDIYStorage?.getAnalysis();
-    const claudeGround = analysis?.squareFeet && analysis.squareFeet !== '—'
-        ? parseFloat(analysis.squareFeet) : NaN;
-    // totalFrameSqFt covers the whole photo frame (ground + house + structures)
-    // This is the correct denominator for pixel→SF scaling
+    // ── Primary path: backend-computed sqFtPerNaturalPx2 ─────────────────────
+    // sqFtPerNaturalPx2 = totalFrameSqFt / (imageNaturalWidth × imageNaturalHeight)
+    // Computed once at analysis time — no race conditions, no letterbox ambiguity.
+    const sqFtPerNaturalPx2 = analysis?.sqFtPerNaturalPx2;
+    const natW = analysis?.imageNaturalWidth  || _imgNatW;
+    const natH = analysis?.imageNaturalHeight || _imgNatH;
+
+    if (sqFtPerNaturalPx2 && natW && natH) {
+        // Items are measured in display pixels. Convert: 1 display px = 1/displayScale natural px
+        const displayScale = Math.min(canvas.offsetWidth / natW, canvas.offsetHeight / natH);
+        const scaleFactor  = sqFtPerNaturalPx2 / (displayScale * displayScale);
+        console.log('[SF] using sqFtPerNaturalPx2:', sqFtPerNaturalPx2.toExponential(4),
+                    '| displayScale:', displayScale.toFixed(4), '| → SF/dispPx²:', scaleFactor.toExponential(4));
+        return scaleFactor;
+    }
+
+    // ── Fallback: use totalFrameSqFt / displayed photo area ──────────────────
     const claudeFrame  = analysis?.totalFrameSqFt ? parseFloat(analysis.totalFrameSqFt) : NaN;
-
-    // For pixel scale: prefer frame area so items covering the full photo scale correctly
-    // Fall back to ground area if frame not available (older scan results)
-    const frameForScale = !isNaN(manualVal) && manualVal > 0 ? manualVal
-                        : !isNaN(claudeFrame) && claudeFrame > 0 ? claudeFrame
+    const claudeGround = analysis?.squareFeet && analysis.squareFeet !== '—'
+                       ? parseFloat(analysis.squareFeet) : NaN;
+    const frameForScale = !isNaN(claudeFrame) && claudeFrame > 0 ? claudeFrame
                         : !isNaN(claudeGround) && claudeGround > 0 ? claudeGround
                         : NaN;
 
-    console.log('[SF] manualVal:', manualVal, '| claudeGround:', claudeGround, '| claudeFrame:', claudeFrame, '| using for scale:', frameForScale);
+    if (isNaN(frameForScale)) { console.warn('[SF] No area data — enter it in the materials panel'); return null; }
 
-    if (isNaN(frameForScale)) { console.warn('[SF] No total area — enter it in the materials panel'); return null; }
+    const areaPx = (natW && natH)
+        ? (() => { const s = Math.min(canvas.offsetWidth / natW, canvas.offsetHeight / natH); return (natW * s) * (natH * s); })()
+        : canvas.offsetWidth * canvas.offsetHeight;
 
-    // Use actual displayed photo area, not full canvas (object-fit:contain letterboxes the image)
-    let areaPx;
-    if (_imgNatW && _imgNatH) {
-        const scaleX = canvas.offsetWidth  / _imgNatW;
-        const scaleY = canvas.offsetHeight / _imgNatH;
-        const s      = Math.min(scaleX, scaleY);
-        const dispW  = _imgNatW * s;
-        const dispH  = _imgNatH * s;
-        areaPx = dispW * dispH;
-        console.log('[SF] img natural:', _imgNatW, 'x', _imgNatH, '| displayed:', Math.round(dispW), 'x', Math.round(dispH));
-    } else {
-        areaPx = canvas.offsetWidth * canvas.offsetHeight;
-        console.log('[SF] img not loaded yet — using full canvas area');
-    }
-    console.log('[SF] photo areaPx:', Math.round(areaPx), '| scale:', (frameForScale / areaPx).toFixed(6));
+    console.log('[SF] fallback frameForScale:', frameForScale, '| areaPx:', Math.round(areaPx));
     return frameForScale / areaPx;
 }
 

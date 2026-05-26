@@ -428,6 +428,8 @@ async function simulateAIAnalysis(locationData = {}) {
 
         const body = {
             imageData,
+            imageWidth:  previewImage.naturalWidth  || 0,
+            imageHeight: previewImage.naturalHeight || 0,
             ...(locationData.zipCode && { zipCode: locationData.zipCode }),
         };
 
@@ -468,17 +470,20 @@ function showAnalysisResults(claude, locationData = {}) {
     analysisResults.style.display = 'block';
 
     const analysisData = {
-        squareFeet:      claude?.squareFeet      || '—',
-        totalFrameSqFt:  claude?.totalFrameSqFt  || null,
-        dimensions:      claude?.dimensions      || '— ft × — ft',
-        sunlight:        claude?.sunlight        || '—',
-        climate:         claude?.climate         || '—',
-        soilType:        claude?.soilType        || '—',
-        irrigation:      claude?.irrigation      || '—',
-        temperature:     claude?.temperature     || '—',
-        confidence:      claude?.confidence      || '—',
-        scaleReference:  claude?.scaleReference  || '—',
-        recommendations: claude?.recommendations || [],
+        squareFeet:           claude?.squareFeet           || '—',
+        totalFrameSqFt:       claude?.totalFrameSqFt       || null,
+        sqFtPerNaturalPx2:    claude?.sqFtPerNaturalPx2    || null,
+        imageNaturalWidth:    claude?.imageNaturalWidth     || previewImage?.naturalWidth  || null,
+        imageNaturalHeight:   claude?.imageNaturalHeight    || previewImage?.naturalHeight || null,
+        dimensions:           claude?.dimensions            || '— ft × — ft',
+        sunlight:             claude?.sunlight              || '—',
+        climate:              claude?.climate               || '—',
+        soilType:             claude?.soilType              || '—',
+        irrigation:           claude?.irrigation            || '—',
+        temperature:          claude?.temperature           || '—',
+        confidence:           claude?.confidence            || '—',
+        scaleReference:       claude?.scaleReference        || '—',
+        recommendations:      claude?.recommendations       || [],
     };
 
     // ZIP code overrides AI climate — user's location always wins
