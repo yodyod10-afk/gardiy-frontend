@@ -470,19 +470,26 @@ function showAnalysisResults(claude, locationData = {}) {
     analysisResults.style.display = 'block';
 
     // Compute pixel→SF ratio directly here — previewImage is guaranteed loaded at this point
-    const _natW    = previewImage?.naturalWidth  || 0;
-    const _natH    = previewImage?.naturalHeight || 0;
-    const _frameSF = parseFloat(claude?.totalFrameSqFt) || 0;
+    const _natW      = previewImage?.naturalWidth  || 0;
+    const _natH      = previewImage?.naturalHeight || 0;
+    const _groundSF  = parseFloat(claude?.squareFeet) || 0;
+    const _groundFrac= parseFloat(claude?.groundFraction) || 0;
+    // Prefer backend-enforced totalFrameSqFt (= groundSF / groundFraction); fallback to raw value
+    const _frameSF   = (_groundSF > 0 && _groundFrac > 0)
+        ? _groundSF / _groundFrac
+        : (parseFloat(claude?.totalFrameSqFt) || 0);
     const _sqFtPerNaturalPx2 = (_natW > 0 && _natH > 0 && _frameSF > 0)
         ? _frameSF / (_natW * _natH)
         : (claude?.sqFtPerNaturalPx2 || null);
-    console.log('[SF] sqFtPerNaturalPx2 computed:', _sqFtPerNaturalPx2,
-                '| image:', _natW, 'x', _natH, '| frameSF:', _frameSF);
+    console.log('[SF] ground:', _groundSF, 'SF | fraction:', _groundFrac,
+                '| frame:', _frameSF.toFixed(1), 'SF | sqFtPerNaturalPx2:', _sqFtPerNaturalPx2,
+                '| image:', _natW, 'x', _natH);
 
     const analysisData = {
         squareFeet:           claude?.squareFeet           || '—',
         totalFrameSqFt:       claude?.totalFrameSqFt       || null,
         sqFtPerNaturalPx2:    _sqFtPerNaturalPx2,
+        groundFraction:       _groundFrac || null,
         imageNaturalWidth:    _natW  || null,
         imageNaturalHeight:   _natH  || null,
         dimensions:           claude?.dimensions            || '— ft × — ft',
