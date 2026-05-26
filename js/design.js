@@ -2533,106 +2533,49 @@ function _bClose() {
     panel.style.cssText = 'position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:9600;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.96);border:1px solid #e5e7eb;border-radius:28px;padding:8px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.15);font-size:13px;white-space:nowrap;';
     panel.innerHTML = `
         <span style="color:#374151;">Fill this area with <b>${_brushProduct?.name}</b>?</span>
-        <button id="bApproveBtn" style="background:#16a34a;color:#fff;border:none;border-radius:20px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;">✨ Yes, fill it</button>
+        <button id="bApproveBtn" style="background:#16a34a;color:#fff;border:none;border-radius:20px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;">📁 Upload image</button>
         <button id="bCancelBtn"  style="background:none;color:#6b7280;border:1px solid #d1d5db;border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;">✗ Cancel</button>
     `;
     dc.appendChild(panel);
 
     document.getElementById('bApproveBtn').onclick = () => { panel.remove(); _bFinalize(); };
     document.getElementById('bCancelBtn').onclick  = () => exitBrushFillMode();
+
 }
 
-function _getProductPrompt(product) {
-    const name = (product.name || '').toLowerCase();
-    const cat  = (product.category || '').toLowerCase();
-    if (cat === 'grass' || name.includes('grass') || name.includes('lawn'))
-        return 'lush ' + product.name + ' lawn — dense, healthy green grass blades viewed from directly above, natural lighting';
-    if (name.includes('brick'))
-        return 'red brick paving in herringbone pattern, viewed from directly above';
-    if (name.includes('stone') || name.includes('flagstone'))
-        return 'natural flagstone pavers with sand joints, viewed from directly above';
-    if (name.includes('gravel') || name.includes('pea'))
-        return 'decorative pea gravel ground cover, viewed from directly above';
-    if (name.includes('concrete') || name.includes('paver'))
-        return 'smooth concrete pavers, viewed from directly above';
-    if (cat === 'hardscapes' || cat === 'rocks_pavers')
-        return product.name + ' hardscape surface, viewed from directly above';
-    if (cat === 'paths')
-        return product.name + ' garden pathway material, viewed from directly above';
-    return product.name + ', garden landscaping material, viewed from directly above';
-}
-
-async function _bFinalize() {
+function _bFinalize() {
     const product = _brushProduct;
     const pts     = _brushPts.slice();
     exitBrushFillMode();
 
-    console.log('[AI Fill] Starting. Product:', product?.name, '| Points:', pts.length);
-
     const dc = document.getElementById('designCanvas');
-    if (!dc)      { console.warn('[AI Fill] No designCanvas'); return; }
-    if (!product) { console.warn('[AI Fill] No product');      return; }
-    if (pts.length < 3) { console.warn('[AI Fill] Not enough points:', pts.length); return; }
+    if (!dc || !product || pts.length < 3) return;
 
-    // ── 1. Bounding box + aspect ratio ───────────────────────────────────────────
     const minX = Math.min(...pts.map(p => p.x));
     const minY = Math.min(...pts.map(p => p.y));
     const maxX = Math.max(...pts.map(p => p.x));
     const maxY = Math.max(...pts.map(p => p.y));
     const bW   = Math.max(10, Math.ceil(maxX - minX));
     const bH   = Math.max(10, Math.ceil(maxY - minY));
-    const ratio = bW / bH;
-    // Pick closest Imagen aspect ratio
-    const aspectRatio = ratio > 3    ? '16:9'
-                      : ratio > 1.2  ? '4:3'
-                      : ratio > 0.83 ? '1:1'
-                      : ratio > 0.5  ? '3:4'
-                      :                '9:16';
-    console.log('[AI Fill] Bbox:', bW, 'x', bH, '| aspectRatio:', aspectRatio);
 
-    // ── 2. Loading overlay ───────────────────────────────────────────────────────
-    const loader = document.createElement('div');
-    loader.id = 'aiFillLoader';
-    loader.innerHTML = `<div style="font-size:2rem;">✨</div><div style="margin-top:8px;font-size:14px;font-weight:600;color:#065f46;">AI is filling your area…</div><div style="margin-top:4px;font-size:12px;color:#6b7280;">Usually takes 10–20 seconds</div>`;
-    loader.style.cssText = 'position:absolute;inset:0;background:rgba(255,255,255,0.82);backdrop-filter:blur(3px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9800;border-radius:inherit;';
-    dc.appendChild(loader);
-
-    // ── 3. Call backend ──────────────────────────────────────────────────────────
-    const prompt = _getProductPrompt(product);
-    console.log('[AI Fill] Sending to backend. Prompt:', prompt);
-
-    try {
-        const resp = await fetch('https://gardiy-backend-production.up.railway.app/api/fill-area', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productPrompt: prompt, aspectRatio })
-        });
-
-        console.log('[AI Fill] Backend response status:', resp.status);
-        const data = await resp.json();
-        console.log('[AI Fill] Backend response:', { success: data.success, message: data.message, hasImage: !!data.image });
-        loader.remove();
-
-        if (!resp.ok || !data.success) {
-            alert('AI fill failed: ' + (data.message || 'Unknown error'));
-            return;
-        }
-
-        // ── 4. Mask the Imagen result to the drawn polygon shape ─────────────────
-        const aiImg = await new Promise(res => {
+    const input = document.createElement('input');
+    input.type   = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+        const file = input.files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        const img = await new Promise(res => {
             const i = new Image();
-            i.onload = () => res(i); i.onerror = () => res(null); i.src = data.image;
+            i.onload = () => res(i); i.onerror = () => res(null); i.src = url;
         });
-        if (!aiImg) { alert('Could not load the generated image.'); return; }
+        if (!img) { alert('Could not load the selected image.'); return; }
 
         const off = document.createElement('canvas');
         off.width = bW; off.height = bH;
         const octx = off.getContext('2d');
+        octx.drawImage(img, 0, 0, bW, bH);
 
-        // Draw Imagen result scaled to bounding box
-        octx.drawImage(aiImg, 0, 0, bW, bH);
-
-        // Mask to the drawn polygon
         octx.globalCompositeOperation = 'destination-in';
         octx.beginPath();
         octx.moveTo(pts[0].x - minX, pts[0].y - minY);
@@ -2643,7 +2586,6 @@ async function _bFinalize() {
 
         const maskedUrl = off.toDataURL('image/png');
 
-        // Place as overlay item on canvas
         const item = document.createElement('div');
         item.className        = 'draggable-item';
         item.dataset.id       = itemIdCounter++;
@@ -2666,25 +2608,9 @@ async function _bFinalize() {
         makeDraggable(item);
         updateMaterialsList();
         selectItem(item);
-        console.log('[AI Fill] Done — AI fill placed on canvas.');
-
-    } catch (err) {
-        loader.remove();
-        console.error('[AI Fill] Fetch error:', err);
-        alert('AI fill failed: ' + err.message);
-    }
-}
-
-function _showAiUndoBtn(bgImg, origSrc) {
-    document.getElementById('aiFillUndoBtn')?.remove();
-    const dc = document.getElementById('designCanvas');
-    if (!dc) return;
-    const btn = document.createElement('button');
-    btn.id = 'aiFillUndoBtn';
-    btn.textContent = '↩ Undo AI fill';
-    btn.style.cssText = 'position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:9700;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:6px 16px;font-size:12px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.12);';
-    btn.onclick = () => { bgImg.src = origSrc; btn.remove(); };
-    dc.appendChild(btn);
+        URL.revokeObjectURL(url);
+    };
+    input.click();
 }
 
 console.log('✅ Design page ready');
