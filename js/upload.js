@@ -441,6 +441,7 @@ function showAnalysisResults(claude, locationData = {}) {
 
     const analysisData = {
         squareFeet:      claude?.squareFeet      || '—',
+        totalFrameSqFt:  claude?.totalFrameSqFt  || null,
         dimensions:      claude?.dimensions      || '— ft × — ft',
         sunlight:        claude?.sunlight        || '—',
         climate:         claude?.climate         || '—',
