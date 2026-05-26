@@ -24,17 +24,23 @@ function getSqFtScale() {
     const manualVal   = manualInput ? parseFloat(manualInput.value) : NaN;
 
     // 2. Try Claude analysis
-    const analysis  = window.GarDIYStorage?.getAnalysis();
-    const claudeVal = analysis?.squareFeet && analysis.squareFeet !== '—'
+    const analysis    = window.GarDIYStorage?.getAnalysis();
+    const claudeGround = analysis?.squareFeet && analysis.squareFeet !== '—'
         ? parseFloat(analysis.squareFeet) : NaN;
+    // totalFrameSqFt covers the whole photo frame (ground + house + structures)
+    // This is the correct denominator for pixel→SF scaling
+    const claudeFrame  = analysis?.totalFrameSqFt ? parseFloat(analysis.totalFrameSqFt) : NaN;
 
-    const totalSqFt = !isNaN(manualVal) && manualVal > 0 ? manualVal
-                    : !isNaN(claudeVal) && claudeVal > 0 ? claudeVal
-                    : NaN;
+    // For pixel scale: prefer frame area so items covering the full photo scale correctly
+    // Fall back to ground area if frame not available (older scan results)
+    const frameForScale = !isNaN(manualVal) && manualVal > 0 ? manualVal
+                        : !isNaN(claudeFrame) && claudeFrame > 0 ? claudeFrame
+                        : !isNaN(claudeGround) && claudeGround > 0 ? claudeGround
+                        : NaN;
 
-    console.log('[SF] manualVal:', manualVal, '| claudeVal:', claudeVal, '| using:', totalSqFt);
+    console.log('[SF] manualVal:', manualVal, '| claudeGround:', claudeGround, '| claudeFrame:', claudeFrame, '| using for scale:', frameForScale);
 
-    if (isNaN(totalSqFt)) { console.warn('[SF] No total area — enter it in the materials panel'); return null; }
+    if (isNaN(frameForScale)) { console.warn('[SF] No total area — enter it in the materials panel'); return null; }
 
     // Use actual displayed photo area, not full canvas (object-fit:contain letterboxes the image)
     const img = document.getElementById('canvasImage');
@@ -50,8 +56,8 @@ function getSqFtScale() {
     } else {
         areaPx = canvas.offsetWidth * canvas.offsetHeight;
     }
-    console.log('[SF] photo areaPx:', Math.round(areaPx), '| scale:', (totalSqFt / areaPx).toFixed(6));
-    return totalSqFt / areaPx;
+    console.log('[SF] photo areaPx:', Math.round(areaPx), '| scale:', (frameForScale / areaPx).toFixed(6));
+    return frameForScale / areaPx;
 }
 
 // Shoelace formula — polygon area in pixels²
