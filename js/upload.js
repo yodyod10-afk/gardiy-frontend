@@ -469,12 +469,22 @@ function showAnalysisResults(claude, locationData = {}) {
     analysisLoading.style.display = 'none';
     analysisResults.style.display = 'block';
 
+    // Compute pixel→SF ratio directly here — previewImage is guaranteed loaded at this point
+    const _natW    = previewImage?.naturalWidth  || 0;
+    const _natH    = previewImage?.naturalHeight || 0;
+    const _frameSF = parseFloat(claude?.totalFrameSqFt) || 0;
+    const _sqFtPerNaturalPx2 = (_natW > 0 && _natH > 0 && _frameSF > 0)
+        ? _frameSF / (_natW * _natH)
+        : (claude?.sqFtPerNaturalPx2 || null);
+    console.log('[SF] sqFtPerNaturalPx2 computed:', _sqFtPerNaturalPx2,
+                '| image:', _natW, 'x', _natH, '| frameSF:', _frameSF);
+
     const analysisData = {
         squareFeet:           claude?.squareFeet           || '—',
         totalFrameSqFt:       claude?.totalFrameSqFt       || null,
-        sqFtPerNaturalPx2:    claude?.sqFtPerNaturalPx2    || null,
-        imageNaturalWidth:    claude?.imageNaturalWidth     || previewImage?.naturalWidth  || null,
-        imageNaturalHeight:   claude?.imageNaturalHeight    || previewImage?.naturalHeight || null,
+        sqFtPerNaturalPx2:    _sqFtPerNaturalPx2,
+        imageNaturalWidth:    _natW  || null,
+        imageNaturalHeight:   _natH  || null,
         dimensions:           claude?.dimensions            || '— ft × — ft',
         sunlight:             claude?.sunlight              || '—',
         climate:              claude?.climate               || '—',
