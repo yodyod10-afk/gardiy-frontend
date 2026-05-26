@@ -7,6 +7,7 @@ const taxRate = 0.08;
 
 let stripeInstance = null;
 let stripeElements = null;
+let _idPhotoBase64 = null; // base64 of uploaded ID photo
 
 document.addEventListener('DOMContentLoaded', function () {
     checkUserLogin();
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setupServiceSelection();
     setupDeliveryDate();
     setupPhoneFormatting();
+    setupIdPhotoUpload();
     initStripePaymentElement(); // background — no await, page stays responsive
     setupPlaceOrder();
 });
@@ -267,6 +269,42 @@ function setupPhoneFormatting() {
     });
 }
 
+// ── ID photo upload ───────────────────────────────────────────────────────────
+function setupIdPhotoUpload() {
+    const input   = document.getElementById('idPhotoInput');
+    const preview = document.getElementById('idPhotoPreview');
+    const previewImg = document.getElementById('idPreviewImg');
+    const label   = document.getElementById('idUploadLabel');
+    const btn     = document.getElementById('idUploadBtn');
+    if (!input) return;
+
+    // Clicking the styled button opens the file picker
+    if (btn) {
+        btn.addEventListener('click', () => input.click());
+    }
+
+    input.addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) return;
+
+        // Show filename and green border on the button
+        if (label) label.textContent = file.name.length > 28 ? file.name.slice(0, 25) + '…' : file.name;
+        if (btn) btn.style.borderColor = '#16a34a';
+
+        // Convert to base64 for backend storage
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+            _idPhotoBase64 = ev.target.result; // data:image/...;base64,...
+            if (previewImg) previewImg.src = _idPhotoBase64;
+            if (preview)    preview.style.display = 'block';
+            // Hide error if it was showing
+            const err = document.getElementById('idError');
+            if (err) err.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 // ── Place order ───────────────────────────────────────────────────────────────
 function setupPlaceOrder() {
     const btn = document.getElementById('placeOrderBtn');
@@ -285,6 +323,23 @@ function setupPlaceOrder() {
             return;
         }
 
+        // Validate terms checkbox
+        const termsChecked = document.getElementById('termsCheckbox')?.checked;
+        const termsErr     = document.getElementById('termsError');
+        if (!termsChecked) {
+            if (termsErr) { termsErr.style.display = 'block'; termsErr.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            return;
+        }
+        if (termsErr) termsErr.style.display = 'none';
+
+        // Validate ID photo
+        const idErr = document.getElementById('idError');
+        if (!_idPhotoBase64) {
+            if (idErr) { idErr.style.display = 'block'; idErr.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            return;
+        }
+        if (idErr) idErr.style.display = 'none';
+
         if (window.GarDIYSubscriptions) {
             const check = GarDIYSubscriptions.checkOrderLimit();
             if (!check.allowed) {
@@ -298,7 +353,6 @@ function setupPlaceOrder() {
         if (!stripeInstance || !stripeElements) {
             const errDiv = document.getElementById('payment-errors');
             errDiv.textContent = 'Loading payment form… please wait a moment and try again.';
-            // Trigger init if it hasn't started yet
             if (!stripeInstance) initStripePaymentElement();
             document.getElementById('paymentSection')?.scrollIntoView({ behavior: 'smooth' });
             return;
@@ -323,9 +377,59 @@ function setupPlaceOrder() {
             btn.disabled = false;
         } else if (paymentIntent && paymentIntent.status === 'succeeded') {
             if (window.GarDIYSubscriptions) GarDIYSubscriptions.incrementOrders();
+            await saveOrderToBackend(paymentIntent.id);
             showOrderConfirmation(paymentIntent.id);
         }
     });
+}
+
+// ── Save order with dispute-protection data ───────────────────────────────────
+async function saveOrderToBackend(paymentIntentId) {
+    try {
+        const savedDesignStr = localStorage.getItem('gardiyCheckout') || localStorage.getItem('gardiyDesign');
+        let items = [], total = 0;
+        if (savedDesignStr) {
+            const d = JSON.parse(savedDesignStr);
+            items = d.items && Array.isArray(d.items) ? d.items : Array.isArray(d) ? d : [];
+            total = typeof d.total === 'number' && d.total > 0
+                ? d.total
+                : items.reduce((s, i) => s + (parseFloat(i.price) || 0), 0);
+        }
+
+        const designScreenshot = localStorage.getItem('gardiyDesignScreenshot') || null;
+
+        const body = {
+            paymentIntentId,
+            agreedToTerms: true,
+            idPhotoUrl: _idPhotoBase64,
+            designScreenshot,
+            items,
+            total,
+            deliveryFee: deliveryFeeAmount,
+            tax: parseFloat(((total + deliveryFeeAmount) * taxRate).toFixed(2)),
+            grandTotal: parseFloat(((total + deliveryFeeAmount) * (1 + taxRate)).toFixed(2)),
+            customerName:  document.getElementById('fullName')?.value || '',
+            email:         document.getElementById('email')?.value    || '',
+            phone:         document.getElementById('phone')?.value    || '',
+            address:       document.getElementById('addressSearch')?.value || '',
+            city:          document.getElementById('city')?.value     || '',
+            state:         document.getElementById('state')?.value    || '',
+            zip:           document.getElementById('zip')?.value      || '',
+            deliveryDate:  document.getElementById('deliveryDate')?.value || '',
+            serviceType:   document.getElementById('installRadio')?.checked ? 'install' : 'diy',
+            notes:         document.getElementById('notes')?.value    || '',
+        };
+
+        const res = await fetch('https://gardiy-backend-production.up.railway.app/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) console.warn('Order save returned', res.status);
+    } catch (err) {
+        console.error('saveOrderToBackend error:', err);
+        // Non-fatal — payment already succeeded, just log the failure
+    }
 }
 
 // ── Success modal ─────────────────────────────────────────────────────────────
