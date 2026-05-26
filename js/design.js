@@ -1254,6 +1254,7 @@ window.deleteItem = function(itemId) {
     item.remove();
     deselectItem();
     updateMaterialsList();
+    saveDesign();
 };
 
 window.copyItem = async function(itemId) {
