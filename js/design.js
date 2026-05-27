@@ -121,8 +121,16 @@ function getItemSqFt(placedItem) {
         console.log(`[SF] "${placedItem.name}" polyPoints(${pts.length}) areaPx=${areaPx.toFixed(0)} → ${sqFt.toFixed(1)} sqFt`);
         return pts.length >= 3 ? sqFt : null;
     }
-    const w    = parseFloat(el.style.width)  || el.offsetWidth;
-    const h    = parseFloat(el.style.height) || el.offsetHeight;
+    const w = parseFloat(el.style.width)  || el.offsetWidth;
+    const h = parseFloat(el.style.height) || el.offsetHeight;
+
+    if (isPathItem(placedItem.name, placedItem.category)) {
+        const ratio = parseFloat(el.dataset.coloredRatio ?? '1');
+        const sqFt  = w * h * ratio * scale;
+        console.log(`[SF] path "${placedItem.name}" ${w}×${h}px coloredRatio=${ratio.toFixed(3)} → ${sqFt.toFixed(1)} sqFt`);
+        return sqFt;
+    }
+
     const sqFt = w * h * scale;
     console.log(`[SF] "${placedItem.name}" rect ${w}×${h}px → ${sqFt.toFixed(1)} sqFt`);
     return sqFt;
@@ -827,6 +835,33 @@ document.addEventListener('click', async e => {
 });
 
 // ── Add item to canvas ────────────────────────────────────────────────────────
+
+// Returns the fraction of pixels in the image that are non-transparent (alpha > 10).
+// Used so path items count only the actual path area, not the transparent bounding box.
+const _pathColoredRatioCache = {};
+function _computePathColoredRatio(imgSrc) {
+    if (_pathColoredRatioCache[imgSrc] !== undefined) return Promise.resolve(_pathColoredRatioCache[imgSrc]);
+    return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        const finish = ratio => { _pathColoredRatioCache[imgSrc] = ratio; resolve(ratio); };
+        img.onload = () => {
+            try {
+                const oc = document.createElement('canvas');
+                oc.width = img.naturalWidth; oc.height = img.naturalHeight;
+                const ctx = oc.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                const data = ctx.getImageData(0, 0, oc.width, oc.height).data;
+                let colored = 0, total = oc.width * oc.height;
+                for (let i = 3; i < data.length; i += 4) { if (data[i] > 10) colored++; }
+                finish(total > 0 ? colored / total : 1);
+            } catch (_) { finish(1); } // CORS fallback: assume full box
+        };
+        img.onerror = () => finish(1);
+        img.src = imgSrc;
+    });
+}
+
 function _loadImageDims(src) {
     return new Promise(resolve => {
         const img = new Image();
@@ -923,6 +958,11 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
         item.dataset.borderRadius = '0';
         const imgSrc = itemData.imageUrl || itemData.image;
         item.innerHTML = `<img src="${imgSrc}" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">`;
+        // Compute colored-pixel ratio async — stored so materials list uses real path area
+        _computePathColoredRatio(imgSrc).then(ratio => {
+            item.dataset.coloredRatio = ratio.toFixed(4);
+            updateMaterialsList();
+        });
     } else {
         if (itemData.type === 'image') {
             item.innerHTML = `<img src="${itemData.image}" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">`;
@@ -1507,18 +1547,19 @@ function updateMaterialsList() {
     }
 
     // coverage: hardscapes ($/ton, sfPerUnit=SF per ton) + grass ($/sqft, sfPerUnit=1)
-    const coverage   = {}; // name → { name, price, sfPerUnit, unitType, totalSqFt, noScale }
-    const regular    = {}; // name → { name, price, count }
-    const brickPaths = {}; // name → { name, price, items[] }
+    const coverage  = {}; // name → { name, price, sfPerUnit, unitType, totalSqFt, noScale }
+    const regular   = {}; // name → { name, price, count }
+    const pathItems = {}; // name → { name, price, items[] }  — all path-category items
 
     placedItems.forEach(item => {
-        if (isBrickPath(item.name, item.category)) {
-            if (!brickPaths[item.name]) brickPaths[item.name] = { name: item.name, price: item.price, items: [] };
-            brickPaths[item.name].items.push(item);
+        // All path items: sq ft from colored pixels × 8 bricks/sqft
+        if (isPathItem(item.name, item.category)) {
+            if (!pathItems[item.name]) pathItems[item.name] = { name: item.name, price: item.price, items: [] };
+            pathItems[item.name].items.push(item);
             return;
         }
-        const sfPerTon    = getCoverageRate(item.name);
-        const isPerSqft   = isGrassItem(item.name, item.category);
+        const sfPerTon  = getCoverageRate(item.name);
+        const isPerSqft = isGrassItem(item.name, item.category);
         if (sfPerTon !== undefined) {
             if (!coverage[item.name]) coverage[item.name] = { name: item.name, price: item.price, sfPerUnit: sfPerTon, unitType: 'ton', totalSqFt: 0, noScale: false };
             const sqFt = getItemSqFt(item);
@@ -1572,26 +1613,27 @@ function updateMaterialsList() {
         </div>`;
     });
 
-    // Brick path rows (count bricks from path pixel length)
-    Object.values(brickPaths).forEach(group => {
-        let totalBricks = 0, hasNoScale = false, anyDrawn = false;
+    // Path rows: sq ft (colored pixels only) × 8 bricks per sq ft
+    const BRICKS_PER_SQFT = 8;
+    Object.values(pathItems).forEach(group => {
+        let totalSqFt = 0, hasNoScale = false;
         group.items.forEach(item => {
-            const info = getBrickPathInfo(item);
-            if (!info) return;
-            anyDrawn = true;
-            if (info.noScale) { hasNoScale = true; return; }
-            totalBricks += info.brickCount || 0;
+            const sqFt = getItemSqFt(item);
+            if (sqFt === null) hasNoScale = true;
+            else totalSqFt += sqFt;
         });
-        const cost = totalBricks * group.price;
+        const bricks = Math.ceil(totalSqFt * BRICKS_PER_SQFT * 1.1); // +10% waste
+        const cost   = bricks * group.price;
         total += cost;
-        const detailLine = !anyDrawn
-            ? `<div style="font-size:11px;color:#718096;">Draw path to calculate bricks</div>`
-            : hasNoScale
-                ? `<div style="font-size:11px;color:#f59e0b;">⚠ Enter yard area to calculate bricks</div>`
-                : totalBricks > 0
-                    ? `<div style="font-size:11px;color:#b5631a;font-weight:600;margin-top:3px;">🧱 ${totalBricks.toLocaleString()} bricks needed (+10% waste)</div>
-                       <div style="font-size:11px;color:#718096;">$${group.price.toFixed(2)}/brick</div>`
-                    : `<div style="font-size:11px;color:#718096;">Path too short to calculate</div>`;
+        const ratioReady = group.items.every(i => i.element.dataset.coloredRatio !== undefined);
+        const detailLine = hasNoScale
+            ? `<div style="font-size:11px;color:#f59e0b;">⚠ Enter yard area to calculate bricks</div>`
+            : totalSqFt > 0
+                ? `<div style="font-size:11px;color:#b5631a;font-weight:600;margin-top:3px;">🧱 ${bricks.toLocaleString()} bricks needed · ${totalSqFt.toFixed(1)} sq ft (+10% waste)</div>
+                   <div style="font-size:11px;color:#718096;">$${group.price.toFixed(2)}/brick · 8 bricks/sq ft</div>`
+                : ratioReady
+                    ? `<div style="font-size:11px;color:#718096;">Calibrate scale to calculate bricks</div>`
+                    : `<div style="font-size:11px;color:#718096;">Calculating…</div>`;
         html += `<div class="material-item">
             <div style="flex:1;min-width:0;">
                 <div style="font-weight:600;font-size:13px;">${group.name}</div>
