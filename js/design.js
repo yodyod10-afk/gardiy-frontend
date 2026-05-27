@@ -2613,4 +2613,133 @@ async function placeAutoDesignItems(items, styleName) {
 }
 
 
+// ── Enhance Design ────────────────────────────────────────────────────────────
+(function setupEnhanceDesign() {
+    const btn = document.getElementById('enhanceDesignBtn');
+    if (!btn) return;
+    btn.addEventListener('click', enhanceDesign);
+})();
+
+async function enhanceDesign() {
+    const btn = document.getElementById('enhanceDesignBtn');
+    const canvas = document.getElementById('designCanvas');
+    const canvasImage = document.getElementById('canvasImage');
+
+    if (!canvasImage || !canvasImage.src || canvasImage.src === window.location.href) {
+        alert('Please upload a photo first before enhancing.');
+        return;
+    }
+    if (btn.disabled) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="enhance-btn-spinner"></span> Enhancing…';
+
+    // Show loading modal immediately so user sees progress
+    _showEnhanceLoading();
+
+    try {
+        // Capture canvas at up to 2× devicePixelRatio for quality
+        const scale = Math.min(window.devicePixelRatio || 1, 2);
+        const shot  = await html2canvas(canvas, {
+            useCORS: true, allowTaint: false,
+            scale, logging: false,
+            backgroundColor: null,
+        });
+
+        // Compress to JPEG (large base64 = slow upload, 0.82 quality is fine)
+        const base64 = shot.toDataURL('image/jpeg', 0.82).split(',')[1];
+        const originalDataUrl = shot.toDataURL('image/jpeg', 0.82);
+
+        const BACKEND = 'https://gardiy-backend-production.up.railway.app';
+        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        const headers = { 'Content-Type': 'application/json' };
+        if (session.token) headers['Authorization'] = 'Bearer ' + session.token;
+
+        const res  = await fetch(`${BACKEND}/api/enhance-design`, {
+            method: 'POST', headers,
+            body: JSON.stringify({ imageBase64: base64 }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Enhancement failed');
+
+        const enhancedDataUrl = `data:${data.mimeType || 'image/jpeg'};base64,${data.imageBase64}`;
+        _showEnhanceResult(originalDataUrl, enhancedDataUrl);
+
+    } catch (err) {
+        console.error('Enhance error:', err);
+        _closeEnhanceModal();
+        alert('Enhancement failed: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '✨ Enhance Design';
+    }
+}
+
+function _showEnhanceLoading() {
+    _closeEnhanceModal();
+    const modal = document.createElement('div');
+    modal.id = '_enhanceModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;';
+    modal.innerHTML = `
+        <div style="background:white;border-radius:20px;padding:3rem 2.5rem;text-align:center;max-width:380px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,0.4);">
+            <div style="font-size:3rem;margin-bottom:1rem;">✨</div>
+            <h2 style="margin:0 0 0.5rem;color:#1a202c;font-size:1.3rem;">Enhancing Your Design</h2>
+            <p style="color:#718096;margin:0 0 1.5rem;font-size:14px;line-height:1.6;">AI is improving realism, lighting, blending,<br>and shadows — this takes ~30 seconds</p>
+            <div class="enhance-progress-bar"><div class="enhance-progress-fill"></div></div>
+            <p style="font-size:11px;color:#a0aec0;margin-top:0.75rem;">Please wait…</p>
+        </div>`;
+    document.body.appendChild(modal);
+}
+
+function _showEnhanceResult(originalSrc, enhancedSrc) {
+    _closeEnhanceModal();
+    // Store for download — avoid putting huge base64 in onclick attribute
+    window._gardiyEnhancedSrc  = enhancedSrc;
+    window._gardiyOriginalSrc  = originalSrc;
+
+    const modal = document.createElement('div');
+    modal.id = '_enhanceModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;z-index:99999;padding:12px;';
+    modal.innerHTML = `
+        <div style="background:white;border-radius:20px;padding:1.5rem;max-width:960px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;">
+                <h2 style="margin:0;color:#1a202c;font-size:1.2rem;">✨ Enhanced Design</h2>
+                <button id="_enhCloseBtn" style="background:none;border:none;font-size:1.6rem;cursor:pointer;color:#9ca3af;line-height:1;padding:2px 6px;">×</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.1rem;">
+                <div>
+                    <p style="font-size:11px;font-weight:700;color:#9ca3af;margin:0 0 5px;text-transform:uppercase;letter-spacing:0.06em;">Original</p>
+                    <img id="_enhOrigImg" style="width:100%;border-radius:10px;border:1px solid #e5e7eb;display:block;">
+                </div>
+                <div>
+                    <p style="font-size:11px;font-weight:700;color:#8b5cf6;margin:0 0 5px;text-transform:uppercase;letter-spacing:0.06em;">✨ Enhanced</p>
+                    <img id="_enhNewImg" style="width:100%;border-radius:10px;border:2px solid #8b5cf6;display:block;">
+                </div>
+            </div>
+            <div style="display:flex;gap:0.75rem;justify-content:flex-end;flex-wrap:wrap;">
+                <button id="_enhCancelBtn" style="padding:10px 22px;background:#f3f4f6;color:#374151;border:none;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px;">Close</button>
+                <button id="_enhDownloadBtn" style="padding:10px 22px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;">⬇ Download Enhanced</button>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+
+    // Set large image srcs after appending (avoids huge inline HTML string)
+    document.getElementById('_enhOrigImg').src = originalSrc;
+    document.getElementById('_enhNewImg').src  = enhancedSrc;
+
+    document.getElementById('_enhCloseBtn').addEventListener('click', _closeEnhanceModal);
+    document.getElementById('_enhCancelBtn').addEventListener('click', _closeEnhanceModal);
+    document.getElementById('_enhDownloadBtn').addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.href = window._gardiyEnhancedSrc;
+        a.download = 'gardiy-enhanced-design.jpg';
+        a.click();
+    });
+    modal.addEventListener('click', e => { if (e.target === modal) _closeEnhanceModal(); });
+}
+
+function _closeEnhanceModal() {
+    document.getElementById('_enhanceModal')?.remove();
+}
+
 console.log('✅ Design page ready');

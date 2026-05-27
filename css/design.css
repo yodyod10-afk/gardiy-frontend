@@ -460,6 +460,70 @@ body {
     color: #10b981;
 }
 
+/* ── Enhance Design button ──────────────────────────────────────────────────── */
+.enhance-design-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    padding: 0.85rem;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s, opacity 0.2s;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.enhance-design-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(124, 58, 237, 0.4);
+}
+.enhance-design-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Spinner inside button */
+@keyframes enhance-spin {
+    to { transform: rotate(360deg); }
+}
+.enhance-btn-spinner {
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: enhance-spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
+/* Progress bar in loading modal */
+@keyframes enhance-bar {
+    0%   { width: 0%; }
+    20%  { width: 25%; }
+    55%  { width: 60%; }
+    80%  { width: 80%; }
+    95%  { width: 90%; }
+    100% { width: 95%; }
+}
+.enhance-progress-bar {
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 9999px;
+    overflow: hidden;
+    width: 100%;
+}
+.enhance-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+    border-radius: 9999px;
+    animation: enhance-bar 35s ease-out forwards;
+}
+
 /* FIXED: Checkout button styling */
 .checkout-main-btn {
     width: 100%;
