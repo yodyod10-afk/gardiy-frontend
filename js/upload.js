@@ -468,6 +468,7 @@ async function simulateAIAnalysis(locationData = {}) {
 function showAnalysisResults(claude, locationData = {}) {
     analysisLoading.style.display = 'none';
     analysisResults.style.display = 'block';
+    setupUploadCalibration();
 
     // Compute pixel→SF ratio directly here — previewImage is guaranteed loaded at this point
     const _natW      = previewImage?.naturalWidth  || 0;
@@ -633,6 +634,134 @@ function showSignInGate() {
             </div>
         </div>
     `;
+}
+
+// ── Photo calibration (called after analysis results appear) ──────────────────
+let _uCalibMode = false;
+let _uCalibPts  = [];
+let _uCalibDots = [];
+
+function setupUploadCalibration() {
+    const btn      = document.getElementById('uploadCalibBtn');
+    const panel    = document.getElementById('uploadCalibPanel');
+    const step1    = document.getElementById('uploadCalibStep1');
+    const step2    = document.getElementById('uploadCalibStep2');
+    const step3    = document.getElementById('uploadCalibStep3');
+    const done     = document.getElementById('uploadCalibDone');
+    const preset   = document.getElementById('uploadCalibPreset');
+    const feetInp  = document.getElementById('uploadCalibFeet');
+    const applyBtn = document.getElementById('uploadCalibApply');
+    const cancelBtn= document.getElementById('uploadCalibCancel');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+        _uCalibMode = true;
+        _uCalibPts  = [];
+        _uClearDots();
+        panel.style.display = 'block';
+        step1.style.display = 'block';
+        step2.style.display = 'none';
+        step3.style.display = 'none';
+        done.style.display  = 'none';
+        btn.textContent = 'Calibrating… click first point on photo';
+        btn.style.background = '#fef3c7';
+    });
+
+    preset.addEventListener('change', () => { if (preset.value) feetInp.value = preset.value; });
+
+    applyBtn.addEventListener('click', () => {
+        const feet = parseFloat(feetInp.value);
+        if (!feet || feet <= 0) { alert('Enter a valid distance in feet'); return; }
+        _uApplyCalibration(feet);
+        step3.style.display = 'none';
+        done.style.display  = 'block';
+        btn.textContent = 'Re-Calibrate Scale';
+        btn.style.background = '#f0fdf4';
+        _uCalibMode = false;
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        _uCalibMode = false;
+        _uCalibPts  = [];
+        _uClearDots();
+        panel.style.display = 'none';
+        btn.textContent = 'Click to Start Calibrating Scale';
+        btn.style.background = '#fff';
+    });
+
+    // Wire clicks on the photo preview container
+    photoPreview.addEventListener('click', _uHandleClick);
+}
+
+function _uHandleClick(e) {
+    if (!_uCalibMode) return;
+    const img  = document.getElementById('previewImage');
+    const rect = img.getBoundingClientRect();
+    // Only register clicks on the actual image
+    if (e.clientX < rect.left || e.clientX > rect.right ||
+        e.clientY < rect.top  || e.clientY > rect.bottom) return;
+
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Draw dot
+    const dot = document.createElement('div');
+    dot.style.cssText = `position:absolute;width:12px;height:12px;background:#f59e0b;
+        border:2px solid #fff;border-radius:50%;pointer-events:none;z-index:999;
+        left:${rect.left - photoPreview.getBoundingClientRect().left + x - 6}px;
+        top:${rect.top  - photoPreview.getBoundingClientRect().top  + y - 6}px;`;
+    photoPreview.style.position = 'relative';
+    photoPreview.appendChild(dot);
+    _uCalibDots.push(dot);
+    _uCalibPts.push({ x: e.clientX - rect.left, y: e.clientY - rect.top, natX: (e.clientX - rect.left) / rect.width * img.naturalWidth, natY: (e.clientY - rect.top) / rect.height * img.naturalHeight });
+
+    if (_uCalibPts.length === 1) {
+        document.getElementById('uploadCalibStep1').style.display = 'none';
+        document.getElementById('uploadCalibStep2').style.display = 'block';
+    } else if (_uCalibPts.length === 2) {
+        // Draw line
+        const [p1, p2] = _uCalibPts;
+        const len = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        const ang = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+        const pRect = photoPreview.getBoundingClientRect();
+        const line = document.createElement('div');
+        line.style.cssText = `position:absolute;height:2px;background:#f59e0b;pointer-events:none;z-index:998;
+            left:${rect.left - pRect.left + p1.x}px;top:${rect.top - pRect.top + p1.y}px;
+            width:${len}px;transform-origin:0 50%;transform:rotate(${ang}deg);`;
+        photoPreview.appendChild(line);
+        _uCalibDots.push(line);
+        document.getElementById('uploadCalibStep2').style.display = 'none';
+        document.getElementById('uploadCalibStep3').style.display = 'block';
+    }
+}
+
+function _uClearDots() {
+    _uCalibDots.forEach(el => el.remove());
+    _uCalibDots = [];
+}
+
+function _uApplyCalibration(feet) {
+    const [p1, p2] = _uCalibPts;
+    // Points are already in natural pixel coords
+    const naturalDist = Math.hypot(p2.natX - p1.natX, p2.natY - p1.natY);
+    if (naturalDist < 5) { alert('Points too close — try again'); return; }
+    const natPxPerFt = naturalDist / feet;
+    const calibSqFtPerNatPx2 = 1 / (natPxPerFt * natPxPerFt);
+
+    // Save into analysis data
+    const analysis = window.GarDIYStorage?.getAnalysis() || {};
+    analysis.calibrationSqFtPerNaturalPx2 = calibSqFtPerNatPx2;
+    window.GarDIYStorage.saveAnalysis(analysis);
+
+    // Update the displayed SF estimate to reflect calibrated scale
+    const img = document.getElementById('previewImage');
+    const natW = img.naturalWidth, natH = img.naturalHeight;
+    const gf = parseFloat(analysis.groundFraction) || 1;
+    const frameSF = calibSqFtPerNatPx2 * natW * natH;
+    const groundSF = Math.round(frameSF * gf);
+    const sqftVal = document.getElementById('sqftValue');
+    if (sqftVal) sqftVal.textContent = groundSF + ' sq ft (calibrated)';
+    console.log('[Calib] natPxPerFt:', natPxPerFt.toFixed(2), '| calibSqFtPerNatPx2:', calibSqFtPerNatPx2.toExponential(4), '| groundSF:', groundSF);
 }
 
 console.log('✅ Upload script loaded');
