@@ -712,10 +712,10 @@ async function loadProductCategories() {
     products.forEach((p, i) => { productRegistry[i] = p; });
 
     const categories = {
-        paths:        { name: 'Paths',           icon: '🛤️', products: [] },
+        paths:        { name: 'Paths',           icon: '🚶', products: [] },
         grass:        { name: 'Grass',           icon: '🌿', products: [] },
-        hardscapes:   { name: 'Hardscapes',      icon: '⛏️', products: [] },
-        rocks_pavers: { name: 'Rocks & Pavers',  icon: '🧱', products: [] },
+        hardscapes:   { name: 'Hardscapes',      icon: '🛻', products: [] },
+        rocks_pavers: { name: 'Rocks & Pavers',  icon: '🪨', products: [] },
         plants:       { name: 'Plants',          icon: '🌱', products: [] },
         trees:        { name: 'Trees',           icon: '🌳', products: [] },
         flowers:      { name: 'Flowers',         icon: '🌸', products: [] },
