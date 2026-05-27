@@ -836,6 +836,24 @@ body {
     .ad-cards { grid-template-columns: 1fr; }
 }
 
+/* ── Canvas+materials wrapper ────────────────────────────────────────────────── */
+/* display:contents makes it transparent to the 3-column grid on desktop */
+.canvas-tab-panel {
+    display: contents;
+}
+
+/* Sidebar header row with close button */
+.sidebar-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+.sidebar-header-row h3 { margin-bottom: 0; }
+
+/* Close button hidden on desktop */
+.sidebar-close-btn { display: none; }
+
 /* Responsive */
 @media (max-width: 1024px) {
     .design-container {

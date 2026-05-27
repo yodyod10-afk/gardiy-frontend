@@ -73,31 +73,43 @@
 
     // ── Design page tab bar ─────────────────────────────────────────────
     function initDesignTabs() {
-        const tabBar = document.getElementById('mobileDesignTabs');
+        const tabBar     = document.getElementById('mobileDesignTabs');
         if (!tabBar) return;
 
-        const panels = {
-            products:  document.querySelector('.design-sidebar'),
-            canvas:    document.querySelector('.design-canvas'),
-            materials: document.querySelector('.materials-panel'),
-        };
+        const sidebar    = document.querySelector('.design-sidebar');
+        const canvasPanel = document.getElementById('canvasTabPanel');
 
-        function showTab(name) {
-            Object.entries(panels).forEach(([key, el]) => {
-                if (!el) return;
-                el.classList.toggle('mobile-active', key === name);
-            });
+        // Canvas panel is always the main view — activate it immediately
+        canvasPanel?.classList.add('mobile-active');
+
+        function closeSidebar() {
+            sidebar?.classList.remove('mobile-active');
             tabBar.querySelectorAll('button').forEach(btn =>
-                btn.classList.toggle('active', btn.dataset.tab === name)
+                btn.classList.toggle('active', btn.dataset.tab === 'canvas')
             );
         }
 
-        tabBar.querySelectorAll('button').forEach(btn =>
-            btn.addEventListener('click', () => showTab(btn.dataset.tab))
-        );
+        tabBar.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.dataset.tab === 'products') {
+                    const isOpen = sidebar?.classList.contains('mobile-active');
+                    if (isOpen) {
+                        closeSidebar();
+                    } else {
+                        sidebar?.classList.add('mobile-active');
+                        tabBar.querySelectorAll('button').forEach(b =>
+                            b.classList.toggle('active', b.dataset.tab === 'products')
+                        );
+                    }
+                } else {
+                    // canvas tab — close sidebar, stay on canvas panel
+                    closeSidebar();
+                }
+            });
+        });
 
-        // Start on canvas so user sees their design immediately
-        showTab('canvas');
+        // Sidebar ◀ close button
+        document.getElementById('sidebarCloseBtn')?.addEventListener('click', closeSidebar);
     }
 
     // ── Design canvas: forward touch events → synthetic mouse events ────────────
