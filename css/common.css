@@ -212,7 +212,17 @@ footer {
     text-align: center;
 }
 
-/* Dark-green monochrome emojis site-wide */
+/* Phosphor outline icons: dark green stroke, white interior */
+.g-icon {
+    color: #065f46;
+    font-size: 1.2em;
+    vertical-align: -0.15em;
+    display: inline;
+    font-style: normal;
+    line-height: 1;
+}
+
+/* Fallback for unmapped emojis */
 .g-emoji {
     display: inline-block;
     filter: brightness(0) saturate(100%) invert(21%) sepia(76%) saturate(626%) hue-rotate(138deg) brightness(94%);

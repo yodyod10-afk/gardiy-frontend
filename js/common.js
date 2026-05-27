@@ -129,10 +129,43 @@ const Storage = {
 // Make Storage available globally
 window.GarDIYStorage = Storage;
 
-// ── Emoji styling: wrap every emoji in a dark-green filter span ───────────────
+// ── Emoji → Phosphor outline icon replacement (dark green, white interior) ────
 (function () {
+    const ICON_MAP = {
+        '📷':'ph-camera',        '👤':'ph-user',             '📤':'ph-upload-simple',
+        '🔍':'ph-magnifying-glass','🎨':'ph-palette',        '🌱':'ph-plant',
+        '🌿':'ph-leaf',          '🌳':'ph-tree',             '🌾':'ph-leaf',
+        '🪴':'ph-plant',         '🪨':'ph-cube',             '🪑':'ph-armchair',
+        '📋':'ph-clipboard-text','📐':'ph-ruler',            '📏':'ph-ruler',
+        '🌞':'ph-sun',           '📍':'ph-map-pin',          '💧':'ph-drop',
+        '🌡️':'ph-thermometer',  '💡':'ph-lightbulb',        '🤖':'ph-robot',
+        '🛠️':'ph-wrench',       '👷':'ph-hard-hat',         '📅':'ph-calendar',
+        '💳':'ph-credit-card',   '🔒':'ph-lock',             '🏡':'ph-house',
+        '🏠':'ph-house',         '⭐':'ph-star',             '❤️':'ph-heart',
+        '👍':'ph-thumbs-up',     '🗑️':'ph-trash',           '✏️':'ph-pencil',
+        '📧':'ph-envelope',      '⚙️':'ph-gear',            '🛒':'ph-shopping-cart',
+        '🔑':'ph-key',           '🌸':'ph-flower',           '💰':'ph-currency-dollar',
+        '🔔':'ph-bell',          '📊':'ph-chart-bar',        '🖼️':'ph-image',
+        '✂️':'ph-scissors',      '🔗':'ph-link',             '📱':'ph-device-mobile',
+        '💻':'ph-laptop',
+    };
+
     const EMOJI_RE = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu;
-    const SKIP = new Set(['SCRIPT','STYLE','NOSCRIPT','IFRAME','TEXTAREA','INPUT','IMG','SVG']);
+    const SKIP = new Set(['SCRIPT','STYLE','NOSCRIPT','IFRAME','TEXTAREA','INPUT','IMG','SVG','I']);
+
+    function makeIcon(emoji) {
+        const name = ICON_MAP[emoji];
+        if (name) {
+            const i = document.createElement('i');
+            i.className = `ph ${name} g-icon`;
+            i.title = emoji;
+            return i;
+        }
+        const s = document.createElement('span');
+        s.className = 'g-emoji';
+        s.textContent = emoji;
+        return s;
+    }
 
     function processNode(node) {
         if (node.nodeType === Node.TEXT_NODE) {
@@ -144,16 +177,13 @@ window.GarDIYStorage = Storage;
             let last = 0, m;
             while ((m = EMOJI_RE.exec(txt)) !== null) {
                 if (m.index > last) frag.appendChild(document.createTextNode(txt.slice(last, m.index)));
-                const s = document.createElement('span');
-                s.className = 'g-emoji';
-                s.textContent = m[0];
-                frag.appendChild(s);
+                frag.appendChild(makeIcon(m[0]));
                 last = EMOJI_RE.lastIndex;
             }
             if (last < txt.length) frag.appendChild(document.createTextNode(txt.slice(last)));
             node.parentNode.replaceChild(frag, node);
         } else if (node.nodeType === Node.ELEMENT_NODE) {
-            if (SKIP.has(node.tagName) || node.classList.contains('g-emoji')) return;
+            if (SKIP.has(node.tagName) || node.classList.contains('g-icon') || node.classList.contains('g-emoji')) return;
             Array.from(node.childNodes).forEach(processNode);
         }
     }
