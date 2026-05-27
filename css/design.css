@@ -211,8 +211,8 @@ body {
 }
 
 .category-icon-img {
-    width: 28px;
-    height: 28px;
+    width: 38px;
+    height: 38px;
     object-fit: contain;
     flex-shrink: 0;
 }
