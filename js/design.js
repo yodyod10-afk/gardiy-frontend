@@ -851,7 +851,12 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
         h = Math.round(canvas.offsetHeight * 0.75) || 300;
         x = canvas.offsetWidth  / 2 - w / 2;
         y = canvas.offsetHeight / 2 - h / 2;
-    } else if (!isPath && itemData.type === 'image') {
+    } else if (isPath) {
+        w = Math.round(canvas.offsetWidth  * 0.75) || 300;
+        h = Math.round(canvas.offsetHeight * 0.75) || 300;
+        x = canvas.offsetWidth  / 2 - w / 2;
+        y = canvas.offsetHeight / 2 - h / 2;
+    } else if (itemData.type === 'image') {
         const dims = await _loadImageDims(itemData.imageUrl || itemData.image);
         const maxW = Math.round(canvas.offsetWidth * 0.75) || 400;
         const scale = Math.min(1, maxW / dims.w);
@@ -913,13 +918,11 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
         });
 
     } else if (isPath) {
-        const pathPoints = [
-            { id: dotIdCounter++, x: x,       y: y },
-            { id: dotIdCounter++, x: x + 100, y: y },
-            { id: dotIdCounter++, x: x + 200, y: y },
-        ];
-        item.dataset.pathPoints = JSON.stringify(pathPoints);
-        item.dataset.pathWidth  = '40';
+        item.style.overflow     = 'hidden';
+        item.style.borderRadius = '0px';
+        item.dataset.borderRadius = '0';
+        const imgSrc = itemData.imageUrl || itemData.image;
+        item.innerHTML = `<img src="${imgSrc}" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">`;
     } else {
         if (itemData.type === 'image') {
             item.innerHTML = `<img src="${itemData.image}" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">`;
@@ -1003,7 +1006,7 @@ function selectItem(item) {
     if (isMeshItem(item.dataset.name, item.dataset.category)) {
         createPolyDots(item);
     } else if (isPathItem(item.dataset.name, item.dataset.category)) {
-        createPathControls(item);
+        createCornerHandles(item);
     } else {
         createCornerHandles(item);
     }
@@ -1301,10 +1304,8 @@ function createControlPanel(item) {
     const isPathEl = isPathItem(item.dataset.name, item.dataset.category);
     if (isPathEl) {
         html += `
-            <button class="control-btn" onclick="changePathWidth('${item.dataset.id}', -8)" title="Narrow path">−</button>
-            <button class="control-btn" onclick="changePathWidth('${item.dataset.id}', 8)"  title="Widen path">+</button>
-            <button class="control-btn" onclick="resetPath('${item.dataset.id}')" title="Reset path shape">↻</button>
-            <span style="font-size:10px;color:#718096;padding:0 2px;">right-click dot → add point</span>
+            <button class="control-btn" onclick="adjustPathCurve('${item.dataset.id}', -15)" title="Straighten edges" style="font-size:13px;">⌐</button>
+            <button class="control-btn" onclick="adjustPathCurve('${item.dataset.id}', 15)"  title="Curve edges"      style="font-size:13px;">◠</button>
         `;
     }
 
@@ -1619,10 +1620,11 @@ function saveDesign() {
                 rotation: parseInt(i.element.dataset.rotation || 0),
                 zIndex:   parseInt(i.element.style.zIndex) || 1,
                 price:    i.price,
-                polyPoints:  i.element.dataset.polyPoints,
-                pathPoints:  i.element.dataset.pathPoints,
-                pathWidth:   i.element.dataset.pathWidth,
-                pathFill:    i.element.dataset.pathFill,
+                polyPoints:   i.element.dataset.polyPoints,
+                pathPoints:   i.element.dataset.pathPoints,
+                pathWidth:    i.element.dataset.pathWidth,
+                pathFill:     i.element.dataset.pathFill,
+                borderRadius: i.element.dataset.borderRadius,
             })),
         }));
     } catch (e) { console.warn('Save error:', e); }
@@ -1647,6 +1649,7 @@ async function loadSavedDesign() {
             item.style.zIndex     = d.zIndex || 1;
             if (d.polyPoints) { item.dataset.polyPoints = d.polyPoints; applyPolyShape(item); }
             if (d.pathPoints) { item.dataset.pathPoints = d.pathPoints; item.dataset.pathWidth = d.pathWidth || '40'; if (d.pathFill) item.dataset.pathFill = d.pathFill; applyPathShape(item); }
+            if (d.borderRadius !== undefined) { item.dataset.borderRadius = d.borderRadius; item.style.borderRadius = d.borderRadius + 'px'; }
         }
         deselectItem();
         updateMaterialsList(); // recalculate after all polygon shapes are restored
@@ -1654,6 +1657,16 @@ async function loadSavedDesign() {
 }
 
 // ── Path system ───────────────────────────────────────────────────────────────
+window.adjustPathCurve = function(itemId, delta) {
+    const item = document.querySelector(`[data-id="${itemId}"]`);
+    if (!item) return;
+    const current = parseFloat(item.dataset.borderRadius || 0);
+    const next = Math.max(0, Math.min(300, current + delta));
+    item.dataset.borderRadius = next;
+    item.style.borderRadius = next + 'px';
+    saveDesign();
+};
+
 function removeMeshDots() { meshDots.forEach(d => d.remove()); meshDots = []; }
 
 function createPathControls(item) {
