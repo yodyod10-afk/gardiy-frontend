@@ -165,8 +165,8 @@
 /* Analysis Section */
 .analysis-section {
     min-height: 100vh;
-    padding-top: 120px;
-    padding-bottom: 4rem;
+    padding-top: 80px;
+    padding-bottom: 2rem;
     background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
 }
 
@@ -174,20 +174,20 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 3rem;
+    margin-bottom: 1.25rem;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .analysis-header h1 {
-    font-size: 2.5rem;
+    font-size: 1.8rem;
     color: #065f46;
 }
 
 .analysis-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 1.5rem;
     max-width: 1400px;
     margin: 0 auto;
 }
@@ -203,7 +203,8 @@
 
 .photo-preview img {
     width: 100%;
-    height: 600px;
+    height: auto;
+    max-height: 420px;
     object-fit: cover;
     border-radius: 15px;
 }
@@ -458,7 +459,7 @@
 .analysis-panel {
     background: white;
     border-radius: 20px;
-    padding: 2.5rem;
+    padding: 1.25rem 1.5rem;
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 
@@ -536,36 +537,36 @@
 /* Analysis Results */
 .analysis-results h3 {
     color: #065f46;
-    font-size: 2rem;
-    margin-bottom: 2rem;
+    font-size: 1.3rem;
+    margin-bottom: 0.75rem;
     text-align: center;
 }
 
 .results-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
 }
 
 .result-card {
     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    border: 2px solid #10b981;
-    border-radius: 15px;
-    padding: 1.5rem;
+    border: 1.5px solid #10b981;
+    border-radius: 10px;
+    padding: 0.6rem 0.75rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.6rem;
     transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .result-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 14px rgba(16, 185, 129, 0.2);
 }
 
 .result-icon {
-    font-size: 2.5rem;
+    font-size: 1.4rem;
     flex-shrink: 0;
 }
 
@@ -575,13 +576,13 @@
 }
 
 .result-label {
-    font-size: 0.9rem;
+    font-size: 0.72rem;
     color: #6b7280;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.1rem;
 }
 
 .result-value {
-    font-size: 1.3rem;
+    font-size: 0.9rem;
     font-weight: 700;
     color: #065f46;
 }
@@ -594,33 +595,33 @@
     color: white;
 }
 
-.result-card.sqft-hero .result-label { color: rgba(255,255,255,0.75); font-size: 0.95rem; }
+.result-card.sqft-hero .result-label { color: rgba(255,255,255,0.75); font-size: 0.8rem; }
 
 .sqft-value {
-    font-size: 2rem !important;
+    font-size: 1.4rem !important;
     font-weight: 800 !important;
     color: white !important;
 }
 
 .result-sub {
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     color: rgba(255,255,255,0.7);
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 /* Recommendations */
 .recommendations {
     background: #fffbeb;
-    border: 2px solid #fbbf24;
-    border-radius: 15px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
+    border: 1.5px solid #fbbf24;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .recommendations h4 {
     color: #92400e;
-    font-size: 1.3rem;
-    margin-bottom: 1rem;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .recommendations ul {
