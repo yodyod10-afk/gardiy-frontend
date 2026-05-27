@@ -712,13 +712,13 @@ async function loadProductCategories() {
     products.forEach((p, i) => { productRegistry[i] = p; });
 
     const categories = {
-        paths:        { name: 'Paths',           icon: '🚶', products: [] },
-        grass:        { name: 'Grass',           icon: '🌿', products: [] },
-        hardscapes:   { name: 'Hardscapes',      icon: '🛻', products: [] },
-        rocks_pavers: { name: 'Rocks & Pavers',  icon: '🪨', products: [] },
-        plants:       { name: 'Plants',          icon: '🌱', products: [] },
+        paths:        { name: 'Paths',           icon: '🚶', iconImg: 'images/categories/paths.png',     products: [] },
+        grass:        { name: 'Grass',           icon: '🌿', iconImg: 'images/categories/grass.png',     products: [] },
+        hardscapes:   { name: 'Hardscapes',      icon: '🛻', iconImg: 'images/categories/hardscape.png', products: [] },
+        rocks_pavers: { name: 'Rocks & Pavers',  icon: '🪨', iconImg: 'images/categories/rocks.png',     products: [] },
+        plants:       { name: 'Plants',          icon: '🌱', iconImg: 'images/categories/plants.png',    products: [] },
         trees:        { name: 'Trees',           icon: '🌳', products: [] },
-        flowers:      { name: 'Flowers',         icon: '🌸', products: [] },
+        flowers:      { name: 'Flowers',         icon: '🌸', iconImg: 'images/categories/flowers.png',   products: [] },
         furniture:    { name: 'Furniture',       icon: '🪑', products: [] },
     };
 
@@ -759,10 +759,14 @@ async function loadProductCategories() {
     <div class="category-list">`;
     Object.keys(categories).forEach(key => {
         const cat = categories[key];
+        const iconHtml = cat.iconImg
+            ? `<img src="${cat.iconImg}" class="category-icon-img" alt="${cat.name}">`
+            : `<span class="category-icon">${cat.icon}</span>`;
+
         if (key === 'furniture') {
             html += `<div class="category-section" data-category="${key}">
                 <button class="category-btn">
-                    <span class="category-icon">${cat.icon}</span>
+                    ${iconHtml}
                     <span>${cat.name}</span>
                     <span class="expand-icon">▼</span>
                 </button>
@@ -775,7 +779,7 @@ async function loadProductCategories() {
         if (!cat.products.length) return;
         html += `<div class="category-section" data-category="${key}">
             <button class="category-btn">
-                <span class="category-icon">${cat.icon}</span>
+                ${iconHtml}
                 <span>${cat.name}</span>
                 <span class="expand-icon">▼</span>
             </button>

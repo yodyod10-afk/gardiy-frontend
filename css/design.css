@@ -210,6 +210,13 @@ body {
     font-size: 1.5rem;
 }
 
+.category-icon-img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
 .arrow {
     font-size: 1.5rem;
     transition: transform 0.3s;
