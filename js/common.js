@@ -128,3 +128,43 @@ const Storage = {
 
 // Make Storage available globally
 window.GarDIYStorage = Storage;
+
+// ── Emoji styling: wrap every emoji in a dark-green filter span ───────────────
+(function () {
+    const EMOJI_RE = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu;
+    const SKIP = new Set(['SCRIPT','STYLE','NOSCRIPT','IFRAME','TEXTAREA','INPUT','IMG','SVG']);
+
+    function processNode(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            const txt = node.textContent;
+            EMOJI_RE.lastIndex = 0;
+            if (!EMOJI_RE.test(txt)) return;
+            EMOJI_RE.lastIndex = 0;
+            const frag = document.createDocumentFragment();
+            let last = 0, m;
+            while ((m = EMOJI_RE.exec(txt)) !== null) {
+                if (m.index > last) frag.appendChild(document.createTextNode(txt.slice(last, m.index)));
+                const s = document.createElement('span');
+                s.className = 'g-emoji';
+                s.textContent = m[0];
+                frag.appendChild(s);
+                last = EMOJI_RE.lastIndex;
+            }
+            if (last < txt.length) frag.appendChild(document.createTextNode(txt.slice(last)));
+            node.parentNode.replaceChild(frag, node);
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (SKIP.has(node.tagName) || node.classList.contains('g-emoji')) return;
+            Array.from(node.childNodes).forEach(processNode);
+        }
+    }
+
+    function init() {
+        processNode(document.body);
+        new MutationObserver(muts => {
+            muts.forEach(m => m.addedNodes.forEach(n => { if (n !== document.body) processNode(n); }));
+        }).observe(document.body, { childList: true, subtree: true });
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();

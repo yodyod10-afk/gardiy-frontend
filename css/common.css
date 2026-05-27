@@ -212,6 +212,12 @@ footer {
     text-align: center;
 }
 
+/* Dark-green monochrome emojis site-wide */
+.g-emoji {
+    display: inline-block;
+    filter: brightness(0) saturate(100%) invert(21%) sepia(76%) saturate(626%) hue-rotate(138deg) brightness(94%);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .nav-links {
