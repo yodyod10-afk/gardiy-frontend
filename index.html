@@ -70,12 +70,23 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
         <div class="hero-visual">
-            <div class="phone-mockup">
-                <div class="phone-screen">
-                    <div class="mockup-content">
-                        <div class="phone-icon">📸</div>
-                        <h3>Upload Your Space</h3>
-                        <p>AI analyzes dimensions & sunlight instantly</p>
+            <div class="browser-mockup">
+                <div class="browser-bar">
+                    <div class="browser-dots">
+                        <span class="dot dot-red"></span>
+                        <span class="dot dot-yellow"></span>
+                        <span class="dot dot-green"></span>
+                    </div>
+                    <div class="browser-url">🔒 gardiy.org/design</div>
+                </div>
+                <div class="browser-screen">
+                    <video id="heroVideo" autoplay muted loop playsinline>
+                        <source src="images/demo.mp4" type="video/mp4">
+                    </video>
+                    <div class="video-placeholder" id="videoPlaceholder">
+                        <div class="placeholder-logo"><img src="images/logo.png" alt="GarDIY" style="height:48px;margin-bottom:12px;"></div>
+                        <p style="color:#10b981;font-weight:700;font-size:1.1rem;">Live Design Demo</p>
+                        <p style="color:#6b7280;font-size:0.85rem;margin-top:4px;">Coming soon</p>
                     </div>
                 </div>
             </div>
@@ -133,38 +144,44 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="container">
             <h2 class="section-title">How It Works</h2>
             <p class="section-subtitle">From photo to finished landscape in four simple steps</p>
-            
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h3>Upload Photo</h3>
-                        <p>Take a picture of your outdoor space and upload it to GarDIY. Our AI will handle the rest.</p>
+
+            <div class="steps-timeline">
+                <div class="steps-connector"></div>
+
+                <div class="step-card">
+                    <div class="step-bubble">
+                        <span class="step-icon">📸</span>
+                        <div class="step-num">1</div>
                     </div>
+                    <h3>Upload Photo</h3>
+                    <p>Snap a picture of your outdoor space. Our AI instantly detects boundaries and dimensions.</p>
                 </div>
-                
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h3>AI Analyzes</h3>
-                        <p>Automatic measurement, sunlight detection, and climate consideration for your specific location.</p>
+
+                <div class="step-card">
+                    <div class="step-bubble">
+                        <span class="step-icon">🤖</span>
+                        <div class="step-num">2</div>
                     </div>
+                    <h3>AI Analyzes</h3>
+                    <p>Automatic measurements, sunlight detection, and climate-smart plant recommendations for your zone.</p>
                 </div>
-                
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h3>Design & Plan</h3>
-                        <p>Use our visual tools to arrange features, plants, and materials. See costs update in real-time.</p>
+
+                <div class="step-card">
+                    <div class="step-bubble">
+                        <span class="step-icon">🎨</span>
+                        <div class="step-num">3</div>
                     </div>
+                    <h3>Design & Plan</h3>
+                    <p>Drag and drop plants, paths, and materials. Watch your cost estimate update in real-time.</p>
                 </div>
-                
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <div class="step-content">
-                        <h3>Order & Install</h3>
-                        <p>Choose DIY delivery or professional installation. Your dream landscape delivered to your door.</p>
+
+                <div class="step-card">
+                    <div class="step-bubble">
+                        <span class="step-icon">📦</span>
+                        <div class="step-num">4</div>
                     </div>
+                    <h3>Order & Install</h3>
+                    <p>Everything bundled and delivered. Choose DIY or professional installation at checkout.</p>
                 </div>
             </div>
 
@@ -299,6 +316,15 @@ document.addEventListener('DOMContentLoaded', function() {
     <script src="js/api.js"></script>
     <script src="js/common.js"></script>
     <script src="js/mobile.js"></script>
+    <script>
+    // Hide placeholder once video starts playing
+    const vid = document.getElementById('heroVideo');
+    const ph  = document.getElementById('videoPlaceholder');
+    if (vid && ph) {
+        vid.addEventListener('playing', () => { ph.style.display = 'none'; });
+        vid.addEventListener('error',   () => { vid.style.display = 'none'; });
+    }
+    </script>
     <script>
     async function startPlanCheckout(plan) {
         const btn = event.currentTarget;
