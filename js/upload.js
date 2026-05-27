@@ -581,8 +581,9 @@ function showPlantRecommendationsPreview(recommended, notRecommended) {
         card = document.createElement('div');
         card.id        = 'plantRecommendationsPreview';
         card.className = 'plant-recommendations-preview';
-        const actionsDiv = document.querySelector('.action-buttons');
-        actionsDiv?.parentNode.insertBefore(card, actionsDiv);
+        const container = document.getElementById('plantRecommendationsContainer');
+        if (container) container.appendChild(card);
+        else document.querySelector('.action-buttons')?.parentNode.insertBefore(card, document.querySelector('.action-buttons'));
     }
     card.innerHTML = `
         <h4>🌿 Plant Recommendations Ready</h4>
@@ -596,12 +597,14 @@ function showPlantRecommendationsPreview(recommended, notRecommended) {
 
 function generateRecommendations(data) {
     const list = document.getElementById('recommendationsList');
+    const box  = document.getElementById('recommendationsBox');
     if (!list) return;
     if (Array.isArray(data.recommendations) && data.recommendations.length) {
         list.innerHTML = data.recommendations.map(r => '<li>' + r + '</li>').join('');
+        if (box) box.style.display = 'block';
         return;
     }
-    list.innerHTML = '<li>Upload your photo and let Claude analyze for personalized recommendations.</li>';
+    if (box) box.style.display = 'none';
 }
 
 // ── Check for saved data on page load ────────────────────────────────────────

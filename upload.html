@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Your Landscape - GarDIY</title>
     <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/upload.css?v=5">
+    <link rel="stylesheet" href="css/upload.css?v=6">
     <link rel="icon" type="image/png" href="images/logo.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 </head>
@@ -76,7 +76,8 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
 
             <div class="analysis-container">
-                <!-- Photo Preview -->
+                <!-- LEFT column: photo + recommendations -->
+                <div class="photo-col">
                 <div class="photo-preview" id="photoPreview">
                     <img id="previewImage" alt="Uploaded landscape">
                     
@@ -115,9 +116,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="photo-actions">
                         <button class="change-photo-btn" id="changePhotoBtn">Change Photo</button>
                     </div>
-                </div>
+                </div><!-- /photo-preview -->
 
-                <!-- Analysis Panel -->
+                <!-- Recommendations live in the left column so Start Designing stays visible -->
+                <div id="plantRecommendationsContainer"></div>
+                <div class="recommendations" id="recommendationsBox" style="display:none;">
+                    <h4>💡 Recommendations</h4>
+                    <ul id="recommendationsList"></ul>
+                </div>
+                </div><!-- /photo-col -->
+
+                <!-- RIGHT column: Analysis Panel -->
                 <div class="analysis-panel">
                     <!-- Location Form (shown first, before analysis starts) -->
                     <div id="locationForm" class="location-form" style="display:none;">
@@ -263,13 +272,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 <div id="uploadCalibDone" style="display:none;font-size:12px;font-weight:700;color:#10b981;margin-top:6px;">Scale calibrated — design page will use your measurement.</div>
                             </div>
-                        </div>
-
-                        <div class="recommendations">
-                            <h4>💡 Recommendations</h4>
-                            <ul id="recommendationsList">
-                                <!-- Populated by JS -->
-                            </ul>
                         </div>
 
                         <div class="action-buttons">
