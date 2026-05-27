@@ -717,9 +717,9 @@ async function loadProductCategories() {
         hardscapes:   { name: 'Hardscapes',      icon: '🛻', iconImg: 'images/categories/hardscape.png', products: [] },
         rocks_pavers: { name: 'Rocks & Pavers',  icon: '🪨', iconImg: 'images/categories/rocks.png',     products: [] },
         plants:       { name: 'Plants',          icon: '🌱', iconImg: 'images/categories/plants.png',    products: [] },
-        trees:        { name: 'Trees',           icon: '🌳', products: [] },
+        trees:        { name: 'Trees',           icon: '🌳', iconImg: 'images/categories/trees.png',     products: [] },
         flowers:      { name: 'Flowers',         icon: '🌸', iconImg: 'images/categories/flowers.png',   products: [] },
-        furniture:    { name: 'Furniture',       icon: '🪑', products: [] },
+        furniture:    { name: 'Furniture',       icon: '🪑', iconImg: 'images/categories/furniture.png', products: [] },
     };
 
     products.forEach((p, i) => {
