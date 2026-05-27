@@ -70,8 +70,6 @@ function getSqFtScale() {
     // sqFtPerNaturalPx2 = totalFrameSqFt / (imageNaturalWidth × imageNaturalHeight)
     // Computed once at analysis time — no race conditions, no letterbox ambiguity.
     const sqFtPerNaturalPx2 = analysis?.sqFtPerNaturalPx2;
-    const natW = analysis?.imageNaturalWidth  || _imgNatW;
-    const natH = analysis?.imageNaturalHeight || _imgNatH;
 
     if (sqFtPerNaturalPx2 && natW && natH) {
         // Items are measured in display pixels. Convert: 1 display px = 1/displayScale natural px
