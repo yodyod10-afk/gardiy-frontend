@@ -922,9 +922,10 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
         item.dataset.pathWidth  = '40';
     } else {
         if (itemData.type === 'image') {
-            item.innerHTML = `<img src="${itemData.image}" style="width:100%;height:100%;object-fit:cover;pointer-events:none;">`;
+            item.innerHTML = `<img src="${itemData.image}" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">`;
         } else {
-            item.innerHTML = `<span style="font-size:48px;pointer-events:none;">${itemData.image}</span>`;
+            const initFontSize = Math.round(Math.min(w, h) * 0.6);
+            item.innerHTML = `<span style="font-size:${initFontSize}px;pointer-events:none;">${itemData.image}</span>`;
         }
     }
 
@@ -1151,6 +1152,11 @@ function startCornerResize(e) {
 
         item.style.left = l + 'px'; item.style.top  = t + 'px';
         item.style.width = w + 'px'; item.style.height = h + 'px';
+        // Scale emoji content proportionally so it never gets clipped
+        if (item.dataset.type !== 'image' && !isMeshItem(item.dataset.name, item.dataset.category)) {
+            const span = item.querySelector('span');
+            if (span) span.style.fontSize = Math.max(10, Math.round(Math.min(w, h) * 0.6)) + 'px';
+        }
         positionCornerHandles(item);
         updateControlPanelPosition(item);
     };
