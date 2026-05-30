@@ -59,6 +59,12 @@ document.addEventListener('DOMContentLoaded', function () {
         signinForm.style.display = 'none';
     });
 
+    // Auto-switch to Create Account tab when arriving via #signup
+    if (window.location.hash === '#signup') {
+        signupTab.click();
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+
     // ── Login ──────────────────────────────────────────────────────────────
     document.getElementById('loginForm').addEventListener('submit', async function (e) {
         e.preventDefault();
