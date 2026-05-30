@@ -228,14 +228,16 @@ function showMessage(message, type) {
 function addPasswordToggle(inputId) {
     const input = document.getElementById(inputId);
     if (!input) return;
-    const group = input.closest('.form-group');
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:relative;display:block;';
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.innerHTML = '<img src="images/eye.png" style="width:20px;height:20px;object-fit:contain;display:block;">';
     btn.style.cssText = 'position:absolute;right:14px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;opacity:0.5;transition:opacity 0.2s;line-height:0;';
-    group.style.position = 'relative';
     input.style.paddingRight = '44px';
-    group.appendChild(btn);
+    wrapper.appendChild(btn);
     btn.addEventListener('click', () => {
         const show = input.type === 'password';
         input.type  = show ? 'text' : 'password';
