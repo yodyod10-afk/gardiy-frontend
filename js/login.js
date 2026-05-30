@@ -231,15 +231,17 @@ function addPasswordToggle(inputId) {
     const group = input.closest('.form-group');
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.innerHTML = '👁️';
-    btn.style.cssText = 'position:absolute;right:14px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;font-size:17px;opacity:0.5;transition:opacity 0.2s;';
+    btn.innerHTML = '<img src="images/eye.png" style="width:20px;height:20px;object-fit:contain;display:block;">';
+    btn.style.cssText = 'position:absolute;right:14px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;opacity:0.5;transition:opacity 0.2s;line-height:0;';
     group.style.position = 'relative';
     input.style.paddingRight = '44px';
     group.appendChild(btn);
     btn.addEventListener('click', () => {
         const show = input.type === 'password';
         input.type  = show ? 'text' : 'password';
-        btn.innerHTML = show ? '🙈' : '👁️';
+        btn.innerHTML = show
+            ? '<img src="images/monkey.png" style="width:20px;height:20px;object-fit:contain;display:block;">'
+            : '<img src="images/eye.png" style="width:20px;height:20px;object-fit:contain;display:block;">';
         btn.style.opacity = show ? '1' : '0.5';
     });
 }
