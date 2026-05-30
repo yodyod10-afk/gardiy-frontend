@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <h1>Transform Your Landscape with AI</h1>
             <p>Upload a photo, design your dream garden, and get everything delivered. From concept to reality in minutes.</p>
             <div class="hero-buttons">
-                <a href="login.html#signup" class="primary-btn">Get Started Free</a>
+                <button class="primary-btn" onclick="handleGetStarted()">Get Started Free</button>
                 <button class="secondary-btn" onclick="scrollToSection('how-it-works')">Watch Demo</button>
             </div>
             <div class="hero-stats">
@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
 
             <div class="cta-center">
-                <a href="upload.html" class="primary-btn large">Start Your Project Now</a>
+                <button class="primary-btn large" onclick="handleGetStarted()">Start Your Project Now</button>
             </div>
         </div>
     </section>
@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="container">
             <h2>Ready to Transform Your Outdoor Space?</h2>
             <p>Join thousands of homeowners who are revolutionizing garden design</p>
-            <a href="login.html#signup" class="primary-btn large">Start Your Free Design</a>
+            <button class="primary-btn large" onclick="handleGetStarted()">Start Your Free Design</button>
         </div>
     </section>
 
@@ -313,9 +313,35 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </footer>
 
+    <!-- Sign-in prompt modal -->
+    <div id="signInPrompt" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)closeSignInPrompt()">
+        <div style="background:white;border-radius:20px;padding:2.5rem 2rem;max-width:380px;width:90%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,0.2);position:relative;">
+            <button onclick="closeSignInPrompt()" style="position:absolute;top:14px;right:16px;border:none;background:none;font-size:1.3rem;cursor:pointer;color:#9ca3af;">&#x2715;</button>
+            <div style="font-size:2.5rem;margin-bottom:1rem;">🌿</div>
+            <h2 style="font-size:1.4rem;font-weight:800;color:#065f46;margin-bottom:0.5rem;">Welcome to GarDIY</h2>
+            <p style="color:#6b7280;font-size:0.95rem;margin-bottom:1.75rem;">Sign in to start designing your dream landscape.</p>
+            <a href="login.html" style="display:block;padding:0.85rem;border:2px solid #10b981;border-radius:50px;color:#059669;font-weight:700;font-size:1rem;text-decoration:none;margin-bottom:0.75rem;transition:background 0.2s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='white'">Sign In</a>
+            <a href="login.html#signup" style="display:block;padding:0.85rem;background:linear-gradient(135deg,#10b981,#059669);border-radius:50px;color:white;font-weight:700;font-size:1rem;text-decoration:none;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Create Account for Free</a>
+        </div>
+    </div>
+
     <script src="js/api.js"></script>
     <script src="js/common.js"></script>
     <script src="js/mobile.js"></script>
+    <script>
+    function handleGetStarted() {
+        const user = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        if (user && user.loggedIn) {
+            window.location.href = 'upload.html';
+        } else {
+            document.getElementById('signInPrompt').style.display = 'flex';
+        }
+    }
+    function closeSignInPrompt() {
+        document.getElementById('signInPrompt').style.display = 'none';
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSignInPrompt(); });
+    </script>
     <script>
     // Hide placeholder once video starts playing
     const vid = document.getElementById('heroVideo');
