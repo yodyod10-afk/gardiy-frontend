@@ -755,7 +755,6 @@ async function loadProductCategories() {
         </div>`;
 
     let html = `<h3>🎨 Products</h3>
-    <button class="auto-design-btn" onclick="openAutoDesignModal()">✨ Auto Design</button>
     <div class="category-list">`;
     Object.keys(categories).forEach(key => {
         const cat = categories[key];
