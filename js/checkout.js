@@ -56,7 +56,7 @@ function loadOrderSummary() {
     savedDesign.forEach(item => {
         const name = item.name;
         const price = parseFloat(item.price) || 0;
-        if (!itemCounts[name]) itemCounts[name] = { count: 1, price, name };
+        if (!itemCounts[name]) itemCounts[name] = { count: 1, price, name, size: item.size || '' };
         else itemCounts[name].count++;
     });
 
@@ -68,6 +68,7 @@ function loadOrderSummary() {
             <div class="summary-item">
                 <div>
                     <div class="summary-item-name">${name}</div>
+                    ${data.size ? `<div style="font-size:0.8rem;color:#10b981;font-weight:600;">${data.size}</div>` : ''}
                     <div style="font-size:0.85rem;color:#6b7280;">Qty: ${data.count} × $${unitPrice.toFixed(2)}</div>
                 </div>
                 <span class="summary-item-price">$${itemTotal.toFixed(2)}</span>

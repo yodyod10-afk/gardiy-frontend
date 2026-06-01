@@ -2154,28 +2154,34 @@ async function submitDesignForCheckout() {
             const info = getBrickPathInfo(item);
             const itemCost = (info && !info.noScale && info.cost) ? info.cost : (item.price || 0);
             const bricks   = (info && !info.noScale && info.brickCount) ? info.brickCount : 1;
-            checkoutItems.push({ name: `${item.name} (${bricks.toLocaleString()} bricks)`, price: parseFloat(itemCost.toFixed(2)) });
+            const brickProd = Object.values(productRegistry).find(p => p.name === item.name);
+            checkoutItems.push({ name: `${item.name} (${bricks.toLocaleString()} bricks)`, price: parseFloat(itemCost.toFixed(2)), size: brickProd?.size || '' });
         } else {
-            if (!regularGroups[item.name]) regularGroups[item.name] = { name: item.name, price: item.price || 0, count: 0 };
+            if (!regularGroups[item.name]) {
+                const prod = Object.values(productRegistry).find(p => p.name === item.name);
+                regularGroups[item.name] = { name: item.name, price: item.price || 0, count: 0, size: prod?.size || '' };
+            }
             regularGroups[item.name].count++;
         }
     });
 
     // Coverage items (hardscapes + grass): area-computed when polygon drawn, unit price fallback
     Object.values(coverageGroups).forEach(g => {
+        const coverProd = Object.values(productRegistry).find(p => p.name === g.name);
+        const coverSize = coverProd?.size || '';
         if (g.sfPerUnit > 0 && g.totalSqFt > 0) {
             const units = g.totalSqFt / g.sfPerUnit;
-            checkoutItems.push({ name: g.name, price: parseFloat((units * g.basePricePerUnit).toFixed(2)) });
+            checkoutItems.push({ name: g.name, price: parseFloat((units * g.basePricePerUnit).toFixed(2)), size: coverSize });
         } else {
             const count = placedItems.filter(i => i.name === g.name).length;
             const unitPrice = parseFloat(g.basePricePerUnit) || 0;
-            for (let c = 0; c < count; c++) checkoutItems.push({ name: g.name, price: unitPrice });
+            for (let c = 0; c < count; c++) checkoutItems.push({ name: g.name, price: unitPrice, size: coverSize });
         }
     });
     // Regular items: individual entries so checkout can display qty × unit price
     Object.values(regularGroups).forEach(g => {
         const unitPrice = parseFloat(g.price) || 0;
-        for (let c = 0; c < g.count; c++) checkoutItems.push({ name: g.name, price: unitPrice });
+        for (let c = 0; c < g.count; c++) checkoutItems.push({ name: g.name, price: unitPrice, size: g.size || '' });
     });
     // Compute total directly from checkoutItems so it's always consistent with actual prices
     const total = parseFloat(checkoutItems.reduce((s, i) => s + (parseFloat(i.price) || 0), 0).toFixed(2));
