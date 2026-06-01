@@ -771,6 +771,8 @@ body {
     vertical-align: middle;
     display: inline-block;
     line-height: 1;
+    color: initial;
+    -webkit-text-fill-color: initial;
 }
 
 .sun-legend {
