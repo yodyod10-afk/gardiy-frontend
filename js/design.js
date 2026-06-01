@@ -2190,13 +2190,14 @@ async function submitDesignForCheckout() {
     Object.values(coverageGroups).forEach(g => {
         const coverProd = Object.values(productRegistry).find(p => p.name === g.name);
         const coverSize = coverProd?.size || '';
+        const isTonBased = g.sfPerUnit > 1; // grass=1 sqft/unit; hardscapes=70-130 sqft/ton
         if (g.sfPerUnit > 0 && g.totalSqFt > 0) {
             const units = g.totalSqFt / g.sfPerUnit;
-            checkoutItems.push({ name: g.name, price: parseFloat((units * g.basePricePerUnit).toFixed(2)), size: coverSize });
+            checkoutItems.push({ name: g.name, price: parseFloat((units * g.basePricePerUnit).toFixed(2)), size: coverSize, tons: isTonBased ? parseFloat(units.toFixed(3)) : 0 });
         } else {
             const count = placedItems.filter(i => i.name === g.name).length;
             const unitPrice = parseFloat(g.basePricePerUnit) || 0;
-            for (let c = 0; c < count; c++) checkoutItems.push({ name: g.name, price: unitPrice, size: coverSize });
+            for (let c = 0; c < count; c++) checkoutItems.push({ name: g.name, price: unitPrice, size: coverSize, tons: 0 });
         }
     });
     // Regular items: individual entries so checkout can display qty × unit price

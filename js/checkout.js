@@ -53,12 +53,16 @@ function loadOrderSummary() {
     if (!savedDesign.length) { showEmptySummary(); return; }
 
     const itemCounts = {};
+    let totalTons = 0;
     savedDesign.forEach(item => {
         const name = item.name;
         const price = parseFloat(item.price) || 0;
         if (!itemCounts[name]) itemCounts[name] = { count: 1, price, name, size: item.size || '' };
         else itemCounts[name].count++;
+        totalTons += parseFloat(item.tons) || 0;
     });
+
+    const bulkDelivery = totalTons > 0.5;
 
     let html = '';
     for (const [name, data] of Object.entries(itemCounts)) {
@@ -74,6 +78,20 @@ function loadOrderSummary() {
                 <span class="summary-item-price">$${itemTotal.toFixed(2)}</span>
             </div>`;
     }
+
+    if (bulkDelivery) {
+        html += `
+            <div class="summary-item" style="border-top:1px dashed #d1d5db;margin-top:0.5rem;padding-top:0.75rem;">
+                <div>
+                    <div class="summary-item-name">Bulk Delivery Fee</div>
+                    <div style="font-size:0.8rem;color:#6b7280;">${totalTons.toFixed(2)} tons of gravel/mulch</div>
+                </div>
+                <span class="summary-item-price">$250.00</span>
+            </div>`;
+        // Inject delivery fee into stored total
+        if (storedTotal != null) storedTotal = parseFloat((storedTotal + 250).toFixed(2));
+    }
+
     summaryContainer.innerHTML = html;
     updateTotals(storedTotal);
 }
