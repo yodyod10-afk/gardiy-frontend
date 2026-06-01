@@ -539,15 +539,36 @@ function getSunRequirement(name, category) {
     if (!PLANT_CATEGORIES.has((category || '').toLowerCase())) return null;
     const n = (name || '').toLowerCase();
 
+    // ── Specific product matches ──────────────────────────────────────────────
     // Full sun
-    if (/cactus|sunflower|palm|lavender|sage|sedum|yucca/.test(n))          return 'full_sun';
-    if (/rose/.test(n) && !/primrose/.test(n))                               return 'full_sun';
-    if (/grass field/.test(n))                                               return 'full_sun';
+    const fullSun = [
+        'austrian pine','bonna pine','colorado sprauce','columnar norway sprauce',
+        'compact gem bosnian pine','crab spring snow','fastigiata spruce',
+        'fat albert spruce 910','ginko b, sky tower','limber pine',
+        'malus perfect purple',"malus 'prairfire'",'maple autumn blaze',
+        'picea pungens glauca baby blue 400','pinyon pine','prairie gold aspen',
+        'tannenbaum mugo pine','woodward columnar juniper',
+        'asclepias tuberosa','bloomerang dark purple','dianthus',
+        'little lady lilac','sombrero lemon yellow coneflower','purple pasque flower',
+        'kentucky blur grass',
+    ];
+    if (fullSun.some(k => n.includes(k) || k.includes(n.replace(/\s+\d+$/,'')))) return 'full_sun';
 
-    // Shade
-    if (/fern|hosta|impatiens|astilbe|begonia|caladium|shade/.test(n))      return 'shade';
+    // Partial sun / both
+    const partialSun = [
+        'accolade elm','well\'s deer run oriental spruce',
+        'geum tempp orange','juliana jane boxwood shrub 85',
+        'starstruck amsonia','big leaf hydrangea eclipse',
+        'dream cloud reblooming hydrangea','strawberry sundae panicle hydrangea',
+    ];
+    if (partialSun.some(k => n.includes(k) || k.includes(n))) return 'both';
 
-    // Both / partial (default for all remaining plants)
+    // ── Generic keyword fallbacks ────────────────────────────────────────────
+    if (/cactus|sunflower|palm|lavender|sage|sedum|yucca|pine|spruce|juniper|aspen/.test(n)) return 'full_sun';
+    if (/rose/.test(n) && !/primrose/.test(n))   return 'full_sun';
+    if (/hydrangea|lilac|amsonia|boxwood/.test(n)) return 'both';
+    if (/fern|hosta|impatiens|astilbe|begonia|caladium|shade/.test(n)) return 'shade';
+
     return 'both';
 }
 
