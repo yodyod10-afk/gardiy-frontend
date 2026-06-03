@@ -1711,10 +1711,23 @@ function updateTotal(total) {
 }
 
 // ── Save / load ───────────────────────────────────────────────────────────────
+
+// Wait for the canvas background image to fully load so offsetHeight is accurate.
+// Resolves immediately if already complete or no src is set.
+function waitForCanvasImage() {
+    const img = document.getElementById('canvasImage');
+    if (!img || !img.src || img.src === window.location.href || img.complete) return Promise.resolve();
+    return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+}
+
 function getCanvasState() {
     const canvas  = document.getElementById('designCanvas');
     const canvasW = canvas?.offsetWidth  || 800;
-    const canvasH = canvas?.offsetHeight || 600;
+    // Derive height from natural image ratio if CSS hasn't resolved it yet
+    const img     = document.getElementById('canvasImage');
+    const rawH    = canvas?.offsetHeight || 0;
+    const canvasH = rawH > 0 ? rawH
+        : (img?.naturalWidth ? Math.round(canvasW * img.naturalHeight / img.naturalWidth) : 600);
     return JSON.stringify({
         canvasW, canvasH,
         items: placedItems.map(i => {
@@ -1811,6 +1824,9 @@ function showSavedIndicator() {
 }
 
 async function restoreCanvasFromState(canvasStateJson) {
+    // Must wait for the background image so canvas.offsetHeight is real, not 0
+    await waitForCanvasImage();
+
     const products = await getProducts();
     const data     = JSON.parse(canvasStateJson);
     [...placedItems].forEach(pi => pi.element.remove());
