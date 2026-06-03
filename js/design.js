@@ -367,6 +367,13 @@ function getCoverageRate(name) {
 }
 
 // ── Global state ──────────────────────────────────────────────────────────────
+const BACKEND = 'https://gardiy-backend-production.up.railway.app';
+
+// Cloud project state
+let activeProjectId   = localStorage.getItem('gardiyActiveProject')     || null;
+let activeProjectName = localStorage.getItem('gardiyActiveProjectName') || 'My Project';
+let cloudSaveTimer    = null;
+
 let placedItems    = [];
 let selectedItem   = null;
 let controlPanel   = null;
@@ -635,7 +642,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     setupCanvasClick();
     setupCalibration();
     setupCheckoutButtons();
-    loadSavedDesign();
+    setupProjectButtons();
+    updateProjectNameDisplay();
+    const cloudLoaded = await autoLoadLastProject();
+    if (!cloudLoaded) loadSavedDesign();
 
     // Pre-fill area input from Claude analysis, wire up live recalc
     const areaInput = document.getElementById('manualAreaInput');
@@ -1678,24 +1688,27 @@ function updateTotal(total) {
 }
 
 // ── Save / load ───────────────────────────────────────────────────────────────
+function getCanvasState() {
+    return JSON.stringify({
+        items: placedItems.map(i => ({
+            name: i.name, category: i.category, type: i.type,
+            x:    parseInt(i.element.style.left),   y: parseInt(i.element.style.top),
+            width: parseInt(i.element.style.width), height: parseInt(i.element.style.height),
+            rotation: parseInt(i.element.dataset.rotation || 0),
+            zIndex:   parseInt(i.element.style.zIndex) || 1,
+            price:    i.price,
+            polyPoints:   i.element.dataset.polyPoints,
+            pathPoints:   i.element.dataset.pathPoints,
+            pathWidth:    i.element.dataset.pathWidth,
+            pathFill:     i.element.dataset.pathFill,
+            borderRadius: i.element.dataset.borderRadius,
+        })),
+    });
+}
+
 function saveDesign() {
-    try {
-        localStorage.setItem('gardiyDesign', JSON.stringify({
-            items: placedItems.map(i => ({
-                name: i.name, category: i.category, type: i.type,
-                x:    parseInt(i.element.style.left), y: parseInt(i.element.style.top),
-                width: parseInt(i.element.style.width), height: parseInt(i.element.style.height),
-                rotation: parseInt(i.element.dataset.rotation || 0),
-                zIndex:   parseInt(i.element.style.zIndex) || 1,
-                price:    i.price,
-                polyPoints:   i.element.dataset.polyPoints,
-                pathPoints:   i.element.dataset.pathPoints,
-                pathWidth:    i.element.dataset.pathWidth,
-                pathFill:     i.element.dataset.pathFill,
-                borderRadius: i.element.dataset.borderRadius,
-            })),
-        }));
-    } catch (e) { console.warn('Save error:', e); }
+    try { localStorage.setItem('gardiyDesign', getCanvasState()); } catch (e) { console.warn('Save error:', e); }
+    scheduleCloudSave();
 }
 
 async function loadSavedDesign() {
@@ -1722,6 +1735,211 @@ async function loadSavedDesign() {
         deselectItem();
         updateMaterialsList(); // recalculate after all polygon shapes are restored
     } catch (e) { console.error('Load error:', e); }
+}
+
+// ── Cloud project save / load ─────────────────────────────────────────────────
+// projectStateCache holds canvasState JSON keyed by project _id, avoids storing
+// large JSON strings in data-* attributes which breaks with apostrophes/quotes.
+const projectStateCache = {};
+
+async function saveProjectCloud(nameOverride) {
+    const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    if (!session.token) return null;
+    const projectName = (nameOverride || activeProjectName || 'My Project').trim();
+    const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.token}` };
+    const body    = { canvasState: getCanvasState(), designName: projectName, isDraft: true };
+    try {
+        if (activeProjectId) {
+            const res  = await fetch(`${BACKEND}/api/designs/${activeProjectId}`, { method: 'PUT', headers, body: JSON.stringify(body) });
+            const data = await res.json();
+            if (data.success) { activeProjectName = projectName; localStorage.setItem('gardiyActiveProjectName', projectName); return activeProjectId; }
+        } else {
+            const res  = await fetch(`${BACKEND}/api/designs`, { method: 'POST', headers, body: JSON.stringify({ ...body, userId: session.userId }) });
+            const data = await res.json();
+            if (data.success) {
+                activeProjectId = data.designId; activeProjectName = projectName;
+                localStorage.setItem('gardiyActiveProject', activeProjectId);
+                localStorage.setItem('gardiyActiveProjectName', projectName);
+                return activeProjectId;
+            }
+        }
+    } catch (e) { console.warn('Cloud save failed:', e); }
+    return null;
+}
+
+function scheduleCloudSave() {
+    if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(async () => {
+        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        if (session.token && activeProjectId) { await saveProjectCloud(); showSavedIndicator(); }
+    }, 5000);
+}
+
+function showSavedIndicator() {
+    const btn = document.getElementById('saveProjectBtn');
+    if (!btn) return;
+    if (!btn.dataset.origText) btn.dataset.origText = btn.textContent;
+    btn.textContent = '✓ Saved';
+    clearTimeout(btn._savedTimer);
+    btn._savedTimer = setTimeout(() => { btn.textContent = btn.dataset.origText || 'Save'; }, 2500);
+}
+
+async function restoreCanvasFromState(canvasStateJson) {
+    const products = await getProducts();
+    const data     = JSON.parse(canvasStateJson);
+    [...placedItems].forEach(pi => pi.element.remove());
+    placedItems = [];
+    for (const d of data.items) {
+        const product = products.find(p => p.name === d.name);
+        if (!product) continue;
+        await addItemToCanvas(product, d.x, d.y);
+        const item = document.querySelector(`[data-id="${itemIdCounter - 1}"]`);
+        if (!item) continue;
+        item.style.width  = d.width  + 'px';
+        item.style.height = d.height + 'px';
+        item.dataset.rotation = d.rotation || 0;
+        item.style.transform  = `rotate(${d.rotation || 0}deg)`;
+        item.style.zIndex     = d.zIndex || 1;
+        if (d.polyPoints) { item.dataset.polyPoints = d.polyPoints; applyPolyShape(item); }
+        if (d.pathPoints) { item.dataset.pathPoints = d.pathPoints; item.dataset.pathWidth = d.pathWidth || '40'; if (d.pathFill) item.dataset.pathFill = d.pathFill; applyPathShape(item); }
+        if (d.borderRadius !== undefined) { item.dataset.borderRadius = d.borderRadius; item.style.borderRadius = d.borderRadius + 'px'; }
+    }
+    deselectItem();
+    saveDesign();
+    updateMaterialsList();
+}
+
+async function autoLoadLastProject() {
+    const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    if (!session.token || !activeProjectId) return false;
+    try {
+        const res  = await fetch(`${BACKEND}/api/designs`, { headers: { 'Authorization': `Bearer ${session.token}` } });
+        const data = await res.json();
+        if (!data.success) return false;
+        const project = data.designs.find(d => d._id === activeProjectId && d.isDraft);
+        if (!project?.canvasState) { activeProjectId = null; localStorage.removeItem('gardiyActiveProject'); return false; }
+        activeProjectName = project.designName || 'My Project';
+        localStorage.setItem('gardiyActiveProjectName', activeProjectName);
+        await restoreCanvasFromState(project.canvasState);
+        updateProjectNameDisplay();
+        return true;
+    } catch (e) { return false; }
+}
+
+async function handleSaveProjectClick() {
+    const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    if (!session.token) {
+        if (confirm('Sign in to save your project to the cloud.\n\nGo to login page?')) window.location.href = 'login.html';
+        return;
+    }
+    if (!placedItems.length && !activeProjectId) { alert('Add items to your design before saving.'); return; }
+    let name = activeProjectId ? null : prompt('Name your project:', 'My Project');
+    if (name === null && !activeProjectId) return; // cancelled new-project prompt
+    const btn = document.getElementById('saveProjectBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    const id = await saveProjectCloud(name || undefined);
+    if (btn) { btn.disabled = false; btn.dataset.origText = 'Save'; }
+    if (id)  { updateProjectNameDisplay(); showSavedIndicator(); }
+    else     { alert('Failed to save project. Please try again.'); }
+}
+
+async function openProjectsModal() {
+    const modal = document.getElementById('projectsModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    await refreshProjectsList();
+}
+
+async function refreshProjectsList() {
+    const listEl = document.getElementById('projectsList');
+    if (!listEl) return;
+    const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    if (!session.token) {
+        listEl.innerHTML = '<p style="color:#6b7280;text-align:center;padding:24px;">Sign in to save and load projects.</p>';
+        return;
+    }
+    listEl.innerHTML = '<p style="color:#6b7280;text-align:center;padding:24px;">Loading…</p>';
+    try {
+        const res      = await fetch(`${BACKEND}/api/designs`, { headers: { 'Authorization': `Bearer ${session.token}` } });
+        const data     = await res.json();
+        const projects = data.success ? data.designs.filter(d => d.isDraft) : [];
+        if (!projects.length) {
+            listEl.innerHTML = '<p style="color:#6b7280;text-align:center;padding:24px;">No saved projects yet.<br>Click <strong>Save</strong> to save your current work.</p>';
+            return;
+        }
+        // Cache states to avoid storing in DOM attributes
+        projects.forEach(p => { if (p.canvasState) projectStateCache[p._id] = p.canvasState; });
+        listEl.innerHTML = projects.map(p => {
+            const isActive = p._id === activeProjectId;
+            const dateStr  = new Date(p.updatedAt || p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            return `<div class="project-item${isActive ? ' project-item--active' : ''}" data-id="${p._id}">
+                <div class="project-item-info">
+                    <div class="project-item-name">${p.designName || 'Untitled'}</div>
+                    <div class="project-item-date">${dateStr}${isActive ? ' &middot; <span style="color:#10b981;font-weight:600;">active</span>' : ''}</div>
+                </div>
+                <div class="project-item-btns">
+                    <button class="proj-open-btn" data-id="${p._id}" data-name="${(p.designName||'My Project').replace(/"/g,'&quot;')}">Open</button>
+                    <button class="proj-del-btn"  data-id="${p._id}">✕</button>
+                </div>
+            </div>`;
+        }).join('');
+        listEl.querySelectorAll('.proj-open-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id    = btn.dataset.id;
+                const name  = btn.dataset.name;
+                const state = projectStateCache[id];
+                if (!state) { alert('This project has no saved canvas data.'); return; }
+                if (activeProjectId && activeProjectId !== id && !confirm(`Load "${name}"? Unsaved changes will be lost.`)) return;
+                activeProjectId = id; activeProjectName = name;
+                localStorage.setItem('gardiyActiveProject', id);
+                localStorage.setItem('gardiyActiveProjectName', name);
+                document.getElementById('projectsModal').style.display = 'none';
+                updateProjectNameDisplay();
+                await restoreCanvasFromState(state);
+            });
+        });
+        listEl.querySelectorAll('.proj-del-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id  = btn.dataset.id;
+                const row = btn.closest('.project-item');
+                const name = row.querySelector('.project-item-name').textContent;
+                if (!confirm(`Delete "${name}"?`)) return;
+                const r = await fetch(`${BACKEND}/api/designs/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${session.token}` } });
+                const d = await r.json();
+                if (d.success) {
+                    delete projectStateCache[id];
+                    if (activeProjectId === id) { activeProjectId = null; activeProjectName = 'My Project'; localStorage.removeItem('gardiyActiveProject'); localStorage.removeItem('gardiyActiveProjectName'); updateProjectNameDisplay(); }
+                    row.remove();
+                    if (!listEl.querySelector('.project-item')) listEl.innerHTML = '<p style="color:#6b7280;text-align:center;padding:24px;">No saved projects yet.</p>';
+                }
+            });
+        });
+    } catch (e) {
+        listEl.innerHTML = '<p style="color:#ef4444;text-align:center;padding:24px;">Failed to load projects.</p>';
+    }
+}
+
+function updateProjectNameDisplay() {
+    const el = document.getElementById('activeProjectName');
+    if (el) el.textContent = activeProjectId ? activeProjectName : '';
+}
+
+function setupProjectButtons() {
+    document.getElementById('saveProjectBtn')?.addEventListener('click', handleSaveProjectClick);
+    document.getElementById('myProjectsBtn')?.addEventListener('click', openProjectsModal);
+    document.getElementById('closeProjectsModal')?.addEventListener('click', () => { document.getElementById('projectsModal').style.display = 'none'; });
+    document.getElementById('projectsModal')?.addEventListener('click', e => {
+        if (e.target.id === 'projectsModal') document.getElementById('projectsModal').style.display = 'none';
+    });
+    document.getElementById('newProjectBtn')?.addEventListener('click', () => {
+        if (placedItems.length && !confirm('Start a new project? The canvas will be cleared.')) return;
+        activeProjectId = null; activeProjectName = 'My Project';
+        localStorage.removeItem('gardiyActiveProject');
+        localStorage.removeItem('gardiyActiveProjectName');
+        [...placedItems].forEach(pi => pi.element.remove());
+        placedItems = []; saveDesign(); updateMaterialsList(); updateProjectNameDisplay();
+        document.getElementById('projectsModal').style.display = 'none';
+    });
 }
 
 // ── Path system ───────────────────────────────────────────────────────────────

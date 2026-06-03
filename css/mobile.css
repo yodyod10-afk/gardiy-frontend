@@ -414,4 +414,7 @@
     /* DESIGN header */
     .header-actions { gap: 0.3rem !important; }
     .user-badge { display: none !important; }
+    .active-project-name { display: none !important; }
+    .my-projects-btn { font-size: 0.72rem !important; padding: 0.35rem 0.65rem !important; }
+    .save-project-btn { font-size: 0.72rem !important; padding: 0.35rem 0.65rem !important; }
 }

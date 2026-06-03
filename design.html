@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Design Your Landscape - GarDIY</title>
     <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/design.css?v=2">
+    <link rel="stylesheet" href="css/design.css?v=3">
     <link rel="stylesheet" href="css/mobile.css">
     <link rel="icon" type="image/png" href="images/logo.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
@@ -23,9 +23,10 @@
                 <!-- REMOVED: Products link - not relevant for users -->
             </nav>
             <div class="header-actions">
-                <button class="upload-photo-btn" id="backToUploadBtn">
-                    📷 Change Photo
-                </button>
+                <button class="upload-photo-btn" id="backToUploadBtn">📷 Change Photo</button>
+                <button class="save-project-btn" id="saveProjectBtn" title="Save project to cloud">Save</button>
+                <span id="activeProjectName" class="active-project-name"></span>
+                <button class="my-projects-btn" id="myProjectsBtn" title="My saved projects">📂 Projects</button>
                 <span class="user-badge">👤 Guest</span>
             </div>
         </div>
@@ -142,18 +143,27 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="js/api.js?v=2"></script>
     <script src="js/common.js?v=4"></script>
-    <script src="js/design.js?v=17"></script>
+    <script src="js/design.js?v=18"></script>
     <script src="js/mobile.js?v=3"></script>
     
+    <!-- My Projects Modal -->
+    <div id="projectsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10000;align-items:center;justify-content:center;">
+        <div class="projects-modal-box">
+            <div class="projects-modal-header">
+                <h3>📂 My Projects</h3>
+                <button id="closeProjectsModal" class="projects-modal-close">✕</button>
+            </div>
+            <div id="projectsList" class="projects-list"></div>
+            <button id="newProjectBtn" class="new-project-btn">+ New Project</button>
+        </div>
+    </div>
+
     <script>
         // Handle "Change Photo" button
         document.getElementById('backToUploadBtn')?.addEventListener('click', () => {
             if (confirm('Go back to photo upload? Your current design will be saved.')) {
-                // Save current design
                 const saveBtn = document.getElementById('saveDesignBtn');
                 if (saveBtn) saveBtn.click();
-                
-                // Go to upload page or landing
                 window.location.href = 'index.html#upload';
             }
         });
