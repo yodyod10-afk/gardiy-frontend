@@ -302,7 +302,8 @@ function getBrickPathInfo(placedItem) {
         if (areaPx < 1) return null;
         const areaInSqFt    = areaPx * scale;
         const bricksPerSqFt = getBricksPerSqFt(placedItem.name);
-        const brickCount    = Math.ceil(areaInSqFt * bricksPerSqFt * 1.1);
+        const wasteFactor   = 1 + pathWastePct / 100;
+        const brickCount    = Math.ceil(areaInSqFt * bricksPerSqFt * wasteFactor);
         return { areaInSqFt, bricksPerSqFt, brickCount, cost: brickCount * placedItem.price, noScale: false };
     }
 
@@ -315,7 +316,8 @@ function getBrickPathInfo(placedItem) {
     if (!scale) return { pixelLength, pathWidthPx, noScale: true };
     const areaInSqFt    = pixelLength * pathWidthPx * scale;
     const bricksPerSqFt = getBricksPerSqFt(placedItem.name);
-    const brickCount    = Math.ceil(areaInSqFt * bricksPerSqFt * 1.1);
+    const wasteFactor   = 1 + pathWastePct / 100;
+    const brickCount    = Math.ceil(areaInSqFt * bricksPerSqFt * wasteFactor);
     return { pixelLength, pathWidthPx, areaInSqFt, bricksPerSqFt, brickCount, cost: brickCount * placedItem.price, noScale: false };
 }
 
@@ -373,6 +375,9 @@ const BACKEND = 'https://gardiy-backend-production.up.railway.app';
 let activeProjectId   = localStorage.getItem('gardiyActiveProject')     || null;
 let activeProjectName = localStorage.getItem('gardiyActiveProjectName') || 'My Project';
 let cloudSaveTimer    = null;
+
+// Waste percentage for paths/pavers (user-editable, persisted)
+let pathWastePct = Math.max(0, Math.min(50, parseInt(localStorage.getItem('gardiyPathWaste') || '10')));
 
 let placedItems    = [];
 let selectedItem   = null;
@@ -654,6 +659,17 @@ document.addEventListener('DOMContentLoaded', async function () {
         const claudeSF = analysis?.squareFeet && analysis.squareFeet !== '—' ? parseFloat(analysis.squareFeet) : null;
         if (claudeSF) { areaInput.value = claudeSF; console.log('[SF] Pre-filled area from Claude:', claudeSF, 'sq ft'); }
         areaInput.addEventListener('input', () => { console.log('[SF] Manual area changed to:', areaInput.value); updateMaterialsList(); });
+    }
+
+    // Waste % input — user-editable, persisted in localStorage
+    const wasteInput = document.getElementById('wasteInput');
+    if (wasteInput) {
+        wasteInput.value = pathWastePct;
+        wasteInput.addEventListener('input', () => {
+            pathWastePct = Math.max(0, Math.min(50, parseInt(wasteInput.value) || 0));
+            localStorage.setItem('gardiyPathWaste', pathWastePct);
+            updateMaterialsList();
+        });
     }
 
     // ── Global mousemove: freehand drawing + poly/path dot drag ──
@@ -1658,14 +1674,14 @@ function updateMaterialsList() {
             if (sqFt === null) hasNoScale = true;
             else totalSqFt += sqFt;
         });
-        const bricks = Math.ceil(totalSqFt * BRICKS_PER_SQFT * 1.1); // +10% waste
+        const bricks = Math.ceil(totalSqFt * BRICKS_PER_SQFT * (1 + pathWastePct / 100));
         const cost   = bricks * group.price;
         total += cost;
         const ratioReady = group.items.every(i => i.element.dataset.coloredRatio !== undefined);
         const detailLine = hasNoScale
             ? `<div style="font-size:11px;color:#f59e0b;">⚠ Enter yard area to calculate bricks</div>`
             : totalSqFt > 0
-                ? `<div style="font-size:11px;color:#b5631a;font-weight:600;margin-top:3px;">🧱 ${bricks.toLocaleString()} bricks needed · ${totalSqFt.toFixed(1)} sq ft (+10% waste)</div>
+                ? `<div style="font-size:11px;color:#b5631a;font-weight:600;margin-top:3px;">🧱 ${bricks.toLocaleString()} bricks needed · ${totalSqFt.toFixed(1)} sq ft (+${pathWastePct}% waste)</div>
                    <div style="font-size:11px;color:#718096;">$${group.price.toFixed(2)}/brick · 4.5 bricks/sq ft</div>`
                 : ratioReady
                     ? `<div style="font-size:11px;color:#718096;">Calibrate scale to calculate bricks</div>`
