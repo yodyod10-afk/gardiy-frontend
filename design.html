@@ -27,11 +27,19 @@
                 <button class="save-project-btn" id="saveProjectBtn" title="Save project to cloud">Save</button>
                 <span id="activeProjectName" class="active-project-name"></span>
                 <button class="my-projects-btn" id="myProjectsBtn" title="My saved projects">📂 Projects</button>
+                <button class="share-project-btn" id="shareProjectBtn" title="Share this design via link">🔗 Share</button>
                 <button class="help-btn" id="helpBtn" title="How to use the design tool">?</button>
                 <span class="user-badge">👤 Guest</span>
             </div>
         </div>
     </header>
+
+    <!-- Shared design banner (shown when opened via share link) -->
+    <div id="sharedBanner" style="display:none;position:fixed;top:64px;left:0;right:0;z-index:999;background:#fffbeb;border-bottom:2px solid #f59e0b;padding:10px 20px;display:none;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:15px;">📐 Viewing shared design: <strong id="sharedDesignName"></strong></span>
+        <span style="color:#92400e;font-size:13px;">— This is a read-only preview. Save a copy to edit it.</span>
+        <button id="saveSharedCopyBtn" style="margin-left:auto;padding:7px 18px;background:#10b981;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">💾 Save a Copy to My Account</button>
+    </div>
 
     <!-- Design Section -->
     <section class="design-section">
@@ -152,7 +160,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="js/api.js?v=2"></script>
     <script src="js/common.js?v=4"></script>
-    <script src="js/design.js?v=20"></script>
+    <script src="js/design.js?v=21"></script>
     <script src="js/mobile.js?v=3"></script>
     
     <!-- Help Modal -->

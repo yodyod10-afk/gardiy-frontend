@@ -375,6 +375,7 @@ const BACKEND = 'https://gardiy-backend-production.up.railway.app';
 let activeProjectId   = localStorage.getItem('gardiyActiveProject')     || null;
 let activeProjectName = localStorage.getItem('gardiyActiveProjectName') || 'My Project';
 let cloudSaveTimer    = null;
+let isSharedView      = false; // true when page opened via ?share= link
 
 // Waste percentage for paths/pavers (user-editable, persisted)
 let pathWastePct = Math.max(0, Math.min(50, parseInt(localStorage.getItem('gardiyPathWaste') || '10')));
@@ -649,8 +650,14 @@ document.addEventListener('DOMContentLoaded', async function () {
     setupCheckoutButtons();
     setupProjectButtons();
     updateProjectNameDisplay();
-    const cloudLoaded = await autoLoadLastProject();
-    if (!cloudLoaded) loadSavedDesign();
+
+    const shareToken = new URLSearchParams(window.location.search).get('share');
+    if (shareToken) {
+        await enterSharedViewMode(shareToken);
+    } else {
+        const cloudLoaded = await autoLoadLastProject();
+        if (!cloudLoaded) loadSavedDesign();
+    }
 
     // Pre-fill area input from Claude analysis, wire up live recalc
     const areaInput = document.getElementById('manualAreaInput');
@@ -1956,6 +1963,116 @@ function setupProjectButtons() {
         placedItems = []; saveDesign(); updateMaterialsList(); updateProjectNameDisplay();
         document.getElementById('projectsModal').style.display = 'none';
     });
+    document.getElementById('shareProjectBtn')?.addEventListener('click', handleShareClick);
+}
+
+// ── Share feature ─────────────────────────────────────────────────────────────
+
+async function handleShareClick() {
+    const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    if (!session.token) {
+        if (confirm('Sign in to share your project.\n\nGo to login page?')) window.location.href = 'login.html';
+        return;
+    }
+    if (!activeProjectId) {
+        const shouldSave = confirm('Save your project first to generate a share link.');
+        if (!shouldSave) return;
+        const id = await handleSaveProjectClick();
+        if (!activeProjectId) return;
+    }
+    const btn = document.getElementById('shareProjectBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+    try {
+        const imageData = window.GarDIYStorage?.getImage() || '';
+        const res  = await fetch(`${BACKEND}/api/designs/${activeProjectId}/share`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.token}` },
+            body: JSON.stringify({ landscapeImageData: imageData }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        const shareUrl = `${window.location.origin}${window.location.pathname}?share=${data.shareToken}`;
+        await navigator.clipboard.writeText(shareUrl).catch(() => {
+            prompt('Copy this share link:', shareUrl);
+        });
+        if (btn) { btn.textContent = '✓ Link copied!'; setTimeout(() => { btn.disabled = false; btn.textContent = '🔗 Share'; }, 3000); }
+    } catch (e) {
+        console.error('Share failed:', e);
+        if (btn) { btn.disabled = false; btn.textContent = '🔗 Share'; }
+        alert('Could not generate share link. Please try again.');
+    }
+}
+
+async function enterSharedViewMode(token) {
+    isSharedView = true;
+    const banner = document.getElementById('sharedBanner');
+    if (banner) banner.style.display = 'flex';
+
+    // Disable save controls — viewer shouldn't trigger auto-save
+    const saveBtn   = document.getElementById('saveProjectBtn');
+    const projBtn   = document.getElementById('myProjectsBtn');
+    const shareBtn  = document.getElementById('shareProjectBtn');
+    if (saveBtn)  { saveBtn.style.display  = 'none'; }
+    if (projBtn)  { projBtn.style.display  = 'none'; }
+    if (shareBtn) { shareBtn.style.display = 'none'; }
+
+    try {
+        const res  = await fetch(`${BACKEND}/api/designs/shared/${token}`);
+        const data = await res.json();
+        if (!data.success) { alert('This share link is invalid or has expired.'); return; }
+
+        const nameEl = document.getElementById('sharedDesignName');
+        if (nameEl) nameEl.textContent = data.designName || 'Untitled Design';
+
+        // Restore background image
+        if (data.landscapeImageData) {
+            const canvasImage = document.getElementById('canvasImage');
+            const canvasHint  = document.getElementById('canvasHint');
+            if (canvasImage) { canvasImage.src = data.landscapeImageData; if (canvasHint) canvasHint.style.display = 'none'; }
+            window.GarDIYStorage?.saveImage(data.landscapeImageData);
+        }
+
+        // Restore placed items
+        if (data.canvasState) await restoreCanvasFromState(data.canvasState);
+
+    } catch (e) {
+        console.error('Failed to load shared design:', e);
+        alert('Could not load this shared design. Please try again.');
+    }
+
+    // Wire up "Save a Copy" button
+    document.getElementById('saveSharedCopyBtn')?.addEventListener('click', () => saveSharedCopy(token));
+}
+
+async function saveSharedCopy(token) {
+    const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    if (!session.token) {
+        if (confirm('Sign in to save this design to your account.\n\nGo to login page?')) {
+            sessionStorage.setItem('gardiyReturnShare', token);
+            window.location.href = 'login.html';
+        }
+        return;
+    }
+    const btn = document.getElementById('saveSharedCopyBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+        const res  = await fetch(`${BACKEND}/api/designs/shared/${token}/copy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.token}` },
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        activeProjectId   = data.designId;
+        activeProjectName = data.designName;
+        localStorage.setItem('gardiyActiveProject',     activeProjectId);
+        localStorage.setItem('gardiyActiveProjectName', activeProjectName);
+        // Reload without the share param so the user is now in edit mode
+        window.location.href = window.location.pathname;
+    } catch (e) {
+        console.error('Copy failed:', e);
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Save a Copy to My Account'; }
+        alert('Could not save a copy. Please try again.');
+    }
 }
 
 // ── Path system ───────────────────────────────────────────────────────────────

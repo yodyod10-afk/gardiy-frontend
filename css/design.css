@@ -116,6 +116,21 @@
 .save-project-btn:hover { background: #10b981; color: white; }
 .save-project-btn:disabled { opacity: 0.6; cursor: default; }
 
+.share-project-btn {
+    background: white;
+    color: #1d4ed8;
+    border: 1.5px solid #93c5fd;
+    padding: 0.4rem 0.9rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+.share-project-btn:hover { background: #eff6ff; }
+.share-project-btn:disabled { opacity: 0.6; cursor: default; }
+
 /* Help button */
 .help-btn {
     width: 30px;
