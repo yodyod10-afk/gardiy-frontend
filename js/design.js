@@ -938,28 +938,27 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
     const isPath = isPathItem(itemData.name, itemData.category);
 
     let w, h;
+    const noPos = (x == null || isNaN(x)); // true when called from sidebar click (no position given)
     if (customW) {
         w = customW; h = customH || customW;
     } else if (isMesh) {
         w = Math.round(canvas.offsetWidth  * 0.75) || 300;
         h = Math.round(canvas.offsetHeight * 0.75) || 300;
-        x = canvas.offsetWidth  / 2 - w / 2;
-        y = canvas.offsetHeight / 2 - h / 2;
+        if (noPos) { x = canvas.offsetWidth / 2 - w / 2; y = canvas.offsetHeight / 2 - h / 2; }
     } else if (isPath) {
         w = Math.round(canvas.offsetWidth  * 0.75) || 300;
         h = Math.round(canvas.offsetHeight * 0.75) || 300;
-        x = canvas.offsetWidth  / 2 - w / 2;
-        y = canvas.offsetHeight / 2 - h / 2;
+        if (noPos) { x = canvas.offsetWidth / 2 - w / 2; y = canvas.offsetHeight / 2 - h / 2; }
     } else if (itemData.type === 'image') {
         const dims = await _loadImageDims(itemData.imageUrl || itemData.image);
         const maxW = Math.round(canvas.offsetWidth * 0.75) || 400;
         const scale = Math.min(1, maxW / dims.w);
         w = Math.max(80, Math.round(dims.w * scale));
         h = Math.max(80, Math.round(dims.h * scale));
-        x = canvas.offsetWidth  / 2 - w / 2;
-        y = canvas.offsetHeight / 2 - h / 2;
+        if (noPos) { x = canvas.offsetWidth / 2 - w / 2; y = canvas.offsetHeight / 2 - h / 2; }
     } else {
         w = 80; h = 80;
+        if (noPos) { x = canvas.offsetWidth / 2 - w / 2; y = canvas.offsetHeight / 2 - h / 2; }
     }
 
     const item = document.createElement('div');
