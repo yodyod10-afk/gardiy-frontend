@@ -69,8 +69,8 @@ document.addEventListener('DOMContentLoaded', function() {
         menuItem.click();
     });
 
-    // Project actions
-    setupProjectActions();
+    // Load real projects from backend
+    loadUserProjects(user);
 
     // Settings forms
     setupSettingsForms();
@@ -99,50 +99,110 @@ function getInitials(name) {
     return name.substring(0, 2).toUpperCase();
 }
 
-function setupProjectActions() {
-    // Edit buttons
-    document.querySelectorAll('.project-item .action-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const action = this.textContent.trim();
-            const projectTitle = this.closest('.project-item').querySelector('h3').textContent;
-            
-            if (action.includes('Edit')) {
-                console.log('Editing:', projectTitle);
-                showMessage('Opening design editor...', 'info');
-                setTimeout(() => {
-                    window.location.href = 'design.html';
-                }, 1000);
-            } else if (action.includes('Share')) {
-                console.log('Sharing:', projectTitle);
-                shareProject(projectTitle);
-            } else if (action.includes('Delete')) {
-                console.log('Deleting:', projectTitle);
-                if (confirm(`Are you sure you want to delete "${projectTitle}"?`)) {
-                    this.closest('.project-item').style.animation = 'fadeOut 0.3s ease';
-                    setTimeout(() => {
-                        this.closest('.project-item').remove();
-                        showMessage('Project deleted', 'success');
-                    }, 300);
-                }
-            }
-        });
-    });
+const BACKEND = 'https://gardiy-backend-production.up.railway.app';
 
-    // Order actions
+async function loadUserProjects(user) {
+    const grid    = document.getElementById('projectsGrid');
+    const statEl  = document.getElementById('statProjects');
+    if (!grid) return;
+
+    if (!user.token) {
+        grid.innerHTML = '<p style="color:#6b7280;text-align:center;padding:40px;grid-column:1/-1;">Sign in to view your projects.</p>';
+        return;
+    }
+
+    try {
+        const res  = await fetch(`${BACKEND}/api/designs`, { headers: { 'Authorization': `Bearer ${user.token}` } });
+        const data = await res.json();
+        if (!data.success) throw new Error('fetch failed');
+
+        const projects = (data.designs || []).filter(d => d.isDraft);
+        if (statEl) statEl.textContent = projects.length;
+
+        if (!projects.length) {
+            grid.innerHTML = `
+                <div style="text-align:center;color:#6b7280;padding:48px 20px;grid-column:1/-1;">
+                    <div style="font-size:3rem;margin-bottom:12px;">🌱</div>
+                    <h3 style="margin:0 0 8px;color:#374151;">No saved projects yet</h3>
+                    <p style="margin:0 0 20px;">Go to the design tool, build your landscape, and click <strong>Save</strong>.</p>
+                    <a href="upload.html" style="padding:10px 24px;background:#10b981;color:white;border-radius:8px;text-decoration:none;font-weight:600;">+ Start Designing</a>
+                </div>`;
+            return;
+        }
+
+        grid.innerHTML = projects.map(p => {
+            const date    = new Date(p.updatedAt || p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const safeName = (p.designName || 'My Project').replace(/"/g, '&quot;');
+            const isActive = localStorage.getItem('gardiyActiveProject') === p._id;
+            return `
+                <div class="project-item" data-id="${p._id}">
+                    <div class="project-thumb" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0);display:flex;align-items:center;justify-content:center;min-height:120px;position:relative;">
+                        <div style="font-size:2.8rem;">🌿</div>
+                        ${isActive ? '<div class="project-status" style="background:#10b981;">Active</div>' : ''}
+                    </div>
+                    <div class="project-details">
+                        <h3 style="margin:0 0 4px;font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.designName || 'Untitled Project'}</h3>
+                        <p class="project-meta">Last saved: ${date}</p>
+                        <div class="project-actions">
+                            <button class="action-btn proj-open-btn" data-id="${p._id}" data-name="${safeName}">✏️ Open</button>
+                            <button class="action-btn proj-del-btn"  data-id="${p._id}" data-name="${safeName}">🗑️ Delete</button>
+                        </div>
+                    </div>
+                </div>`;
+        }).join('') + `
+            <div class="new-project-card">
+                <a href="upload.html"><div class="plus-icon">+</div><p>New Project</p></a>
+            </div>`;
+
+        // Open button → set active project in localStorage and go to design page
+        grid.querySelectorAll('.proj-open-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                localStorage.setItem('gardiyActiveProject',     btn.dataset.id);
+                localStorage.setItem('gardiyActiveProjectName', btn.dataset.name);
+                window.location.href = 'design.html';
+            });
+        });
+
+        // Delete button → call API then remove card
+        grid.querySelectorAll('.proj-del-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!confirm(`Delete "${btn.dataset.name}"?`)) return;
+                try {
+                    const r = await fetch(`${BACKEND}/api/designs/${btn.dataset.id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${user.token}` }
+                    });
+                    const d = await r.json();
+                    if (d.success) {
+                        if (localStorage.getItem('gardiyActiveProject') === btn.dataset.id) {
+                            localStorage.removeItem('gardiyActiveProject');
+                            localStorage.removeItem('gardiyActiveProjectName');
+                        }
+                        btn.closest('.project-item').remove();
+                        const remaining = grid.querySelectorAll('.project-item[data-id]').length;
+                        if (statEl) statEl.textContent = remaining;
+                        if (!remaining) loadUserProjects(user);
+                        showMessage('Project deleted', 'success');
+                    }
+                } catch (e) { showMessage('Failed to delete project', 'error'); }
+            });
+        });
+
+    } catch (e) {
+        grid.innerHTML = '<p style="color:#ef4444;text-align:center;padding:40px;grid-column:1/-1;">Failed to load projects. Please refresh the page.</p>';
+    }
+}
+
+function setupProjectActions() {
+    // Order actions (project actions are handled dynamically in loadUserProjects)
     document.querySelectorAll('.order-item .action-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const action = this.textContent.trim();
-            const orderNum = this.closest('.order-item').querySelector('h3').textContent;
-            
             if (action.includes('View') || action.includes('Track')) {
-                console.log('Viewing order:', orderNum);
                 showMessage('Opening order details...', 'info');
             } else if (action.includes('Reorder')) {
-                console.log('Reordering:', orderNum);
                 showMessage('Adding items to cart...', 'info');
             } else if (action.includes('Contact')) {
-                console.log('Contacting support for:', orderNum);
                 showMessage('Opening support chat...', 'info');
             }
         });
