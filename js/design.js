@@ -1712,20 +1712,43 @@ function updateTotal(total) {
 
 // ── Save / load ───────────────────────────────────────────────────────────────
 function getCanvasState() {
+    const canvas  = document.getElementById('designCanvas');
+    const canvasW = canvas?.offsetWidth  || 800;
+    const canvasH = canvas?.offsetHeight || 600;
     return JSON.stringify({
-        items: placedItems.map(i => ({
-            name: i.name, category: i.category, type: i.type,
-            x:    parseInt(i.element.style.left),   y: parseInt(i.element.style.top),
-            width: parseInt(i.element.style.width), height: parseInt(i.element.style.height),
-            rotation: parseInt(i.element.dataset.rotation || 0),
-            zIndex:   parseInt(i.element.style.zIndex) || 1,
-            price:    i.price,
-            polyPoints:   i.element.dataset.polyPoints,
-            pathPoints:   i.element.dataset.pathPoints,
-            pathWidth:    i.element.dataset.pathWidth,
-            pathFill:     i.element.dataset.pathFill,
-            borderRadius: i.element.dataset.borderRadius,
-        })),
+        canvasW, canvasH,
+        items: placedItems.map(i => {
+            const x  = parseInt(i.element.style.left)   || 0;
+            const y  = parseInt(i.element.style.top)    || 0;
+            const w  = parseInt(i.element.style.width)  || 80;
+            const h  = parseInt(i.element.style.height) || 80;
+            const pw = parseInt(i.element.dataset.pathWidth || 40);
+            // Fractional coords (0-1) for device-independent restore
+            let polyPtsFrac, pathPtsFrac;
+            if (i.element.dataset.polyPoints) {
+                const pts = JSON.parse(i.element.dataset.polyPoints);
+                polyPtsFrac = pts.map(p => ({ id: p.id, xF: p.x / canvasW, yF: p.y / canvasH }));
+            }
+            if (i.element.dataset.pathPoints) {
+                const pts = JSON.parse(i.element.dataset.pathPoints);
+                pathPtsFrac = pts.map(p => ({ id: p.id, xF: p.x / canvasW, yF: p.y / canvasH }));
+            }
+            return {
+                name: i.name, category: i.category, type: i.type,
+                x, y, width: w, height: h,           // raw px — kept for legacy
+                xPct: x / canvasW, yPct: y / canvasH,
+                wPct: w / canvasW, hPct: h / canvasH,
+                rotation: parseInt(i.element.dataset.rotation || 0),
+                zIndex:   parseInt(i.element.style.zIndex) || 1,
+                price:    i.price,
+                polyPoints: i.element.dataset.polyPoints, polyPtsFrac,
+                pathPoints: i.element.dataset.pathPoints, pathPtsFrac,
+                pathWidth:  i.element.dataset.pathWidth,
+                pathWidthPct: pw / canvasW,
+                pathFill:     i.element.dataset.pathFill,
+                borderRadius: i.element.dataset.borderRadius,
+            };
+        }),
     });
 }
 
@@ -1737,27 +1760,7 @@ function saveDesign() {
 async function loadSavedDesign() {
     const saved = localStorage.getItem('gardiyDesign');
     if (!saved) return;
-    try {
-        const data     = JSON.parse(saved);
-        const products = await getProducts();
-        for (const d of data.items) {
-            const product = products.find(p => p.name === d.name);
-            if (!product) continue;
-            await addItemToCanvas(product, d.x, d.y);
-            const item = document.querySelector(`[data-id="${itemIdCounter - 1}"]`);
-            if (!item) continue;
-            item.style.width     = d.width  + 'px';
-            item.style.height    = d.height + 'px';
-            item.dataset.rotation = d.rotation || 0;
-            item.style.transform  = `rotate(${d.rotation || 0}deg)`;
-            item.style.zIndex     = d.zIndex || 1;
-            if (d.polyPoints) { item.dataset.polyPoints = d.polyPoints; applyPolyShape(item); }
-            if (d.pathPoints) { item.dataset.pathPoints = d.pathPoints; item.dataset.pathWidth = d.pathWidth || '40'; if (d.pathFill) item.dataset.pathFill = d.pathFill; applyPathShape(item); }
-            if (d.borderRadius !== undefined) { item.dataset.borderRadius = d.borderRadius; item.style.borderRadius = d.borderRadius + 'px'; }
-        }
-        deselectItem();
-        updateMaterialsList(); // recalculate after all polygon shapes are restored
-    } catch (e) { console.error('Load error:', e); }
+    try { await restoreCanvasFromState(saved); } catch (e) { console.error('Load error:', e); }
 }
 
 // ── Cloud project save / load ─────────────────────────────────────────────────
@@ -1812,19 +1815,56 @@ async function restoreCanvasFromState(canvasStateJson) {
     const data     = JSON.parse(canvasStateJson);
     [...placedItems].forEach(pi => pi.element.remove());
     placedItems = [];
+
+    // Scale all coords from the saved canvas size to the current canvas size
+    const canvas = document.getElementById('designCanvas');
+    const cW     = canvas?.offsetWidth  || 800;
+    const cH     = canvas?.offsetHeight || 600;
+    const savedW = data.canvasW || cW;   // if no canvasW, assume same size (no scale)
+    const savedH = data.canvasH || cH;
+    const sX     = cW / savedW;          // horizontal scale factor
+    const sY     = cH / savedH;          // vertical scale factor
+
     for (const d of data.items) {
         const product = products.find(p => p.name === d.name);
         if (!product) continue;
-        await addItemToCanvas(product, d.x, d.y);
+
+        // Prefer fractional coords (new format); fall back to raw × scale factor
+        const x = d.xPct !== undefined ? Math.round(d.xPct * cW) : Math.round((d.x || 0) * sX);
+        const y = d.yPct !== undefined ? Math.round(d.yPct * cH) : Math.round((d.y || 0) * sY);
+        const w = d.wPct !== undefined ? Math.round(d.wPct * cW) : Math.round((d.width  || 80) * sX);
+        const h = d.hPct !== undefined ? Math.round(d.hPct * cH) : Math.round((d.height || 80) * sY);
+
+        await addItemToCanvas(product, x, y);
         const item = document.querySelector(`[data-id="${itemIdCounter - 1}"]`);
         if (!item) continue;
-        item.style.width  = d.width  + 'px';
-        item.style.height = d.height + 'px';
+        item.style.width      = w + 'px';
+        item.style.height     = h + 'px';
         item.dataset.rotation = d.rotation || 0;
         item.style.transform  = `rotate(${d.rotation || 0}deg)`;
         item.style.zIndex     = d.zIndex || 1;
-        if (d.polyPoints) { item.dataset.polyPoints = d.polyPoints; applyPolyShape(item); }
-        if (d.pathPoints) { item.dataset.pathPoints = d.pathPoints; item.dataset.pathWidth = d.pathWidth || '40'; if (d.pathFill) item.dataset.pathFill = d.pathFill; applyPathShape(item); }
+
+        if (d.polyPtsFrac || d.polyPoints) {
+            const pts = d.polyPtsFrac
+                ? d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }))
+                : JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
+            item.dataset.polyPoints = JSON.stringify(pts);
+            applyPolyShape(item);
+        }
+
+        if (d.pathPoints) {
+            const pts = d.pathPtsFrac
+                ? d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }))
+                : JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
+            item.dataset.pathPoints = JSON.stringify(pts);
+            const pw = d.pathWidthPct !== undefined
+                ? Math.round(d.pathWidthPct * cW)
+                : Math.round(parseInt(d.pathWidth || 40) * sX);
+            item.dataset.pathWidth = pw;
+            if (d.pathFill) item.dataset.pathFill = d.pathFill;
+            applyPathShape(item);
+        }
+
         if (d.borderRadius !== undefined) { item.dataset.borderRadius = d.borderRadius; item.style.borderRadius = d.borderRadius + 'px'; }
     }
     deselectItem();
