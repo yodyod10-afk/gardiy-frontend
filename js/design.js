@@ -273,9 +273,9 @@ function _applyCalibration(feet) {
 
 // Bricks per sq ft by product name — add entries here as new products are defined
 const BRICK_PATH_DENSITY = {
-    'brick path':  4,   // red/standard brick: 4 per sqft
-    'brick paver': 4,
-    'stone pathway': 5, // smaller stone units
+    'brick path':  4.5,
+    'brick paver': 4.5,
+    'stone pathway': 4.5,
     'wood chips path': 0, // coverage-based, not brick-count
 };
 
@@ -284,7 +284,7 @@ function getBricksPerSqFt(name) {
     for (const [key, val] of Object.entries(BRICK_PATH_DENSITY)) {
         if (n.includes(key)) return val;
     }
-    return 4; // default: 4 bricks per sq ft
+    return 4.5; // default: 4.5 bricks per sq ft
 }
 
 // Returns brick count info for a placed brick-path item
@@ -1639,8 +1639,8 @@ function updateMaterialsList() {
         </div>`;
     });
 
-    // Path rows: sq ft (colored pixels only) × 8 bricks per sq ft
-    const BRICKS_PER_SQFT = 8;
+    // Path rows: sq ft (colored pixels only) × 4.5 bricks per sq ft
+    const BRICKS_PER_SQFT = 4.5;
     Object.values(pathItems).forEach(group => {
         let totalSqFt = 0, hasNoScale = false;
         group.items.forEach(item => {
@@ -1656,7 +1656,7 @@ function updateMaterialsList() {
             ? `<div style="font-size:11px;color:#f59e0b;">⚠ Enter yard area to calculate bricks</div>`
             : totalSqFt > 0
                 ? `<div style="font-size:11px;color:#b5631a;font-weight:600;margin-top:3px;">🧱 ${bricks.toLocaleString()} bricks needed · ${totalSqFt.toFixed(1)} sq ft (+10% waste)</div>
-                   <div style="font-size:11px;color:#718096;">$${group.price.toFixed(2)}/brick · 8 bricks/sq ft</div>`
+                   <div style="font-size:11px;color:#718096;">$${group.price.toFixed(2)}/brick · 4.5 bricks/sq ft</div>`
                 : ratioReady
                     ? `<div style="font-size:11px;color:#718096;">Calibrate scale to calculate bricks</div>`
                     : `<div style="font-size:11px;color:#718096;">Calculating…</div>`;
