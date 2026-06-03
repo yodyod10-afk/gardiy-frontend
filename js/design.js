@@ -599,6 +599,7 @@ function isGrassItem(n, c)       { return (c||'').toLowerCase() === 'grass'; }
 function isHardscapeItem(n, c)   { return (c||'').toLowerCase() === 'hardscapes'; }
 function isRocksPaversItem(n, c) { return (c||'').toLowerCase() === 'rocks_pavers'; }
 function isMeshItem(n, c)        { return isGrassItem(n, c) || isHardscapeItem(n, c); }
+function isMulchItem(n)          { const s = (n||'').toLowerCase(); return s.includes('mulch') || (s.includes('harvest') && !s.includes('cobblestone')); }
 // ── Ramer-Douglas-Peucker path simplification ────────────────────────────────
 function _perpDist(pt, a, b) {
     const dx = b.x - a.x, dy = b.y - a.y;
@@ -1606,14 +1607,23 @@ function updateMaterialsList() {
 
     // coverage: hardscapes ($/ton, sfPerUnit=SF per ton) + grass ($/sqft, sfPerUnit=1)
     const coverage  = {}; // name → { name, price, sfPerUnit, unitType, totalSqFt, noScale }
+    const mulch     = {}; // name → { name, price, totalSqFt, noScale }  — cubic-yard calculation
     const regular   = {}; // name → { name, price, count }
     const pathItems = {}; // name → { name, price, items[] }  — all path-category items
 
     placedItems.forEach(item => {
-        // All path items: sq ft from colored pixels × 8 bricks/sqft
+        // All path items: sq ft from colored pixels × 4.5 bricks/sqft
         if (isPathItem(item.name, item.category)) {
             if (!pathItems[item.name]) pathItems[item.name] = { name: item.name, price: item.price, items: [] };
             pathItems[item.name].items.push(item);
+            return;
+        }
+        // Mulch: cubic yards at 3" depth (handled separately from ton-based hardscapes)
+        if (isMulchItem(item.name)) {
+            if (!mulch[item.name]) mulch[item.name] = { name: item.name, price: item.price, totalSqFt: 0, noScale: false };
+            const sqFt = getItemSqFt(item);
+            if (sqFt === null) mulch[item.name].noScale = true;
+            else mulch[item.name].totalSqFt += sqFt;
             return;
         }
         const sfPerTon  = getCoverageRate(item.name);
@@ -1635,6 +1645,28 @@ function updateMaterialsList() {
     });
 
     let total = 0, html = '';
+
+    // Mulch rows — cubic yards at 3" depth: cu yd = sqFt × 0.25 / 27 = sqFt / 108
+    const SQFT_PER_CUYD_3IN = 108; // 27 cu ft/cu yd ÷ 0.25 ft depth
+    Object.values(mulch).forEach(item => {
+        const cuYd = item.totalSqFt / SQFT_PER_CUYD_3IN;
+        const cost = cuYd * item.price;
+        total += cost;
+        const hasScale = !item.noScale && item.totalSqFt > 0;
+        const detailLine = hasScale
+            ? `<div style="font-size:11px;color:#10b981;font-weight:600;margin-top:3px;">📐 ${item.totalSqFt.toFixed(1)} sq ft · 3" deep</div>
+               <div style="font-size:11px;color:#718096;">${cuYd.toFixed(2)} cu yd · $${item.price.toFixed(2)}/cu yd</div>`
+            : item.noScale
+                ? `<div style="font-size:11px;color:#f59e0b;">⚠ Analyze photo to calculate area</div>`
+                : `<div style="font-size:11px;color:#718096;">Shape on canvas to calculate area</div>`;
+        html += `<div class="material-item coverage-item">
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:13px;">${item.name}</div>
+                ${detailLine}
+            </div>
+            <div style="font-weight:700;color:#059669;font-size:14px;white-space:nowrap;">$${cost.toFixed(2)}</div>
+        </div>`;
+    });
 
     // Coverage-based rows (hardscapes + grass)
     Object.values(coverage).forEach(item => {
