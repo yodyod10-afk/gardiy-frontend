@@ -575,8 +575,13 @@ function getSunRequirement(name, category) {
 function sunBadgeHTML(name, category) {
     const req = getSunRequirement(name, category);
     if (!req) return '';
-    const map = { full_sun: '☀️', shade: '☁️', both: '⛅' };
-    return `<span class="sun-badge" title="${req === 'full_sun' ? 'Full sun' : req === 'shade' ? 'Shade' : 'Sun or shade'}">${map[req]}</span>`;
+    const imgs = {
+        full_sun: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2600.png',
+        shade:    'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2601.png',
+        both:     'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/26c5.png',
+    };
+    const titles = { full_sun: 'Full sun', shade: 'Shade', both: 'Partial sun' };
+    return `<img src="${imgs[req]}" class="sun-badge" title="${titles[req]}" alt="${titles[req]}">`;
 }
 
 // ── Category helpers ──────────────────────────────────────────────────────────

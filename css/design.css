@@ -766,13 +766,12 @@ body {
 
 /* Sun exposure badges on plant items */
 .sun-badge {
-    font-size: 0.78rem;
+    width: 14px;
+    height: 14px;
     margin-left: 0.25rem;
     vertical-align: middle;
     display: inline-block;
-    line-height: 1;
-    color: initial;
-    -webkit-text-fill-color: initial;
+    object-fit: contain;
 }
 
 .sun-legend {
