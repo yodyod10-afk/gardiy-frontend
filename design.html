@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Design Your Landscape - GarDIY</title>
     <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/design.css?v=3">
+    <link rel="stylesheet" href="css/design.css?v=4">
     <link rel="stylesheet" href="css/mobile.css">
     <link rel="icon" type="image/png" href="images/logo.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
@@ -27,6 +27,7 @@
                 <button class="save-project-btn" id="saveProjectBtn" title="Save project to cloud">Save</button>
                 <span id="activeProjectName" class="active-project-name"></span>
                 <button class="my-projects-btn" id="myProjectsBtn" title="My saved projects">📂 Projects</button>
+                <button class="help-btn" id="helpBtn" title="How to use the design tool">?</button>
                 <span class="user-badge">👤 Guest</span>
             </div>
         </div>
@@ -146,6 +147,143 @@
     <script src="js/design.js?v=18"></script>
     <script src="js/mobile.js?v=3"></script>
     
+    <!-- Help Modal -->
+    <div id="helpModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10001;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;">
+        <div class="help-modal-box">
+            <div class="help-modal-header">
+                <div>
+                    <h2 class="help-modal-title">How to Use the Design Tool</h2>
+                    <p class="help-modal-sub">Everything you need to design your landscape</p>
+                </div>
+                <button id="closeHelpModal" class="help-modal-close">✕</button>
+            </div>
+
+            <div class="help-sections">
+
+                <div class="help-section">
+                    <div class="help-section-icon">🛒</div>
+                    <div class="help-section-body">
+                        <div class="help-section-title">Adding Items</div>
+                        <p>Open the <strong>Products</strong> panel on the left and click any item — it will be placed on your canvas. Scroll through categories (Plants, Grass, Hardscapes, Paths, Furniture…) to find what you need.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">✋</div>
+                    <div class="help-section-body">
+                        <div class="help-section-title">Moving Items</div>
+                        <p>Click an item to select it, then <strong>drag it</strong> to reposition anywhere on the canvas.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">↔️</div>
+                    <div class="help-section-body">
+                        <div class="help-section-title">Resizing Items</div>
+                        <p>Select an item — <strong>white squares</strong> appear at each corner. <strong>Drag any corner</strong> to make the item larger or smaller.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">🔄</div>
+                    <div class="help-section-body">
+                        <div class="help-section-title">Rotating Items</div>
+                        <p>Select an item — a <strong>green circle</strong> appears above it on a stem. <strong>Drag that circle</strong> in any direction to rotate the item. The rotation follows your cursor like a wheel.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">📋</div>
+                    <div class="help-section-body">
+                        <div class="help-section-title">Front &amp; Back (Layers)</div>
+                        <p>When items overlap, use the <strong>Front</strong> and <strong>Back</strong> buttons in the control bar above a selected item to control which one appears on top. <em>Front</em> brings it to the top, <em>Back</em> pushes it behind others.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">⧉</div>
+                    <div class="help-section-body">
+                        <div class="help-section-title">Copying Items</div>
+                        <p>Select an item and click the <strong>⧉ copy button</strong> in the control bar to place a duplicate of it on the canvas.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">🟢</div>
+                    <div class="help-section-body">
+                        <div class="help-section-title">Grass &amp; Hardscape Areas — Adding &amp; Editing Dots</div>
+                        <p>Grass and hardscape items (gravel, mulch, etc.) use a <strong>polygon shape</strong> to define their coverage area. Here's how to edit it:</p>
+                        <ul class="help-list">
+                            <li><strong>Click the item</strong> to select it — colored dots appear at its corners.</li>
+                            <li><strong>Click on the canvas</strong> (anywhere not on an existing dot) to <strong>add a new dot</strong> and reshape the area.</li>
+                            <li><strong>Drag any dot</strong> to move it and adjust the shape.</li>
+                            <li><strong>Right-click a dot</strong> to <strong>delete</strong> it.</li>
+                            <li>The <strong>↻ button</strong> in the control bar resets the shape back to a rectangle.</li>
+                        </ul>
+                        <p>The area covered and the cost update automatically as you reshape.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">🛤️</div>
+                    <div class="help-section-body">
+                        <div class="help-section-title">Drawing Paths (Brick Path, Stone Pathway)</div>
+                        <p>Path items are drawn freehand. Here's the workflow:</p>
+                        <ul class="help-list">
+                            <li>Click a path product (e.g. <em>Brick Path</em>) in the sidebar — <strong>drawing mode starts</strong>.</li>
+                            <li><strong>Click on the canvas</strong> to place points. A path grows between each click.</li>
+                            <li><strong>Double-click</strong> or <strong>right-click</strong> to finish the path.</li>
+                            <li>To <strong>edit a path</strong>, click it — orange control dots appear. Drag them to reshape.</li>
+                            <li><strong>Right-click on the canvas</strong> (not on a dot) while the path is selected to <strong>add a new control point</strong>.</li>
+                            <li>Use the <strong>⌐ button</strong> to straighten curves, or <strong>◠</strong> to add curves to edges.</li>
+                        </ul>
+                        <p>The brick count and cost update automatically based on the path length and area.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">📏</div>
+                    <div class="help-section-body">
+                        <div class="help-section-title">Calibrating Scale</div>
+                        <p>To get accurate area and material calculations, click <strong>"📏 Calibrate Scale from Known Distance"</strong> in the Materials panel:</p>
+                        <ul class="help-list">
+                            <li><strong>Step 1:</strong> Click the start of something with a known length in your photo (a fence panel, car, door, etc.).</li>
+                            <li><strong>Step 2:</strong> Click the end of that same object.</li>
+                            <li><strong>Step 3:</strong> Enter or select the real-world length in feet, then click Apply.</li>
+                        </ul>
+                        <p>Once calibrated, all grass, gravel, and path calculations use your actual yard dimensions.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">📐</div>
+                    <div class="help-section-body">
+                        <div class="help-section-title">Total Area Input</div>
+                        <p>If you know your yard's total area, type it (in square feet) into the <strong>"📐 Total area"</strong> field at the top of the Materials panel. This improves the accuracy of material quantity calculations even without scale calibration.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">🗑️</div>
+                    <div class="help-section-body">
+                        <div class="help-section-title">Deleting Items</div>
+                        <p>Select an item and click the <strong>🗑️ trash button</strong> in the control bar, or press the <strong>Delete key</strong> on your keyboard.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">💾</div>
+                    <div class="help-section-body">
+                        <div class="help-section-title">Saving Your Project</div>
+                        <p>Click <strong>Save</strong> in the header to save your design to the cloud. The first time you'll be asked to name your project. After that, every save updates the same project automatically. Changes are also auto-saved every 5 seconds.</p>
+                        <p>Click <strong>📂 Projects</strong> to see all your saved projects, open a previous one, or start a new blank canvas.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     <!-- My Projects Modal -->
     <div id="projectsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10000;align-items:center;justify-content:center;">
         <div class="projects-modal-box">
@@ -167,6 +305,12 @@
                 window.location.href = 'index.html#upload';
             }
         });
+
+        // Help modal open / close
+        const helpModal = document.getElementById('helpModal');
+        document.getElementById('helpBtn')?.addEventListener('click', () => { helpModal.style.display = 'flex'; });
+        document.getElementById('closeHelpModal')?.addEventListener('click', () => { helpModal.style.display = 'none'; });
+        helpModal?.addEventListener('click', e => { if (e.target === helpModal) helpModal.style.display = 'none'; });
     </script>
 </body>
 </html>
