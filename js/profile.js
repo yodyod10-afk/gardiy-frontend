@@ -600,7 +600,7 @@ function openEditProductModal(id) {
                     <select id="edit-category" style="width:100%;padding:9px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;">
                         <option value="hardscapes"  ${p.category==='hardscapes'  ?'selected':''}>Hardscapes</option>
                         <option value="rocks_pavers"${p.category==='rocks_pavers'?'selected':''}>Rocks &amp; Pavers</option>
-                        <option value="plants"      ${p.category==='plants'      ?'selected':''}>Plants</option>
+                        <option value="shrubs"      ${p.category==='shrubs'      ?'selected':''}>Shrubs</option>
                         <option value="trees"       ${p.category==='trees'       ?'selected':''}>Trees</option>
                         <option value="grass"       ${p.category==='grass'       ?'selected':''}>Grass</option>
                         <option value="flowers"     ${p.category==='flowers'     ?'selected':''}>Flowers</option>

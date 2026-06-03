@@ -46,10 +46,10 @@ const defaultProducts = [
     { id: 'hardscape-5', name: 'Pea Gravel', image: '🟤', category: 'hardscapes', price: 2.00, type: 'emoji', tiling: true },
     { id: 'hardscape-6', name: 'Wood Mulch', image: '🟫', category: 'hardscapes', price: 1.80, type: 'emoji', tiling: true },
     
-    // Plants
-    { id: 'plant-1', name: 'Boxwood Shrub', image: '🌿', category: 'plants', price: 45, type: 'emoji' },
-    { id: 'plant-2', name: 'Hostas', image: '🍀', category: 'plants', price: 30, type: 'emoji' },
-    { id: 'plant-3', name: 'Lavender', image: '🪴', category: 'plants', price: 25, type: 'emoji' },
+    // Shrubs
+    { id: 'plant-1', name: 'Boxwood Shrub', image: '🌿', category: 'shrubs', price: 45, type: 'emoji' },
+    { id: 'plant-2', name: 'Hostas', image: '🍀', category: 'shrubs', price: 30, type: 'emoji' },
+    { id: 'plant-3', name: 'Lavender', image: '🪴', category: 'shrubs', price: 25, type: 'emoji' },
     
     // Trees
     { id: 'tree-1', name: 'Japanese Maple', image: '🍁', category: 'trees', price: 250, type: 'emoji' },
@@ -357,7 +357,7 @@ async function loadProductsGrid() {
         'grass':        'Grass',
         'hardscapes':   'Hardscapes',
         'rocks_pavers': 'Rocks & Pavers',
-        'plants':       'Plants',
+        'shrubs':       'Shrubs',
         'trees':        'Trees',
         'flowers':      'Flowers',
         'furniture':    'Furniture',
@@ -589,7 +589,7 @@ function createProductModal(existingProduct = null) {
                         <option value="grass"        ${existingProduct?.category === 'grass'        ? 'selected' : ''}>Grass</option>
                         <option value="hardscapes"   ${existingProduct?.category === 'hardscapes'   ? 'selected' : ''}>Hardscapes</option>
                         <option value="rocks_pavers" ${existingProduct?.category === 'rocks_pavers' ? 'selected' : ''}>Rocks &amp; Pavers</option>
-                        <option value="plants"       ${existingProduct?.category === 'plants'       ? 'selected' : ''}>Plants</option>
+                        <option value="shrubs"       ${existingProduct?.category === 'shrubs'       ? 'selected' : ''}>Shrubs</option>
                         <option value="trees"        ${existingProduct?.category === 'trees'        ? 'selected' : ''}>Trees</option>
                         <option value="flowers"      ${existingProduct?.category === 'flowers'      ? 'selected' : ''}>Flowers</option>
                         <option value="furniture"    ${existingProduct?.category === 'furniture'    ? 'selected' : ''}>Furniture</option>

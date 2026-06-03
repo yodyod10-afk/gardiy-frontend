@@ -486,9 +486,9 @@ function getMockProducts() {
         { id: 3,  name: 'Brick Path',      category: 'paths',      type: 'emoji', image: '🧱', price: 200  },
         { id: 4,  name: 'Kentucky Bluegrass', category: 'grass', type: 'image', image: 'images/texture-grass-hd.jpg', imageUrl: 'images/texture-grass-hd.jpg', price: 0.50 },
         { id: 5,  name: 'Grass Field',     category: 'grass',      type: 'emoji', image: '🌾', price: 0.40 },
-        { id: 6,  name: 'Small Plant',     category: 'plants',     type: 'emoji', image: '🌱', price: 25   },
-        { id: 7,  name: 'Potted Plant',    category: 'plants',     type: 'emoji', image: '🪴', price: 45   },
-        { id: 8,  name: 'Cactus',          category: 'plants',     type: 'emoji', image: '🌵', price: 35   },
+        { id: 6,  name: 'Small Shrub',      category: 'shrubs',     type: 'emoji', image: '🌱', price: 25   },
+        { id: 7,  name: 'Potted Shrub',    category: 'shrubs',     type: 'emoji', image: '🪴', price: 45   },
+        { id: 8,  name: 'Cactus',          category: 'shrubs',     type: 'emoji', image: '🌵', price: 35   },
         { id: 9,  name: 'Tree',            category: 'trees',      type: 'emoji', image: '🌳', price: 150  },
         { id: 10, name: 'Palm Tree',       category: 'trees',      type: 'emoji', image: '🌴', price: 200  },
         { id: 11, name: 'Deciduous Tree',  category: 'trees',      type: 'emoji', image: '🌲', price: 180  },
@@ -545,7 +545,7 @@ async function getItemPrices() {
 
 // ── Sun exposure requirements ────────────────────────────────────────────────
 // Returns 'full_sun', 'shade', or 'both' for plants/flowers/trees; null for other categories.
-const PLANT_CATEGORIES = new Set(['plants', 'trees', 'flowers']);
+const PLANT_CATEGORIES = new Set(['shrubs', 'trees', 'flowers']);
 
 function getSunRequirement(name, category) {
     if (!PLANT_CATEGORIES.has((category || '').toLowerCase())) return null;
@@ -765,7 +765,7 @@ async function loadProductCategories() {
         grass:        { name: 'Grass',           icon: '🌿', iconImg: 'images/categories/grass.png',     products: [] },
         hardscapes:   { name: 'Hardscapes',      icon: '🛻', iconImg: 'images/categories/hardscape.png', products: [] },
         rocks_pavers: { name: 'Rocks & Pavers',  icon: '🪨', iconImg: 'images/categories/rocks.png',     products: [] },
-        plants:       { name: 'Plants',          icon: '🌱', iconImg: 'images/categories/plants.png',    products: [] },
+        shrubs:       { name: 'Shrubs',          icon: '🌱', iconImg: 'images/categories/plants.png',    products: [] },
         trees:        { name: 'Trees',           icon: '🌳', iconImg: 'images/categories/trees.png',     products: [] },
         flowers:      { name: 'Flowers',         icon: '🌸', iconImg: 'images/categories/flowers.png',   products: [] },
         furniture:    { name: 'Furniture',       icon: '🪑', iconImg: 'images/categories/furniture.png', products: [] },
@@ -2573,7 +2573,7 @@ function applyPlantRecommendationColors() {
     const notRecommended = (recs.notRecommended || []);
     if (!recommended.length && !notRecommended.length) return;
 
-    const plantCategories = ['plants', 'trees', 'flowers'];
+    const plantCategories = ['shrubs', 'trees', 'flowers'];
     let anyColored = false;
 
     document.querySelectorAll('.product-item').forEach(item => {
@@ -2801,7 +2801,7 @@ async function runAutoDesign() {
     }
 
     // Only send plant/tree/flower/rocks/path categories to the AI
-    const ALLOWED_FOR_AD = new Set(['plants', 'trees', 'flowers', 'rocks_pavers', 'paths']);
+    const ALLOWED_FOR_AD = new Set(['shrubs', 'trees', 'flowers', 'rocks_pavers', 'paths']);
     const products = Object.values(productRegistry)
         .filter(p => ALLOWED_FOR_AD.has((p.category || '').toLowerCase()))
         .map(p => ({ name: p.name, category: p.category }));
