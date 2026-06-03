@@ -1853,8 +1853,11 @@ async function restoreCanvasFromState(canvasStateJson) {
         await addItemToCanvas(product, x, y);
         const item = document.querySelector(`[data-id="${itemIdCounter - 1}"]`);
         if (!item) continue;
-        item.style.width      = w + 'px';
-        item.style.height     = h + 'px';
+        // Force position — addItemToCanvas may have centered the item internally
+        item.style.left   = x + 'px';
+        item.style.top    = y + 'px';
+        item.style.width  = w + 'px';
+        item.style.height = h + 'px';
         item.dataset.rotation = d.rotation || 0;
         item.style.transform  = `rotate(${d.rotation || 0}deg)`;
         item.style.zIndex     = d.zIndex || 1;
