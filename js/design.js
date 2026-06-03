@@ -575,13 +575,10 @@ function getSunRequirement(name, category) {
 function sunBadgeHTML(name, category) {
     const req = getSunRequirement(name, category);
     if (!req) return '';
-    const imgs = {
-        full_sun: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2600.png',
-        shade:    'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2601.png',
-        both:     'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/26c5.png',
-    };
-    const titles = { full_sun: 'Full sun', shade: 'Shade', both: 'Partial sun' };
-    return `<img src="${imgs[req]}" class="sun-badge" title="${titles[req]}" alt="${titles[req]}">`;
+    if (req === 'full_sun') return `<svg class="sun-badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" title="Full sun" aria-label="Full sun"><path fill="#FFAC33" d="M16 2h4v5h-4zm0 27h4v5h-4zM2 16h5v4H2zm27 0h5v4h-5zM6.1 6.1l2.8-2.8 3.5 3.5-2.8 2.8zm17.4 17.4l2.8-2.8 3.5 3.5-2.8 2.8zm-17.4 0l3.5-3.5-2.8-2.8-3.5 3.5zm17.4-17.4l3.5-3.5-2.8-2.8-3.5 3.5z"/><circle fill="#FFAC33" cx="18" cy="18" r="10"/><circle fill="#FFD983" cx="18" cy="18" r="7"/></svg>`;
+    if (req === 'both')     return `<svg class="sun-badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" title="Partial sun" aria-label="Partial sun"><circle fill="#FFAC33" cx="12" cy="12" r="9"/><circle fill="#FFD983" cx="12" cy="12" r="6"/><path fill="#CCD6DD" d="M26 28H13A8 8 0 0 1 13 12a8 8 0 0 1 3 .6A10 10 0 0 1 34 22a6 6 0 0 1-6 6z"/></svg>`;
+    if (req === 'shade')    return `<svg class="sun-badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" title="Shade" aria-label="Shade"><path fill="#CCD6DD" d="M30 23a7 7 0 0 0-7-7c-.4 0-.9 0-1.3.1A6 6 0 0 0 7 18a6 6 0 0 0 0 12h22a5 5 0 0 0 5-5z"/><path fill="#E1E8ED" d="M23 18a6 6 0 0 1 5.9 5A5 5 0 0 1 24 33H10a6 6 0 0 1-1-11.9A7 7 0 0 1 23 18z"/></svg>`;
+    return '';
 }
 
 // ── Category helpers ──────────────────────────────────────────────────────────
