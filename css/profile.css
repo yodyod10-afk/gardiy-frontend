@@ -113,7 +113,7 @@
 .menu-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 18px;
     padding: 14px 16px;
     color: #4a5568;
     text-decoration: none;
@@ -128,16 +128,28 @@
     color: #667eea;
 }
 
+.menu-item:hover .menu-icon {
+    color: #667eea;
+}
+
 .menu-item.active {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
 }
 
+.menu-item.active .menu-icon {
+    color: white;
+}
+
 .menu-item.logout {
-    color: #f56565;
+    color: #E57373;
     margin-top: 8px;
     border-top: 1px solid #e2e8f0;
     padding-top: 16px;
+}
+
+.menu-item.logout .menu-icon {
+    color: #E57373;
 }
 
 .menu-item.logout:hover {
@@ -145,22 +157,21 @@
     color: #e53e3e;
 }
 
+.menu-item.logout:hover .menu-icon {
+    color: #e53e3e;
+}
+
 .menu-icon {
-    width: 20px;
-    height: 20px;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 18px;
+    color: #2F6B4F;
+    font-size: 22px;
     line-height: 1;
-}
-
-.menu-icon img {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
-    display: block;
 }
 
 /* Main Content */
