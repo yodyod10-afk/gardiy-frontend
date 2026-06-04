@@ -1913,7 +1913,7 @@ function scheduleCloudSave() {
     }, 5000);
 }
 
-const SAVE_BTN_HTML = `<img src="images/icon-save.png" style="width:17px;height:17px;object-fit:contain;vertical-align:middle;margin-right:5px;">Save`;
+const SAVE_BTN_HTML = `<img src="images/icon-save.png" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:5px;">Save`;
 function showSavedIndicator() {
     const btn = document.getElementById('saveProjectBtn');
     if (!btn) return;
