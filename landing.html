@@ -86,7 +86,9 @@
             min-height: 92vh;
             display: flex;
             align-items: center;
-            background: linear-gradient(150deg, #f0fdf4 0%, #dcfce7 45%, #ecfdf5 100%);
+            background:
+                linear-gradient(150deg, rgba(240,253,244,0.92) 0%, rgba(220,252,231,0.88) 45%, rgba(236,253,245,0.92) 100%),
+                url("grass-background.png") center/cover no-repeat;
             position: relative;
             overflow: hidden;
         }
@@ -185,66 +187,29 @@
             justify-content: center;
         }
 
-        .video-container {
+        .hero-img-frame {
             width: 100%;
             height: 100%;
             border-radius: 20px;
-            background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
-            box-shadow: 0 32px 64px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.05);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
+            box-shadow: 0 32px 64px rgba(0,0,0,0.18);
             overflow: hidden;
+            position: relative;
         }
 
-        .video-container::before {
+        .hero-img-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .hero-img-frame::after {
             content: '';
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at 40% 40%, rgba(16,185,129,0.12) 0%, transparent 60%);
-        }
-
-        .video-placeholder {
-            text-align: center;
-            color: #94a3b8;
-            position: relative;
-            z-index: 1;
-        }
-
-        .play-button {
-            width: 72px;
-            height: 72px;
-            background: #10b981;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.25s;
-            box-shadow: 0 0 0 12px rgba(16,185,129,0.15);
-            margin: 0 auto 16px;
-        }
-
-        .play-button:hover {
-            transform: scale(1.08);
-            background: #059669;
-            box-shadow: 0 0 0 16px rgba(16,185,129,0.12);
-        }
-
-        .play-button::after {
-            content: '';
-            width: 0;
-            height: 0;
-            border-left: 22px solid white;
-            border-top: 13px solid transparent;
-            border-bottom: 13px solid transparent;
-            margin-left: 4px;
-        }
-
-        .video-placeholder p {
-            font-size: 15px;
-            color: #64748b;
+            border-radius: 20px;
+            box-shadow: inset 0 0 0 1.5px rgba(16,185,129,0.3);
+            pointer-events: none;
         }
 
         /* ── Features ── */
@@ -334,7 +299,9 @@
         /* ── How It Works ── */
         .how-it-works {
             padding: 100px 40px;
-            background: #f8fafc;
+            background:
+                linear-gradient(180deg, rgba(248,250,252,0.95) 0%, rgba(248,250,252,0.90) 100%),
+                url("fire pit.png") center/cover no-repeat fixed;
         }
 
         .steps-container {
@@ -558,16 +525,13 @@
                 <h1>Design Your Dream <span class="highlight">Garden</span> in Minutes</h1>
                 <p>Professional garden design powered by AI. Measure, analyze, and visualize your perfect outdoor space with precision.</p>
                 <div class="hero-buttons">
-                    <a href="design.html" class="btn-primary">Start Designing →</a>
-                    <a href="#demo" class="btn-secondary">Watch Demo</a>
+                    <a href="upload.html" class="btn-primary">Start Designing →</a>
+                    <a href="#how-it-works" class="btn-secondary">How It Works</a>
                 </div>
             </div>
             <div class="hero-visual">
-                <div class="video-container" id="demo">
-                    <div class="video-placeholder">
-                        <div class="play-button"></div>
-                        <p style="margin-top: 20px; font-size: 18px;">Watch Demo Video</p>
-                    </div>
+                <div class="hero-img-frame">
+                    <img src="garden.png" alt="GarDIY landscape design example">
                 </div>
             </div>
         </div>
@@ -704,10 +668,6 @@
             });
         });
 
-        // Play button demo
-        document.querySelector('.play-button').addEventListener('click', function() {
-            alert('Demo video would play here!\n\nYou can replace this with an actual video embed (YouTube, Vimeo, or self-hosted).');
-        });
     </script>
 </body>
 </html>
