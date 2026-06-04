@@ -24,7 +24,7 @@
             </nav>
             <div class="header-actions">
                 <button class="upload-photo-btn" id="backToUploadBtn">📷 Change Photo</button>
-                <button class="save-project-btn" id="saveProjectBtn" title="Save project to cloud">Save</button>
+                <button class="save-project-btn" id="saveProjectBtn" title="Save project to cloud"><img src="images/icon-save.png" style="width:17px;height:17px;object-fit:contain;vertical-align:middle;margin-right:5px;">Save</button>
                 <span id="activeProjectName" class="active-project-name"></span>
                 <button class="my-projects-btn" id="myProjectsBtn" title="My saved projects">📂 Projects</button>
                 <button class="share-project-btn" id="shareProjectBtn" title="Share this design via link">🔗 Share</button>
@@ -38,7 +38,7 @@
     <div id="sharedBanner" style="display:none;position:fixed;top:64px;left:0;right:0;z-index:999;background:#fffbeb;border-bottom:2px solid #f59e0b;padding:10px 20px;display:none;align-items:center;gap:12px;flex-wrap:wrap;">
         <span style="font-size:15px;">📐 Viewing shared design: <strong id="sharedDesignName"></strong></span>
         <span style="color:#92400e;font-size:13px;">— This is a read-only preview. Save a copy to edit it.</span>
-        <button id="saveSharedCopyBtn" style="margin-left:auto;padding:7px 18px;background:#10b981;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">💾 Save a Copy to My Account</button>
+        <button id="saveSharedCopyBtn" style="margin-left:auto;padding:7px 18px;background:#10b981;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;"><img src="images/icon-save.png" style="width:16px;height:16px;object-fit:contain;filter:brightness(0) invert(1);">Save a Copy to My Account</button>
     </div>
 
     <!-- Design Section -->
@@ -160,7 +160,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="js/api.js?v=2"></script>
     <script src="js/common.js?v=4"></script>
-    <script src="js/design.js?v=27"></script>
+    <script src="js/design.js?v=28"></script>
     <script src="js/mobile.js?v=3"></script>
     
     <!-- Help Modal -->

@@ -172,7 +172,7 @@ function showUserMenu(user) {
         </div>
         <a href="#" style="display: block; padding: 12px; color: #4a5568; text-decoration: none; border-radius: 8px; transition: all 0.3s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='transparent'">My Projects</a>
         <a href="#" style="display: block; padding: 12px; color: #4a5568; text-decoration: none; border-radius: 8px; transition: all 0.3s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='transparent'">Settings</a>
-        <a href="#" id="logoutBtn" style="display: block; padding: 12px; color: #f56565; text-decoration: none; border-radius: 8px; transition: all 0.3s; margin-top: 8px; border-top: 1px solid #e2e8f0;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='transparent'">Logout</a>
+        <a href="#" id="logoutBtn" style="display: flex; align-items: center; gap: 8px; padding: 12px; color: #f56565; text-decoration: none; border-radius: 8px; transition: all 0.3s; margin-top: 8px; border-top: 1px solid #e2e8f0;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='transparent'"><img src="images/icon-logout.png" style="width:16px;height:16px;object-fit:contain;opacity:0.8;">Logout</a>
     `;
     
     document.body.appendChild(menu);

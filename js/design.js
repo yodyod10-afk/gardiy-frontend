@@ -1913,13 +1913,13 @@ function scheduleCloudSave() {
     }, 5000);
 }
 
+const SAVE_BTN_HTML = `<img src="images/icon-save.png" style="width:17px;height:17px;object-fit:contain;vertical-align:middle;margin-right:5px;">Save`;
 function showSavedIndicator() {
     const btn = document.getElementById('saveProjectBtn');
     if (!btn) return;
-    if (!btn.dataset.origText) btn.dataset.origText = btn.textContent;
-    btn.textContent = '✓ Saved';
+    btn.innerHTML = '✓ Saved';
     clearTimeout(btn._savedTimer);
-    btn._savedTimer = setTimeout(() => { btn.textContent = btn.dataset.origText || 'Save'; }, 2500);
+    btn._savedTimer = setTimeout(() => { btn.innerHTML = SAVE_BTN_HTML; }, 2500);
 }
 
 async function restoreCanvasFromState(canvasStateJson) {
@@ -2017,9 +2017,9 @@ async function handleSaveProjectClick() {
     let name = activeProjectId ? null : prompt('Name your project:', 'My Project');
     if (name === null && !activeProjectId) return; // cancelled new-project prompt
     const btn = document.getElementById('saveProjectBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    if (btn) { btn.disabled = true; btn.innerHTML = 'Saving…'; }
     const id = await saveProjectCloud(name || undefined);
-    if (btn) { btn.disabled = false; btn.dataset.origText = 'Save'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = SAVE_BTN_HTML; }
     if (id)  { updateProjectNameDisplay(); showSavedIndicator(); }
     else     { alert('Failed to save project. Please try again.'); }
 }
