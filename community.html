@@ -23,7 +23,6 @@
                 <li><a href="index.html#pricing">Pricing</a></li>
             </ul>
             <div class="nav-actions">
-                <button class="share-btn" id="shareProjectBtn">📤 Share Your Project</button>
                 <a href="login.html" class="cta-btn">Sign In</a>
             </div>
             <button class="hamburger" id="hamburger" aria-label="Open menu">
@@ -270,85 +269,6 @@
             </div>
         </div>
     </section>
-
-    <!-- Share Modal (Hidden) -->
-    <div class="modal" id="shareModal" style="display: none;">
-        <div class="modal-content large">
-            <button class="modal-close" id="closeShareModal">×</button>
-            
-            <div class="modal-header">
-                <h2>📤 Share Your Project</h2>
-                <p>Inspire others with your landscape design</p>
-            </div>
-
-            <form class="share-form" id="shareForm">
-                <div class="form-section">
-                    <h3>Project Photos</h3>
-                    <div class="upload-zone" id="uploadZone">
-                        <div class="upload-icon">📷</div>
-                        <p>Click or drag photos here</p>
-                        <input type="file" id="projectPhotos" accept="image/*" multiple hidden>
-                    </div>
-                    <div class="photo-preview-grid" id="photoPreviewGrid"></div>
-                </div>
-
-                <div class="form-section">
-                    <h3>Project Details</h3>
-                    
-                    <div class="form-group">
-                        <label for="projectTitle">Project Title *</label>
-                        <input type="text" id="projectTitle" placeholder="Give your project a catchy name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="projectDescription">Description *</label>
-                        <textarea id="projectDescription" rows="4" placeholder="Describe your design, plants used, challenges overcome..." required></textarea>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="projectSize">Size (sq ft) *</label>
-                            <input type="number" id="projectSize" placeholder="450" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="projectCost">Total Cost *</label>
-                            <input type="number" id="projectCost" placeholder="2800" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="projectDuration">Duration (days) *</label>
-                            <input type="number" id="projectDuration" placeholder="2" required>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="projectCategory">Style Category *</label>
-                        <select id="projectCategory" required>
-                            <option value="">Select a style...</option>
-                            <option value="modern">Modern</option>
-                            <option value="traditional">Traditional</option>
-                            <option value="tropical">Tropical</option>
-                            <option value="minimalist">Minimalist</option>
-                            <option value="cottage">Cottage</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="projectTags">Tags (comma-separated)</label>
-                        <input type="text" id="projectTags" placeholder="modern, drought-tolerant, low-maintenance">
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" class="secondary-btn" id="cancelShare">Cancel</button>
-                    <button type="submit" class="primary-btn">
-                        Publish Project
-                        <span class="btn-arrow">→</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- Footer -->
     <footer>
