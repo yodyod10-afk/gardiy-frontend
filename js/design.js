@@ -423,7 +423,13 @@ const COLOR_PATTERNS = {
 };
 
 function productMatchesColor(p, color) {
-    return (COLOR_PATTERNS[color] || new RegExp(color, 'i')).test(p.name || '');
+    const pattern = COLOR_PATTERNS[color] || new RegExp(color, 'i');
+    return pattern.test(p.color || '') || pattern.test(p.name || '');
+}
+
+function parseHeightMin(h) {
+    const m = (h || '').match(/(\d+)/);
+    return m ? parseInt(m[1]) : 9999;
 }
 
 function buildProductItemsHTML(products, esc) {
@@ -432,12 +438,16 @@ function buildProductItemsHTML(products, esc) {
         const thumb = p.type === 'image'
             ? `<img src="${esc(p.imageUrl || p.image)}" style="width:40px;height:40px;object-fit:contain;border-radius:8px;">`
             : `<span style="font-size:32px;">${esc(p.image)}</span>`;
+        const infoBtn = p.notes
+            ? `<button class="product-info-btn" data-pid="${p._pid}" title="Plant info" aria-label="Plant info">?</button>`
+            : '';
         return `<div class="product-item" data-pid="${p._pid}">
             ${thumb}
             <div class="product-info">
-                <div class="product-name">${esc(p.name)}${sunBadgeHTML(p.name, p.category)}</div>
+                <div class="product-name">${esc(p.name)}${sunBadgeHTML(p.name, p.category, p.sun)}</div>
                 <div class="product-price">$${p.price}</div>
             </div>
+            ${infoBtn}
         </div>`;
     }).join('');
 }
@@ -446,8 +456,10 @@ function applyProductFilter(catKey) {
     const state = categoryFilterState[catKey] || { sort: 'default', color: '' };
     let prods = [...(categoryProductsMap[catKey] || [])];
     if (state.color) prods = prods.filter(p => productMatchesColor(p, state.color));
-    if (state.sort === 'asc')  prods.sort((a, b) => a.price - b.price);
-    if (state.sort === 'desc') prods.sort((a, b) => b.price - a.price);
+    if (state.sort === 'asc')         prods.sort((a, b) => a.price - b.price);
+    else if (state.sort === 'desc')   prods.sort((a, b) => b.price - a.price);
+    else if (state.sort === 'h_asc')  prods.sort((a, b) => parseHeightMin(a.height) - parseHeightMin(b.height));
+    else if (state.sort === 'h_desc') prods.sort((a, b) => parseHeightMin(b.height) - parseHeightMin(a.height));
     const listEl = document.querySelector(`.category-product-list[data-category="${catKey}"]`);
     if (!listEl) return;
     const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -478,6 +490,50 @@ function setupCategoryFilters() {
         applyProductFilter(catKey);
     });
 }
+
+// ── Product notes popup ───────────────────────────────────────────────────────
+function showProductNotes(product, anchorEl) {
+    let popup = document.getElementById('productNotesPopup');
+    if (!popup) {
+        popup = document.createElement('div');
+        popup.id = 'productNotesPopup';
+        popup.className = 'product-notes-popup';
+        document.body.appendChild(popup);
+        document.addEventListener('click', e => {
+            if (!e.target.closest('.product-notes-popup') && !e.target.closest('.product-info-btn')) {
+                popup.style.display = 'none';
+            }
+        }, true);
+    }
+    const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const details = [
+        product.height ? `<div><strong>Height:</strong> ${esc(product.height)}</div>` : '',
+        product.spread ? `<div><strong>Spread:</strong> ${esc(product.spread)}</div>` : '',
+        product.sun    ? `<div><strong>Sun:</strong> ${esc(product.sun)}</div>`        : '',
+        product.color  ? `<div><strong>Color:</strong> ${esc(product.color)}</div>`   : '',
+    ].filter(Boolean).join('');
+    popup.innerHTML = `
+        <div class="pnp-header">${esc(product.name)}</div>
+        ${details ? `<div class="pnp-details">${details}</div>` : ''}
+        ${product.notes ? `<div class="pnp-notes">${esc(product.notes)}</div>` : ''}
+    `;
+    const rect = anchorEl.getBoundingClientRect();
+    popup.style.display = 'block';
+    const pw = popup.offsetWidth;
+    let left = rect.right + 8;
+    if (left + pw > window.innerWidth - 8) left = rect.left - pw - 8;
+    popup.style.left = Math.max(8, left) + 'px';
+    popup.style.top  = Math.max(8, rect.top) + 'px';
+}
+
+document.addEventListener('click', e => {
+    const btn = e.target.closest('.product-info-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    const pid = btn.dataset.pid;
+    const product = productRegistry[pid];
+    if (product) showProductNotes(product, btn);
+});
 
 // ── Mock products ─────────────────────────────────────────────────────────────
 function getMockProducts() {
@@ -585,8 +641,17 @@ function getSunRequirement(name, category) {
     return 'both';
 }
 
-function sunBadgeHTML(name, category) {
-    const req = getSunRequirement(name, category);
+function sunBadgeHTML(name, category, sunField) {
+    let req;
+    if (sunField) {
+        const s = (sunField || '').toLowerCase();
+        if (s.includes('full sun') && s.includes('partial')) req = 'both';
+        else if (s.includes('full sun')) req = 'full_sun';
+        else if (s.includes('partial') || s.includes('shade')) req = 'both';
+        else req = getSunRequirement(name, category);
+    } else {
+        req = getSunRequirement(name, category);
+    }
     if (!req) return '';
     if (req === 'full_sun') return `<svg class="sun-badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" title="Full sun" aria-label="Full sun"><path fill="#FFAC33" d="M16 2h4v5h-4zm0 27h4v5h-4zM2 16h5v4H2zm27 0h5v4h-5zM6.1 6.1l2.8-2.8 3.5 3.5-2.8 2.8zm17.4 17.4l2.8-2.8 3.5 3.5-2.8 2.8zm-17.4 0l3.5-3.5-2.8-2.8-3.5 3.5zm17.4-17.4l3.5-3.5-2.8-2.8-3.5 3.5z"/><circle fill="#FFAC33" cx="18" cy="18" r="10"/><circle fill="#FFD983" cx="18" cy="18" r="7"/></svg>`;
     if (req === 'both')     return `<svg class="sun-badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" title="Partial sun" aria-label="Partial sun"><circle fill="#FFAC33" cx="12" cy="12" r="9"/><circle fill="#FFD983" cx="12" cy="12" r="6"/><path fill="#CCD6DD" d="M26 28H13A8 8 0 0 1 13 12a8 8 0 0 1 3 .6A10 10 0 0 1 34 22a6 6 0 0 1-6 6z"/></svg>`;
@@ -794,12 +859,14 @@ async function loadProductCategories() {
 
     const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
+    const PLANT_CATS = new Set(['shrubs', 'trees', 'flowers']);
     const filterBarHTML = key => `
         <div class="category-filter-bar">
             <div class="filter-sort-row">
                 <button class="filter-sort-btn active" data-sort="default" data-cat="${key}">Default</button>
-                <button class="filter-sort-btn" data-sort="asc"  data-cat="${key}">↑ Low→High</button>
-                <button class="filter-sort-btn" data-sort="desc" data-cat="${key}">↓ High→Low</button>
+                <button class="filter-sort-btn" data-sort="asc"  data-cat="${key}">↑ $ Low</button>
+                <button class="filter-sort-btn" data-sort="desc" data-cat="${key}">↓ $ High</button>
+                ${PLANT_CATS.has(key) ? `<button class="filter-sort-btn" data-sort="h_asc"  data-cat="${key}">↑ Short</button><button class="filter-sort-btn" data-sort="h_desc" data-cat="${key}">↓ Tall</button>` : ''}
             </div>
             <div class="filter-color-row">
                 <button class="filter-color-all active" data-color="" data-cat="${key}">All</button>
@@ -878,6 +945,7 @@ function setupCanvasClick() {
 
 // ── Product click → add to canvas (paths enter drawing mode) ─────────────────
 document.addEventListener('click', async e => {
+    if (e.target.closest('.product-info-btn')) return; // handled by notes popup handler
     const item = e.target.closest('.product-item');
     if (!item) return;
     const pid = item.dataset.pid;

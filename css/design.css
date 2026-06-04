@@ -969,6 +969,72 @@ body {
     font-style: italic;
 }
 
+/* ── Product info (?) button ─────────────────────────────────────────────────── */
+.product-info-btn {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid #d1d5db;
+    background: white;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    padding: 0;
+}
+
+.product-info-btn:hover {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+}
+
+/* ── Product notes popup ───────────────────────────────────────────────────── */
+.product-notes-popup {
+    position: fixed;
+    z-index: 9999;
+    background: white;
+    border: 1.5px solid #d1d5db;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    padding: 12px 14px;
+    max-width: 260px;
+    min-width: 180px;
+    font-size: 13px;
+    line-height: 1.5;
+    display: none;
+}
+
+.pnp-header {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 13px;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.pnp-details {
+    color: #4b5563;
+    font-size: 12px;
+    margin-bottom: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pnp-notes {
+    color: #374151;
+    font-size: 12.5px;
+    font-style: italic;
+}
+
 /* Plant recommendation legend in sidebar */
 .plant-legend {
     display: flex;
