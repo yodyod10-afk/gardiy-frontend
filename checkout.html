@@ -69,8 +69,37 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="checkout-grid">
                 <!-- Left Column: Forms -->
                 <div class="checkout-left">
-                    <!-- Delivery Address -->
+                    <!-- Fulfillment Method -->
                     <div class="checkout-card">
+                        <h2>🚚 Fulfillment Method</h2>
+                        <div class="service-options" id="fulfillmentOptions">
+                            <label class="service-card selected" id="deliveryMethodCard">
+                                <input type="radio" name="fulfillment" value="delivery" id="deliveryMethodRadio" checked>
+                                <div class="service-content">
+                                    <div class="service-header">
+                                        <span class="service-icon">🚚</span>
+                                        <span class="service-title">Delivery</span>
+                                    </div>
+                                    <p class="service-description">We deliver all your materials directly to your address.</p>
+                                    <div class="service-price">$50.00 flat fee</div>
+                                </div>
+                            </label>
+                            <label class="service-card" id="pickupMethodCard">
+                                <input type="radio" name="fulfillment" value="pickup" id="pickupMethodRadio">
+                                <div class="service-content">
+                                    <div class="service-header">
+                                        <span class="service-icon">🏪</span>
+                                        <span class="service-title">Self Pickup</span>
+                                    </div>
+                                    <p class="service-description">Pick up your order at our location. No delivery fee.</p>
+                                    <div class="service-price" style="color:#10b981;">Free</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Address -->
+                    <div class="checkout-card" id="addressCard">
                         <h2>📍 Delivery Address</h2>
                         <form class="checkout-form" id="addressForm">
                             <div class="form-group">
@@ -147,13 +176,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
 
-                    <!-- Delivery Date -->
+                    <!-- Delivery / Pickup Date -->
                     <div class="checkout-card">
-                        <h2>📅 Delivery Date</h2>
+                        <h2 id="dateCardTitle">📅 Delivery Date</h2>
                         <div class="form-group">
-                            <label for="deliveryDate">Preferred Delivery Date *</label>
+                            <label for="deliveryDate" id="dateLabel">Preferred Delivery Date *</label>
                             <input type="date" id="deliveryDate" required>
-                            <p class="form-hint">Select your preferred date (3-5 business days from today)</p>
+                            <p class="form-hint" id="dateHint">Select your preferred date (3-5 business days from today)</p>
                         </div>
                     </div>
 
@@ -234,8 +263,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span id="subtotal">$0.00</span>
                         </div>
 
-                        <div class="summary-row">
-                            <span>Delivery Fee</span>
+                        <div class="summary-row" id="deliveryFeeRow">
+                            <span id="deliveryFeeLabel">Delivery Fee</span>
                             <span id="deliveryFee">$50.00</span>
                         </div>
 
@@ -304,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <script src="js/api.js?v=2"></script>
     <script src="js/common.js?v=2"></script>
     <script src="js/subscriptions.js"></script>
-    <script src="js/checkout.js?v=3"></script>
+    <script src="js/checkout.js?v=4"></script>
     <script src="js/mobile.js?v=2"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Design Your Landscape - GarDIY</title>
     <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/design.css?v=5">
+    <link rel="stylesheet" href="css/design.css?v=7">
     <link rel="stylesheet" href="css/mobile.css">
     <link rel="icon" type="image/png" href="images/logo.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
@@ -20,7 +20,6 @@
             <nav class="main-nav">
                 <a href="index.html">Home</a>
                 <a href="design.html" class="active">Design</a>
-                <!-- REMOVED: Products link - not relevant for users -->
             </nav>
             <div class="header-actions">
                 <button class="upload-photo-btn" id="backToUploadBtn">📷 Change Photo</button>
@@ -31,8 +30,44 @@
                 <button class="help-btn" id="helpBtn" title="How to use the design tool">?</button>
                 <span class="user-badge">👤 Guest</span>
             </div>
+            <!-- Mobile-only: menu trigger -->
+            <button class="design-mobile-menu-btn" id="designMobileMenuBtn" aria-label="Open menu">
+                <span></span><span></span><span></span>
+            </button>
         </div>
     </header>
+
+    <!-- Mobile actions drawer (design page only) -->
+    <div class="design-mobile-overlay" id="designMobileOverlay"></div>
+    <div class="design-mobile-drawer" id="designMobileDrawer">
+        <div class="design-drawer-header">
+            <span class="design-drawer-title">Menu</span>
+            <button class="design-drawer-close" id="designDrawerClose">✕</button>
+        </div>
+        <div class="design-drawer-user" id="drawerUserBadge">👤 Guest</div>
+        <div class="design-drawer-divider"></div>
+        <button class="design-drawer-btn" id="drawerSaveBtn">
+            <img src="images/icon-save.png" style="width:20px;height:20px;object-fit:contain;">
+            <span>Save Project</span>
+        </button>
+        <button class="design-drawer-btn" id="drawerProjectsBtn">
+            <span class="design-drawer-icon">📂</span>
+            <span>My Projects</span>
+        </button>
+        <button class="design-drawer-btn" id="drawerShareBtn">
+            <span class="design-drawer-icon">🔗</span>
+            <span>Share Design</span>
+        </button>
+        <button class="design-drawer-btn" id="drawerHelpBtn">
+            <span class="design-drawer-icon">?</span>
+            <span>How to Use</span>
+        </button>
+        <div class="design-drawer-divider"></div>
+        <button class="design-drawer-btn design-drawer-btn--secondary" id="drawerChangePhotoBtn">
+            <span class="design-drawer-icon">📷</span>
+            <span>Change Photo</span>
+        </button>
+    </div>
 
     <!-- Shared design banner (shown when opened via share link) -->
     <div id="sharedBanner" style="display:none;position:fixed;top:64px;left:0;right:0;z-index:999;background:#fffbeb;border-bottom:2px solid #f59e0b;padding:10px 20px;display:none;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -66,6 +101,11 @@
                     <img id="canvasImage" alt="Your landscape">
                     <div class="canvas-hint" id="canvasHint">
                         <p>Select items from the Products panel to start designing</p>
+                    </div>
+                    <!-- Undo / Redo -->
+                    <div class="undo-redo-bar">
+                        <button id="undoBtn" class="undo-redo-btn" title="Undo (Ctrl+Z)" disabled onclick="undoAction()">&#8592;</button>
+                        <button id="redoBtn" class="undo-redo-btn" title="Redo (Ctrl+Y)" disabled onclick="redoAction()">&#8594;</button>
                     </div>
                 </div>
 
@@ -160,7 +200,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="js/api.js?v=2"></script>
     <script src="js/common.js?v=4"></script>
-    <script src="js/design.js?v=30"></script>
+    <script src="js/design.js?v=32"></script>
     <script src="js/mobile.js?v=3"></script>
     
     <!-- Help Modal -->
@@ -297,19 +337,65 @@
 
     <script>
         // Handle "Change Photo" button
-        document.getElementById('backToUploadBtn')?.addEventListener('click', () => {
+        function doChangePhoto() {
             if (confirm('Go back to photo upload? Your current design will be saved.')) {
                 const saveBtn = document.getElementById('saveDesignBtn');
                 if (saveBtn) saveBtn.click();
                 window.location.href = 'index.html#upload';
             }
-        });
+        }
+        document.getElementById('backToUploadBtn')?.addEventListener('click', doChangePhoto);
 
         // Help modal open / close
         const helpModal = document.getElementById('helpModal');
-        document.getElementById('helpBtn')?.addEventListener('click', () => { helpModal.style.display = 'flex'; });
+        function openHelp() { helpModal.style.display = 'flex'; }
+        document.getElementById('helpBtn')?.addEventListener('click', openHelp);
         document.getElementById('closeHelpModal')?.addEventListener('click', () => { helpModal.style.display = 'none'; });
         helpModal?.addEventListener('click', e => { if (e.target === helpModal) helpModal.style.display = 'none'; });
+
+        // ── Mobile design drawer ────────────────────────────────
+        const mobileOverlay = document.getElementById('designMobileOverlay');
+        const mobileDrawer  = document.getElementById('designMobileDrawer');
+        const menuBtn       = document.getElementById('designMobileMenuBtn');
+
+        function openDesignDrawer() {
+            mobileDrawer.classList.add('open');
+            mobileOverlay.classList.add('open');
+            menuBtn.classList.add('open');
+            // sync user badge text
+            const mainBadge = document.querySelector('.header-actions .user-badge');
+            if (mainBadge) document.getElementById('drawerUserBadge').textContent = mainBadge.textContent;
+        }
+        function closeDesignDrawer() {
+            mobileDrawer.classList.remove('open');
+            mobileOverlay.classList.remove('open');
+            menuBtn.classList.remove('open');
+        }
+
+        menuBtn?.addEventListener('click', openDesignDrawer);
+        mobileOverlay?.addEventListener('click', closeDesignDrawer);
+        document.getElementById('designDrawerClose')?.addEventListener('click', closeDesignDrawer);
+
+        document.getElementById('drawerSaveBtn')?.addEventListener('click', () => {
+            closeDesignDrawer();
+            document.getElementById('saveProjectBtn')?.click();
+        });
+        document.getElementById('drawerProjectsBtn')?.addEventListener('click', () => {
+            closeDesignDrawer();
+            document.getElementById('myProjectsBtn')?.click();
+        });
+        document.getElementById('drawerShareBtn')?.addEventListener('click', () => {
+            closeDesignDrawer();
+            document.getElementById('shareProjectBtn')?.click();
+        });
+        document.getElementById('drawerHelpBtn')?.addEventListener('click', () => {
+            closeDesignDrawer();
+            openHelp();
+        });
+        document.getElementById('drawerChangePhotoBtn')?.addEventListener('click', () => {
+            closeDesignDrawer();
+            doChangePhoto();
+        });
     </script>
 </body>
 </html>

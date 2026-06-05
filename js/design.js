@@ -387,6 +387,46 @@ let itemIdCounter  = 0;
 let isRotating     = false;
 let rotationCenter = { x: 0, y: 0 };
 
+// ── Undo / Redo ───────────────────────────────────────────────────────────────
+const undoStack = [];
+const redoStack = [];
+const HISTORY_LIMIT = 50;
+
+function pushHistory() {
+    if (!placedItems.length && !undoStack.length) return;
+    undoStack.push(getCanvasState());
+    if (undoStack.length > HISTORY_LIMIT) undoStack.shift();
+    redoStack.length = 0;
+    updateUndoRedoBtns();
+}
+
+async function undoAction() {
+    if (!undoStack.length) return;
+    redoStack.push(getCanvasState());
+    const state = undoStack.pop();
+    await restoreCanvasFromState(state);
+    updateMaterialsList();
+    saveDesign();
+    updateUndoRedoBtns();
+}
+
+async function redoAction() {
+    if (!redoStack.length) return;
+    undoStack.push(getCanvasState());
+    const state = redoStack.pop();
+    await restoreCanvasFromState(state);
+    updateMaterialsList();
+    saveDesign();
+    updateUndoRedoBtns();
+}
+
+function updateUndoRedoBtns() {
+    const u = document.getElementById('undoBtn');
+    const r = document.getElementById('redoBtn');
+    if (u) u.disabled = !undoStack.length;
+    if (r) r.disabled = !redoStack.length;
+}
+
 // Polygon dots (grass / hardscapes)
 let polyDots          = [];
 let isDraggingPolyDot = false;
@@ -807,10 +847,22 @@ document.addEventListener('DOMContentLoaded', async function () {
             exitPathDrawingMode();
             return;
         }
-        if (isDraggingPolyDot || isDraggingDot) updateMaterialsList();
+        if (isDraggingPolyDot || isDraggingDot) { updateMaterialsList(); saveDesign(); }
         isDraggingPolyDot = false; draggedPolyDot = null;
         isDraggingDot     = false; draggedDot     = null;
     });
+
+    // Undo / Redo keyboard shortcuts
+    document.addEventListener('keydown', async e => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+            e.preventDefault(); await undoAction();
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+            e.preventDefault(); await redoAction();
+        }
+    });
+
+    updateUndoRedoBtns();
 });
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -1003,6 +1055,8 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
     const canvas = document.getElementById('designCanvas');
     if (!canvas) return;
 
+    if (!itemData._skipHistory) pushHistory();
+
     const isMesh = isMeshItem(itemData.name, itemData.category);
     const isPath = isPathItem(itemData.name, itemData.category);
 
@@ -1127,6 +1181,7 @@ function makeDraggable(item) {
         if (e.target.classList.contains('rotate-handle')) return;
         if (isRotating) return;
         selectItem(item);
+        pushHistory();
         dragging = true; sx = e.clientX; sy = e.clientY;
         e.preventDefault();
     });
@@ -1223,6 +1278,7 @@ function makePolyDot(point, item) {
 
     dot.addEventListener('mousedown', e => {
         e.stopPropagation(); e.preventDefault();
+        pushHistory();
         isDraggingPolyDot = true;
         draggedPolyDot    = dot;
     });
@@ -1232,6 +1288,7 @@ function makePolyDot(point, item) {
         e.preventDefault(); e.stopPropagation();
         const points = JSON.parse(item.dataset.polyPoints || '[]');
         if (points.length <= 3) return; // keep at least 3
+        pushHistory();
         const filtered = points.filter(p => p.id !== parseInt(dot.dataset.dotId));
         item.dataset.polyPoints = JSON.stringify(filtered);
         createPolyDots(item);
@@ -1293,6 +1350,7 @@ function startCornerResize(e) {
     const pos  = e.currentTarget.dataset.pos;
     const item = document.querySelector(`[data-id="${e.currentTarget.dataset.itemId}"]`);
     if (!item) return;
+    pushHistory();
 
     const startX = e.clientX, startY = e.clientY;
     const startL = parseInt(item.style.left) || 0;
@@ -1531,6 +1589,7 @@ function startRotation(e) {
     const itemId = e.currentTarget.dataset.itemId;
     const item   = document.querySelector(`[data-id="${itemId}"]`);
     if (!item) return;
+    pushHistory();
 
     // Remove the current rotation so getBoundingClientRect returns the un-rotated center
     const currentAngle = parseFloat(item.dataset.rotation || 0);
@@ -1585,6 +1644,7 @@ function removeRotateHandle(item) {
 window.resetSize = function(itemId) {
     const item = document.querySelector(`[data-id="${itemId}"]`);
     if (!item) return;
+    pushHistory();
     const l = parseInt(item.style.left) || 0;
     const t = parseInt(item.style.top)  || 0;
     const polyPoints = [
@@ -1601,13 +1661,16 @@ window.resetSize = function(itemId) {
     if (item === selectedItem) { createPolyDots(item); updateControlPanelPosition(item); updateDotCount(); }
 };
 
+window.undoAction = undoAction;
+window.redoAction = redoAction;
+
 window.bringToFront = function(itemId) {
     const item = document.querySelector(`[data-id="${itemId}"]`);
-    if (item) { item.style.zIndex = 100; saveDesign(); }
+    if (item) { pushHistory(); item.style.zIndex = 100; saveDesign(); }
 };
 window.sendToBack = function(itemId) {
     const item = document.querySelector(`[data-id="${itemId}"]`);
-    if (item) { item.style.zIndex = 1; saveDesign(); }
+    if (item) { pushHistory(); item.style.zIndex = 1; saveDesign(); }
 };
 window.changeSize = function(itemId, delta) {
     const item = document.querySelector(`[data-id="${itemId}"]`);
@@ -1619,6 +1682,7 @@ window.changeSize = function(itemId, delta) {
 window.deleteItem = function(itemId) {
     const item = document.querySelector(`[data-id="${itemId}"]`);
     if (!item) return;
+    pushHistory();
     const idx = placedItems.findIndex(i => i.id === itemId);
     if (idx !== -1) placedItems.splice(idx, 1);
     item.remove();
@@ -1879,13 +1943,19 @@ async function loadSavedDesign() {
 // projectStateCache holds canvasState JSON keyed by project _id, avoids storing
 // large JSON strings in data-* attributes which breaks with apostrophes/quotes.
 const projectStateCache = {};
+const projectImageCache  = {};
 
 async function saveProjectCloud(nameOverride) {
     const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
     if (!session.token) return null;
     const projectName = (nameOverride || activeProjectName || 'My Project').trim();
     const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.token}` };
-    const body    = { canvasState: getCanvasState(), designName: projectName, isDraft: true };
+    const body    = {
+        canvasState:        getCanvasState(),
+        designName:         projectName,
+        isDraft:            true,
+        landscapeImageData: window.GarDIYStorage?.getImage() || '',
+    };
     try {
         if (activeProjectId) {
             const res  = await fetch(`${BACKEND}/api/designs/${activeProjectId}`, { method: 'PUT', headers, body: JSON.stringify(body) });
@@ -1950,7 +2020,7 @@ async function restoreCanvasFromState(canvasStateJson) {
         const w = d.wPct !== undefined ? Math.round(d.wPct * cW) : Math.round((d.width  || 80) * sX);
         const h = d.hPct !== undefined ? Math.round(d.hPct * cH) : Math.round((d.height || 80) * sY);
 
-        await addItemToCanvas(product, x, y);
+        await addItemToCanvas({ ...product, _skipHistory: true }, x, y);
         const item = document.querySelector(`[data-id="${itemIdCounter - 1}"]`);
         if (!item) continue;
         // Force position — addItemToCanvas may have centered the item internally
@@ -1990,6 +2060,14 @@ async function restoreCanvasFromState(canvasStateJson) {
     updateMaterialsList();
 }
 
+function restoreProjectPhoto(imageData) {
+    if (!imageData) return;
+    const canvasImage = document.getElementById('canvasImage');
+    const canvasHint  = document.getElementById('canvasHint');
+    if (canvasImage) { canvasImage.src = imageData; if (canvasHint) canvasHint.style.display = 'none'; }
+    window.GarDIYStorage?.saveImage(imageData);
+}
+
 async function autoLoadLastProject() {
     const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
     if (!session.token || !activeProjectId) return false;
@@ -2001,6 +2079,7 @@ async function autoLoadLastProject() {
         if (!project?.canvasState) { activeProjectId = null; localStorage.removeItem('gardiyActiveProject'); return false; }
         activeProjectName = project.designName || 'My Project';
         localStorage.setItem('gardiyActiveProjectName', activeProjectName);
+        restoreProjectPhoto(project.landscapeImageData);
         await restoreCanvasFromState(project.canvasState);
         updateProjectNameDisplay();
         return true;
@@ -2048,8 +2127,11 @@ async function refreshProjectsList() {
             listEl.innerHTML = '<p style="color:#6b7280;text-align:center;padding:24px;">No saved projects yet.<br>Click <strong>Save</strong> to save your current work.</p>';
             return;
         }
-        // Cache states to avoid storing in DOM attributes
-        projects.forEach(p => { if (p.canvasState) projectStateCache[p._id] = p.canvasState; });
+        // Cache states and photos — avoids storing large data in DOM attributes
+        projects.forEach(p => {
+            if (p.canvasState)        projectStateCache[p._id] = p.canvasState;
+            if (p.landscapeImageData) projectImageCache[p._id] = p.landscapeImageData;
+        });
         listEl.innerHTML = projects.map(p => {
             const isActive = p._id === activeProjectId;
             const dateStr  = new Date(p.updatedAt || p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -2076,6 +2158,7 @@ async function refreshProjectsList() {
                 localStorage.setItem('gardiyActiveProjectName', name);
                 document.getElementById('projectsModal').style.display = 'none';
                 updateProjectNameDisplay();
+                restoreProjectPhoto(projectImageCache[id]);
                 await restoreCanvasFromState(state);
             });
         });
@@ -2089,6 +2172,7 @@ async function refreshProjectsList() {
                 const d = await r.json();
                 if (d.success) {
                     delete projectStateCache[id];
+                    delete projectImageCache[id];
                     if (activeProjectId === id) { activeProjectId = null; activeProjectName = 'My Project'; localStorage.removeItem('gardiyActiveProject'); localStorage.removeItem('gardiyActiveProjectName'); updateProjectNameDisplay(); }
                     row.remove();
                     if (!listEl.querySelector('.project-item')) listEl.innerHTML = '<p style="color:#6b7280;text-align:center;padding:24px;">No saved projects yet.</p>';
@@ -2237,6 +2321,7 @@ async function saveSharedCopy(token) {
 window.adjustPathCurve = function(itemId, delta) {
     const item = document.querySelector(`[data-id="${itemId}"]`);
     if (!item) return;
+    pushHistory();
     const current = parseFloat(item.dataset.borderRadius || 0);
     const next = Math.max(0, Math.min(300, current + delta));
     item.dataset.borderRadius = next;
@@ -3144,6 +3229,7 @@ async function placeAutoDesignItems(items, styleName) {
             category: product.category,
             price:    parseFloat(product.price) || 0,
             _price:   parseFloat(product.price) || 0,
+            _skipHistory: true,
         }, x, y, itemW, itemH);
 
         await new Promise(r => setTimeout(r, 120)); // progressive reveal

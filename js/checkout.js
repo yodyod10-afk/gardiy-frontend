@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
     checkUserLogin();
     loadOrderSummary();
     setupAddressAutocomplete();
+    setupFulfillmentMethod();
     setupServiceSelection();
     setupDeliveryDate();
     setupPhoneFormatting();
@@ -115,14 +116,14 @@ function updateTotals(storedTotal) {
 
     const calcSubtotal = savedDesign.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
     const subtotal = (typeof fallbackTotal === 'number' && fallbackTotal > 0) ? fallbackTotal : calcSubtotal;
-    const deliveryFee = deliveryFeeAmount;
+    const deliveryFee = isPickup() ? 0 : deliveryFeeAmount;
     const installationRequested = document.getElementById('installRadio')?.checked;
     const tax = (subtotal + deliveryFee) * taxRate;
     const total = subtotal + deliveryFee + tax;
 
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     set('subtotal',   '$' + subtotal.toFixed(2));
-    set('deliveryFee','$' + deliveryFee.toFixed(2));
+    set('deliveryFee', isPickup() ? 'Free' : '$' + deliveryFee.toFixed(2));
     set('tax',        '$' + tax.toFixed(2));
     set('grandTotal', '$' + total.toFixed(2));
 
@@ -147,8 +148,9 @@ function getOrderTotalCents() {
         const items = d.items && Array.isArray(d.items) ? d.items : Array.isArray(d) ? d : [];
         const calcSubtotal = items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
         const subtotal = (typeof d.total === 'number' && d.total > 0) ? d.total : calcSubtotal;
-        const tax = (subtotal + deliveryFeeAmount) * taxRate;
-        return Math.round((subtotal + deliveryFeeAmount + tax) * 100);
+        const fee = isPickup() ? 0 : deliveryFeeAmount;
+        const tax = (subtotal + fee) * taxRate;
+        return Math.round((subtotal + fee + tax) * 100);
     } catch (e) { return 0; }
 }
 
@@ -257,6 +259,57 @@ window.selectAddress = function (street, city, state, zip) {
     document.querySelector('.address-suggestions-box')?.remove();
 };
 
+// ── Fulfillment method (Delivery vs Self Pickup) ──────────────────────────────
+function isPickup() {
+    return document.getElementById('pickupMethodRadio')?.checked || false;
+}
+
+function applyFulfillmentUI() {
+    const pickup = isPickup();
+    const addressCard  = document.getElementById('addressCard');
+    const dateTitle    = document.getElementById('dateCardTitle');
+    const dateLabel    = document.getElementById('dateLabel');
+    const dateHint     = document.getElementById('dateHint');
+    const feeLabel     = document.getElementById('deliveryFeeLabel');
+
+    if (addressCard) addressCard.style.display = pickup ? 'none' : '';
+
+    // Make address fields required only when delivery is selected
+    addressCard?.querySelectorAll('[required]').forEach(el => {
+        el.required = !pickup;
+    });
+
+    if (dateTitle) dateTitle.textContent  = pickup ? '📅 Pickup Date'              : '📅 Delivery Date';
+    if (dateLabel) dateLabel.textContent  = pickup ? 'Preferred Pickup Date *'     : 'Preferred Delivery Date *';
+    if (dateHint)  dateHint.textContent   = pickup ? 'Select your preferred pickup date (3-5 business days from today)' : 'Select your preferred date (3-5 business days from today)';
+    if (feeLabel)  feeLabel.textContent   = pickup ? 'Delivery Fee'                : 'Delivery Fee';
+
+    updateTotals();
+}
+
+function setupFulfillmentMethod() {
+    const deliveryCard = document.getElementById('deliveryMethodCard');
+    const pickupCard   = document.getElementById('pickupMethodCard');
+    const deliveryRadio = document.getElementById('deliveryMethodRadio');
+    const pickupRadio   = document.getElementById('pickupMethodRadio');
+    if (!deliveryCard || !pickupCard) return;
+
+    deliveryCard.addEventListener('click', () => {
+        deliveryRadio.checked = true;
+        deliveryCard.classList.add('selected');
+        pickupCard.classList.remove('selected');
+        applyFulfillmentUI();
+    });
+    pickupCard.addEventListener('click', () => {
+        pickupRadio.checked = true;
+        pickupCard.classList.add('selected');
+        deliveryCard.classList.remove('selected');
+        applyFulfillmentUI();
+    });
+
+    applyFulfillmentUI(); // apply initial state
+}
+
 // ── Service selection ─────────────────────────────────────────────────────────
 function setupServiceSelection() {
     const diyCard     = document.getElementById('diyCard');
@@ -333,7 +386,7 @@ function setupPlaceOrder() {
         e.preventDefault();
 
         const addressForm = document.getElementById('addressForm');
-        if (!addressForm.checkValidity()) { addressForm.reportValidity(); return; }
+        if (!isPickup() && !addressForm.checkValidity()) { addressForm.reportValidity(); return; }
 
         const deliveryDate = document.getElementById('deliveryDate').value;
         if (!deliveryDate) {
@@ -417,6 +470,8 @@ async function saveOrderToBackend(paymentIntentId) {
 
         const designScreenshot = localStorage.getItem('gardiyDesignScreenshot') || null;
 
+        const pickup = isPickup();
+        const fee = pickup ? 0 : deliveryFeeAmount;
         const body = {
             paymentIntentId,
             agreedToTerms: true,
@@ -424,16 +479,17 @@ async function saveOrderToBackend(paymentIntentId) {
             designScreenshot,
             items,
             total,
-            deliveryFee: deliveryFeeAmount,
-            tax: parseFloat(((total + deliveryFeeAmount) * taxRate).toFixed(2)),
-            grandTotal: parseFloat(((total + deliveryFeeAmount) * (1 + taxRate)).toFixed(2)),
+            fulfillmentMethod: pickup ? 'pickup' : 'delivery',
+            deliveryFee: fee,
+            tax: parseFloat(((total + fee) * taxRate).toFixed(2)),
+            grandTotal: parseFloat(((total + fee) * (1 + taxRate)).toFixed(2)),
             customerName:  document.getElementById('fullName')?.value || '',
             email:         document.getElementById('email')?.value    || '',
             phone:         document.getElementById('phone')?.value    || '',
-            address:       document.getElementById('addressSearch')?.value || '',
-            city:          document.getElementById('city')?.value     || '',
-            state:         document.getElementById('state')?.value    || '',
-            zip:           document.getElementById('zip')?.value      || '',
+            address:       pickup ? '' : (document.getElementById('addressSearch')?.value || ''),
+            city:          pickup ? '' : (document.getElementById('city')?.value     || ''),
+            state:         pickup ? '' : (document.getElementById('state')?.value    || ''),
+            zip:           pickup ? '' : (document.getElementById('zip')?.value      || ''),
             deliveryDate:  document.getElementById('deliveryDate')?.value || '',
             serviceType:   document.getElementById('installRadio')?.checked ? 'install' : 'diy',
             notes:         document.getElementById('notes')?.value    || '',

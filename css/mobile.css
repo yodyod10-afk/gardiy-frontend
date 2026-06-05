@@ -2,6 +2,131 @@
    MOBILE RESPONSIVE — loaded on every page
    ===================================================== */
 
+/* ── Design page mobile menu button + drawer ─────── */
+.design-mobile-menu-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+.design-mobile-menu-btn:hover { background: rgba(0,0,0,0.06); }
+.design-mobile-menu-btn span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: #2d3748;
+    border-radius: 2px;
+    transition: transform 0.3s, opacity 0.3s;
+}
+.design-mobile-menu-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.design-mobile-menu-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.design-mobile-menu-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+.design-mobile-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1100;
+    opacity: 0;
+    transition: opacity 0.25s;
+}
+.design-mobile-overlay.open { opacity: 1; }
+
+.design-mobile-drawer {
+    position: fixed;
+    top: 0;
+    right: -300px;
+    width: 280px;
+    height: 100vh;
+    background: white;
+    z-index: 1101;
+    padding: 0;
+    box-shadow: -4px 0 28px rgba(0,0,0,0.18);
+    transition: right 0.28s ease;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+.design-mobile-drawer.open { right: 0; }
+
+.design-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid #e5e7eb;
+}
+.design-drawer-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1a202c;
+}
+.design-drawer-close {
+    background: #f3f4f6;
+    border: none;
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+    color: #6b7280;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.18s;
+}
+.design-drawer-close:hover { background: #e5e7eb; color: #374151; }
+
+.design-drawer-user {
+    padding: 12px 20px 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+.design-drawer-divider {
+    height: 1px;
+    background: #f3f4f6;
+    margin: 4px 0;
+}
+
+.design-drawer-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 15px 20px;
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: 0.97rem;
+    font-weight: 500;
+    color: #1a202c;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.design-drawer-btn:hover { background: #f0fdf4; color: #10b981; }
+.design-drawer-btn:active { background: #dcfce7; }
+.design-drawer-btn .design-drawer-icon {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.design-drawer-btn--secondary { color: #6b7280; }
+.design-drawer-btn--secondary:hover { background: #f9fafb; color: #374151; }
+
 /* ── Hamburger button ─────────────────────────────── */
 .hamburger {
     display: none;
@@ -227,6 +352,18 @@
     .upload-photo-btn { font-size: 0.72rem !important; padding: 0.35rem 0.65rem !important; white-space: nowrap; }
     .user-badge { font-size: 0.72rem !important; }
 
+    /* Design page: hide all header action buttons, show menu button instead */
+    .design-mobile-menu-btn { display: flex; }
+    .design-mobile-overlay { display: block; pointer-events: none; }
+    .design-mobile-overlay.open { pointer-events: auto; }
+    .header-actions .upload-photo-btn,
+    .header-actions .save-project-btn,
+    .header-actions .my-projects-btn,
+    .header-actions .share-project-btn,
+    .header-actions .help-btn,
+    .header-actions .user-badge,
+    .header-actions .active-project-name { display: none !important; }
+
     .design-section {
         margin-top: 52px !important;
         padding-top: 0 !important;
@@ -411,10 +548,5 @@
     .benefits-grid { grid-template-columns: 1fr !important; }
     .social-buttons { grid-template-columns: 1fr !important; }
 
-    /* DESIGN header */
-    .header-actions { gap: 0.3rem !important; }
-    .user-badge { display: none !important; }
-    .active-project-name { display: none !important; }
-    .my-projects-btn { font-size: 0.72rem !important; padding: 0.35rem 0.65rem !important; }
-    .save-project-btn { font-size: 0.72rem !important; padding: 0.35rem 0.65rem !important; }
+    /* DESIGN header — all buttons now in mobile drawer, nothing to override */
 }
