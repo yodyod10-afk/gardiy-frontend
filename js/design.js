@@ -1420,7 +1420,7 @@ function startCornerResize(e) {
     const startT = parseInt(item.style.top)  || 0;
     const startW = item.offsetWidth;
     const startH = item.offsetHeight;
-    const MIN    = 40;
+    const MIN    = 10;
 
     const onMove = mv => {
         const dx = mv.clientX - startX;
@@ -1738,8 +1738,8 @@ window.sendToBack = function(itemId) {
 window.changeSize = function(itemId, delta) {
     const item = document.querySelector(`[data-id="${itemId}"]`);
     if (!item) return;
-    item.style.width  = Math.max(50, item.offsetWidth  + delta) + 'px';
-    item.style.height = Math.max(50, item.offsetHeight + delta) + 'px';
+    item.style.width  = Math.max(10, item.offsetWidth  + delta) + 'px';
+    item.style.height = Math.max(10, item.offsetHeight + delta) + 'px';
     updateControlPanelPosition(item);
 };
 window.deleteItem = function(itemId) {
