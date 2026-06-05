@@ -561,8 +561,8 @@ body {
 /* Undo / Redo bar */
 .undo-redo-bar {
     position: absolute;
-    bottom: 14px;
-    left: 14px;
+    top: 12px;
+    left: 12px;
     z-index: 200;
     display: flex;
     gap: 6px;

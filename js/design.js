@@ -403,21 +403,84 @@ function pushHistory() {
 async function undoAction() {
     if (!undoStack.length) return;
     redoStack.push(getCanvasState());
-    const state = undoStack.pop();
-    await restoreCanvasFromState(state);
-    updateMaterialsList();
-    saveDesign();
+    await _applyHistoryState(undoStack.pop());
     updateUndoRedoBtns();
 }
 
 async function redoAction() {
     if (!redoStack.length) return;
     undoStack.push(getCanvasState());
-    const state = redoStack.pop();
-    await restoreCanvasFromState(state);
+    await _applyHistoryState(redoStack.pop());
+    updateUndoRedoBtns();
+}
+
+// Fast restore for undo/redo — uses productRegistry (already loaded, no network).
+// Avoids the getProducts() + getItemPrices() network calls that restoreCanvasFromState makes.
+async function _applyHistoryState(canvasStateJson) {
+    const byName = {};
+    Object.values(productRegistry).forEach(p => { byName[p.name] = p; });
+
+    const data = JSON.parse(canvasStateJson);
+    deselectItem();
+    [...placedItems].forEach(pi => pi.element.remove());
+    placedItems = [];
+
+    const canvas = document.getElementById('designCanvas');
+    const cW = canvas?.offsetWidth  || 800;
+    const cH = canvas?.offsetHeight || 600;
+    const sX = cW / (data.canvasW || cW);
+    const sY = cH / (data.canvasH || cH);
+
+    for (const d of data.items) {
+        const product = byName[d.name];
+        if (!product) continue;
+
+        const x = d.xPct !== undefined ? Math.round(d.xPct * cW) : Math.round((d.x || 0) * sX);
+        const y = d.yPct !== undefined ? Math.round(d.yPct * cH) : Math.round((d.y || 0) * sY);
+        const w = d.wPct !== undefined ? Math.round(d.wPct * cW) : Math.round((d.width  || 80) * sX);
+        const h = d.hPct !== undefined ? Math.round(d.hPct * cH) : Math.round((d.height || 80) * sY);
+
+        await addItemToCanvas({ ...product, _skipHistory: true, _price: d.price ?? product.price ?? 0 }, x, y);
+        const item = document.querySelector(`[data-id="${itemIdCounter - 1}"]`);
+        if (!item) continue;
+
+        item.style.left      = x + 'px';
+        item.style.top       = y + 'px';
+        item.style.width     = w + 'px';
+        item.style.height    = h + 'px';
+        item.dataset.rotation = d.rotation || 0;
+        item.style.transform = `rotate(${d.rotation || 0}deg)`;
+        item.style.zIndex    = d.zIndex || 1;
+
+        if (d.polyPtsFrac || d.polyPoints) {
+            const pts = d.polyPtsFrac
+                ? d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }))
+                : JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
+            item.dataset.polyPoints = JSON.stringify(pts);
+            applyPolyShape(item);
+        }
+
+        if (d.pathPoints) {
+            const pts = d.pathPtsFrac
+                ? d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }))
+                : JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
+            item.dataset.pathPoints = JSON.stringify(pts);
+            const pw = d.pathWidthPct !== undefined
+                ? Math.round(d.pathWidthPct * cW)
+                : Math.round(parseInt(d.pathWidth || 40) * sX);
+            item.dataset.pathWidth = pw;
+            if (d.pathFill) item.dataset.pathFill = d.pathFill;
+            applyPathShape(item);
+        }
+
+        if (d.borderRadius !== undefined) {
+            item.dataset.borderRadius = d.borderRadius;
+            item.style.borderRadius   = d.borderRadius + 'px';
+        }
+    }
+
     updateMaterialsList();
     saveDesign();
-    updateUndoRedoBtns();
 }
 
 function updateUndoRedoBtns() {
