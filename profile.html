@@ -365,8 +365,6 @@
     <script src="js/profile.js"></script>
     <script src="js/mobile.js"></script>
     <script>
-    const BACKEND = 'https://gardiy-backend-production.up.railway.app';
-
     // Sync plan from server and update localStorage
     async function syncPlanFromServer() {
         const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
