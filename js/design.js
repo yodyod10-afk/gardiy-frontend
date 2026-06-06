@@ -1760,7 +1760,7 @@ function addMobileDragHandle(item) {
 
     const btn = document.createElement('div');
     btn.className = 'mobile-drag-handle';
-    btn.innerHTML = '✥';
+    btn.innerHTML = '⊹';
     btn.setAttribute('title', 'Hold to move');
     item.appendChild(btn);
 
@@ -3155,31 +3155,30 @@ document.head.appendChild(Object.assign(document.createElement('style'), { textC
     .mobile-drag-handle {
         display: none;
         position: absolute;
-        bottom: -14px;
-        left: -14px;
-        width: 38px;
-        height: 38px;
+        bottom: -12px;
+        left: -12px;
+        width: 26px;
+        height: 26px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #f59e0b, #d97706);
+        background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
-        font-size: 17px;
+        font-size: 13px;
         align-items: center;
         justify-content: center;
         z-index: 9998;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         user-select: none;
         touch-action: none;
         cursor: grab;
-        transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+        transition: transform 0.15s, box-shadow 0.15s;
     }
     .mobile-drag-handle.pressing {
-        transform: scale(1.25);
-        box-shadow: 0 0 0 5px rgba(245,158,11,0.3), 0 2px 10px rgba(0,0,0,0.35);
+        transform: scale(1.3);
+        box-shadow: 0 0 0 4px rgba(102,126,234,0.35), 0 2px 6px rgba(0,0,0,0.3);
     }
     .mobile-drag-handle.active-drag {
-        background: linear-gradient(135deg, #10b981, #059669);
-        transform: scale(1.15);
-        box-shadow: 0 0 0 5px rgba(16,185,129,0.3), 0 4px 14px rgba(0,0,0,0.3);
+        transform: scale(1.2);
+        box-shadow: 0 0 0 4px rgba(102,126,234,0.5), 0 4px 12px rgba(0,0,0,0.25);
     }
     @media (max-width: 768px) {
         .mobile-drag-handle { display: flex; }

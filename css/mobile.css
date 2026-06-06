@@ -496,18 +496,18 @@
     }
     .control-panel { gap: 0.5rem !important; padding: 0.5rem !important; }
 
-    /* Corner resize handles — bigger tap targets */
+    /* Corner resize handles — smaller on mobile */
     .corner-handle {
-        width: 28px !important;
-        height: 28px !important;
-        border-width: 3px !important;
+        width: 16px !important;
+        height: 16px !important;
+        border-width: 2px !important;
     }
 
-    /* Rotate handle — bigger tap target */
+    /* Rotate handle */
     .rotate-handle {
-        width: 32px !important;
-        height: 32px !important;
-        font-size: 18px !important;
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 14px !important;
     }
 
     /* Filter bar — readable font + larger color swatches */
