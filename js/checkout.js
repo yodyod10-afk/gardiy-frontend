@@ -187,6 +187,7 @@ async function initStripePaymentElement() {
             },
         });
 
+        if (paymentDiv) paymentDiv.innerHTML = ''; // clear placeholder before Stripe mounts
         const paymentElement = stripeElements.create('payment');
         paymentElement.mount('#payment-element');
 
@@ -199,64 +200,116 @@ async function initStripePaymentElement() {
 
 
 
-// ── Address autocomplete ──────────────────────────────────────────────────────
+// ── Address autocomplete (OpenStreetMap Nominatim — no API key required) ──────
 function setupAddressAutocomplete() {
     const addressInput = document.getElementById('addressSearch');
     if (!addressInput) return;
 
-    const sampleAddresses = [
-        { street: '123 Main Street',        city: 'Springfield',  state: 'CA', zip: '94102' },
-        { street: '456 Maple Avenue',        city: 'Portland',     state: 'OR', zip: '97201' },
-        { street: '789 Oak Boulevard',       city: 'Seattle',      state: 'WA', zip: '98101' },
-        { street: '321 Pine Drive',          city: 'Denver',       state: 'CO', zip: '80202' },
-        { street: '654 Elm Lane',            city: 'Austin',       state: 'TX', zip: '78701' },
-        { street: '111 Garden Street',       city: 'Boston',       state: 'MA', zip: '02101' },
-        { street: '222 Park Avenue',         city: 'New York',     state: 'NY', zip: '10001' },
-        { street: '333 Beach Road',          city: 'Miami',        state: 'FL', zip: '33101' },
-        { street: '444 Hill Street',         city: 'San Francisco',state: 'CA', zip: '94103' },
-        { street: '555 Lake Drive',          city: 'Chicago',      state: 'IL', zip: '60601' },
-        { street: '7403 Newton Street West', city: 'Westminster',  state: 'CO', zip: '80030' },
-    ];
-
     let suggestionBox = null;
+    let debounceTimer = null;
 
-    function showSuggestions() {
+    function removeSuggestions() {
         if (suggestionBox) { suggestionBox.remove(); suggestionBox = null; }
-        const value = addressInput.value.trim();
-        if (!value.length) return;
+    }
+
+    function showLoading() {
+        removeSuggestions();
+        suggestionBox = document.createElement('div');
+        suggestionBox.className = 'address-suggestions-box';
+        suggestionBox.style.cssText = BOX_STYLE;
+        addressInput.parentElement.style.position = 'relative';
+        addressInput.parentElement.appendChild(suggestionBox);
+        suggestionBox.innerHTML = '<div style="padding:1rem;color:#6b7280;font-size:.9rem;">Searching…</div>';
+    }
+
+    async function fetchSuggestions(query) {
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?` +
+                `q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=6&countrycodes=us`;
+            const res  = await fetch(url, { headers: { 'Accept-Language': 'en', 'User-Agent': 'GarDIY/1.0' } });
+            const data = await res.json();
+            return data;
+        } catch (e) { return []; }
+    }
+
+    function renderSuggestions(results) {
+        removeSuggestions();
+        if (!results.length) return;
 
         suggestionBox = document.createElement('div');
         suggestionBox.className = 'address-suggestions-box';
-        suggestionBox.style.cssText = 'position:absolute;background:white;border:2px solid #10b981;border-radius:10px;margin-top:5px;box-shadow:0 4px 15px rgba(0,0,0,.2);z-index:1000;width:100%;max-height:300px;overflow-y:auto;top:100%;left:0;';
+        suggestionBox.style.cssText = BOX_STYLE;
         addressInput.parentElement.style.position = 'relative';
         addressInput.parentElement.appendChild(suggestionBox);
 
-        const lv = value.toLowerCase();
-        let matches = sampleAddresses.filter(a => `${a.street} ${a.city} ${a.state} ${a.zip}`.toLowerCase().includes(lv));
-        if (!matches.length) matches = sampleAddresses.slice(0, 5);
+        suggestionBox.innerHTML = results.map((r, i) => {
+            const a    = r.address || {};
+            const num  = a.house_number || '';
+            const road = a.road || a.pedestrian || a.footway || '';
+            const street = (num + ' ' + road).trim() || r.display_name.split(',')[0];
+            const city  = a.city || a.town || a.village || a.hamlet || a.county || '';
+            const state = a.state || '';
+            const zip   = a.postcode || '';
+            const stateAbbr = STATE_ABBR[state] || state.slice(0, 2).toUpperCase();
+            return `<div class="addr-suggestion-row" data-idx="${i}"
+                style="padding:.85rem 1rem;cursor:pointer;border-bottom:1px solid #f3f4f6;transition:background .15s;">
+                <div style="font-weight:600;color:#1a202c;font-size:.9rem;">${street}</div>
+                <div style="color:#6b7280;font-size:.8rem;margin-top:2px;">${city}${city && stateAbbr ? ', ' : ''}${stateAbbr}${zip ? ' ' + zip : ''}</div>
+            </div>`;
+        }).join('');
 
-        suggestionBox.innerHTML = matches.map(addr => `
-            <div style="padding:1rem;cursor:pointer;border-bottom:1px solid #e5e7eb;transition:background .2s;"
-                 onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='white'"
-                 onclick="selectAddress('${addr.street}','${addr.city}','${addr.state}','${addr.zip}')">
-                <strong style="color:#065f46;">${addr.street}</strong><br>
-                <span style="color:#6b7280;font-size:.9rem;">${addr.city}, ${addr.state} ${addr.zip}</span>
-            </div>`).join('');
+        suggestionBox.querySelectorAll('.addr-suggestion-row').forEach(row => {
+            row.addEventListener('mouseover', () => row.style.background = '#f0fdf4');
+            row.addEventListener('mouseout',  () => row.style.background = '');
+            row.addEventListener('mousedown', e => {
+                e.preventDefault();
+                const r = results[parseInt(row.dataset.idx)];
+                const a = r.address || {};
+                const num    = a.house_number || '';
+                const road   = a.road || a.pedestrian || a.footway || '';
+                const street = (num + ' ' + road).trim() || r.display_name.split(',')[0];
+                const city   = a.city || a.town || a.village || a.hamlet || a.county || '';
+                const state  = a.state || '';
+                const zip    = a.postcode || '';
+                const stateAbbr = STATE_ABBR[state] || state;
+                document.getElementById('addressSearch').value = street;
+                document.getElementById('city').value   = city;
+                document.getElementById('state').value  = stateAbbr;
+                document.getElementById('zip').value    = zip;
+                removeSuggestions();
+            });
+        });
     }
 
-    addressInput.addEventListener('input', showSuggestions);
-    addressInput.addEventListener('focus', showSuggestions);
-    document.addEventListener('click', e => {
-        if (!e.target.closest('.form-group') && suggestionBox) { suggestionBox.remove(); suggestionBox = null; }
+    addressInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const val = addressInput.value.trim();
+        if (val.length < 4) { removeSuggestions(); return; }
+        showLoading();
+        debounceTimer = setTimeout(async () => {
+            const results = await fetchSuggestions(val);
+            renderSuggestions(results);
+        }, 350);
     });
+
+    addressInput.addEventListener('blur', () => setTimeout(removeSuggestions, 150));
+    document.addEventListener('click', e => { if (!e.target.closest('#addressSearch')) removeSuggestions(); });
 }
 
-window.selectAddress = function (street, city, state, zip) {
-    document.getElementById('addressSearch').value = street;
-    document.getElementById('city').value  = city;
-    document.getElementById('state').value = state;
-    document.getElementById('zip').value   = zip;
-    document.querySelector('.address-suggestions-box')?.remove();
+const BOX_STYLE = 'position:absolute;background:white;border:2px solid #10b981;border-radius:10px;margin-top:4px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:1000;width:100%;max-height:280px;overflow-y:auto;top:100%;left:0;';
+
+const STATE_ABBR = {
+    'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+    'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+    'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS',
+    'Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
+    'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT',
+    'Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
+    'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
+    'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+    'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
+    'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
+    'District of Columbia':'DC',
 };
 
 // ── Fulfillment method (Delivery vs Self Pickup) ──────────────────────────────
@@ -311,14 +364,47 @@ function setupFulfillmentMethod() {
 }
 
 // ── Service selection ─────────────────────────────────────────────────────────
+function isInstall() {
+    return document.getElementById('installRadio')?.checked || false;
+}
+
+function applyServiceUI() {
+    const install         = isInstall();
+    const paymentSection  = document.getElementById('paymentSection');
+    const installQuoteCard= document.getElementById('installQuoteCard');
+    const dateCard        = document.getElementById('dateCard');
+    const deliveryDate    = document.getElementById('deliveryDate');
+    const orderLabel      = document.getElementById('placeOrderLabel');
+    const idSection       = document.getElementById('idVerificationSection');
+
+    if (paymentSection)   paymentSection.style.display    = install ? 'none' : '';
+    if (installQuoteCard) installQuoteCard.style.display   = install ? '' : 'none';
+    if (dateCard)         dateCard.style.display           = install ? 'none' : '';
+    if (deliveryDate)     deliveryDate.required            = !install;
+    if (orderLabel)       orderLabel.textContent           = install ? 'Request Installation Quote' : 'Complete Order';
+    if (idSection)        idSection.style.display          = install ? 'none' : '';
+    updateTotals();
+}
+
 function setupServiceSelection() {
-    const diyCard     = document.getElementById('diyCard');
-    const installCard = document.getElementById('installCard');
-    const diyRadio    = document.getElementById('diyRadio');
-    const installRadio= document.getElementById('installRadio');
+    const diyCard      = document.getElementById('diyCard');
+    const installCard  = document.getElementById('installCard');
+    const diyRadio     = document.getElementById('diyRadio');
+    const installRadio = document.getElementById('installRadio');
     if (!diyCard || !installCard) return;
-    diyCard.addEventListener('click', () => { diyRadio.checked = true; diyCard.classList.add('selected'); installCard.classList.remove('selected'); updateTotals(); });
-    installCard.addEventListener('click', () => { installRadio.checked = true; installCard.classList.add('selected'); diyCard.classList.remove('selected'); updateTotals(); });
+    diyCard.addEventListener('click', () => {
+        diyRadio.checked = true;
+        diyCard.classList.add('selected');
+        installCard.classList.remove('selected');
+        applyServiceUI();
+    });
+    installCard.addEventListener('click', () => {
+        installRadio.checked = true;
+        installCard.classList.add('selected');
+        diyCard.classList.remove('selected');
+        applyServiceUI();
+    });
+    applyServiceUI();
 }
 
 // ── Delivery date ─────────────────────────────────────────────────────────────
@@ -389,7 +475,7 @@ function setupPlaceOrder() {
         if (!isPickup() && !addressForm.checkValidity()) { addressForm.reportValidity(); return; }
 
         const deliveryDate = document.getElementById('deliveryDate').value;
-        if (!deliveryDate) {
+        if (!isInstall() && !deliveryDate) {
             alert('⚠️ Please select a delivery date');
             document.getElementById('deliveryDate').scrollIntoView({ behavior: 'smooth' });
             return;
@@ -404,9 +490,9 @@ function setupPlaceOrder() {
         }
         if (termsErr) termsErr.style.display = 'none';
 
-        // Validate ID photo
+        // Validate ID photo (not required for installation quotes)
         const idErr = document.getElementById('idError');
-        if (!_idPhotoBase64) {
+        if (!isInstall() && !_idPhotoBase64) {
             if (idErr) { idErr.style.display = 'block'; idErr.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
             return;
         }
@@ -422,6 +508,22 @@ function setupPlaceOrder() {
             }
         }
 
+        // ── Installation quote path ───────────────────────────────────────────
+        if (isInstall()) {
+            btn.innerHTML = '<span>Sending request…</span> ⏳';
+            btn.disabled = true;
+            try {
+                await sendInstallQuoteRequest();
+                showQuoteConfirmation();
+            } catch (err) {
+                alert('Failed to send quote request: ' + err.message);
+                btn.innerHTML = '<span>Request Installation Quote</span><span class="btn-arrow">→</span>';
+                btn.disabled = false;
+            }
+            return;
+        }
+
+        // ── DIY payment path ──────────────────────────────────────────────────
         if (!stripeInstance || !stripeElements) {
             const errDiv = document.getElementById('payment-errors');
             errDiv.textContent = 'Loading payment form… please wait a moment and try again.';
@@ -505,6 +607,60 @@ async function saveOrderToBackend(paymentIntentId) {
         console.error('saveOrderToBackend error:', err);
         // Non-fatal — payment already succeeded, just log the failure
     }
+}
+
+// ── Installation quote request ────────────────────────────────────────────────
+async function sendInstallQuoteRequest() {
+    const savedDesignStr = localStorage.getItem('gardiyCheckout') || localStorage.getItem('gardiyDesign');
+    let items = [], subtotal = 0;
+    if (savedDesignStr) {
+        try {
+            const d = JSON.parse(savedDesignStr);
+            items = d.items && Array.isArray(d.items) ? d.items : Array.isArray(d) ? d : [];
+            subtotal = typeof d.total === 'number' && d.total > 0
+                ? d.total
+                : items.reduce((s, i) => s + (parseFloat(i.price) || 0), 0);
+        } catch (e) {}
+    }
+
+    const body = {
+        customerName:    document.getElementById('fullName')?.value   || '',
+        email:           document.getElementById('email')?.value      || '',
+        phone:           document.getElementById('phone')?.value      || '',
+        address:         document.getElementById('addressSearch')?.value || '',
+        city:            document.getElementById('city')?.value       || '',
+        state:           document.getElementById('state')?.value      || '',
+        zip:             document.getElementById('zip')?.value        || '',
+        preferredDate:   document.getElementById('deliveryDate')?.value || '',
+        installNotes:    document.getElementById('installNotes')?.value || '',
+        deliveryNotes:   document.getElementById('notes')?.value      || '',
+        items,
+        subtotal,
+        designScreenshot: localStorage.getItem('gardiyDesignScreenshot') || null,
+    };
+
+    const res = await fetch('https://gardiy-backend-production.up.railway.app/api/quote-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+        body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.message || 'Failed to send quote request');
+}
+
+function showQuoteConfirmation() {
+    const email = document.getElementById('email')?.value || '';
+    const modal = document.getElementById('successModal');
+    document.getElementById('confirmEmail').textContent  = email;
+    document.getElementById('orderNumber').textContent   = 'Pending quote';
+    document.getElementById('confirmDate').textContent   = 'We\'ll confirm once you approve the quote';
+    document.getElementById('confirmTotal').textContent  = 'Quote will be provided';
+    // Swap the title and message
+    const h2  = modal?.querySelector('h2');
+    const p   = modal?.querySelector('p');
+    if (h2) h2.textContent = 'Quote Request Sent!';
+    if (p)  p.innerHTML    = `Thanks! We\'ve received your installation request and will email <strong>${email}</strong> within 24 hours with a custom quote.`;
+    if (modal) modal.style.display = 'flex';
 }
 
 // ── Success modal ─────────────────────────────────────────────────────────────

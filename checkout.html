@@ -177,12 +177,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
 
                     <!-- Delivery / Pickup Date -->
-                    <div class="checkout-card">
+                    <div class="checkout-card" id="dateCard">
                         <h2 id="dateCardTitle">📅 Delivery Date</h2>
                         <div class="form-group">
                             <label for="deliveryDate" id="dateLabel">Preferred Delivery Date *</label>
                             <input type="date" id="deliveryDate" required>
                             <p class="form-hint" id="dateHint">Select your preferred date (3-5 business days from today)</p>
+                        </div>
+                    </div>
+
+                    <!-- Installation quote info (shown when Professional Installation is selected) -->
+                    <div class="checkout-card" id="installQuoteCard" style="display:none;">
+                        <h2>📋 Installation Quote Request</h2>
+                        <div style="background:#f0fdf4;border:1.5px solid #6ee7b7;border-radius:10px;padding:16px;margin-bottom:16px;">
+                            <p style="margin:0 0 8px;font-size:14px;color:#065f46;font-weight:600;">What happens next:</p>
+                            <ol style="margin:0;padding-left:18px;font-size:13px;color:#374151;line-height:1.9;">
+                                <li>We review your design and materials list</li>
+                                <li>We contact you within <strong>24 hours</strong> with a custom installation quote</li>
+                                <li>You approve the quote and we schedule the install</li>
+                                <li>Payment is collected on the day of installation</li>
+                            </ol>
+                        </div>
+                        <div class="form-group">
+                            <label for="installNotes">Additional notes for the installer (optional)</label>
+                            <textarea id="installNotes" rows="3" placeholder="Access instructions, specific concerns, preferred work hours, etc."></textarea>
                         </div>
                     </div>
 
@@ -203,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
 
                     <!-- ID Verification -->
-                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:20px;">
+                    <div id="idVerificationSection" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:20px;">
                         <h3 style="font-size:15px;font-weight:700;margin-bottom:6px;">Identity Verification</h3>
                         <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">Required for all orders. Upload a photo of your government-issued ID (driver's license or passport). Your ID is stored securely and only used to verify your identity in case of a dispute.</p>
                         <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px;cursor:pointer;">
@@ -242,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div id="idError" style="display:none;color:#dc2626;font-size:12px;margin-bottom:12px;font-weight:600;">⚠ Please upload your ID photo to continue.</div>
 
                     <button class="place-order-btn" id="placeOrderBtn">
-                        <span>Complete Order</span>
+                        <span id="placeOrderLabel">Complete Order</span>
                         <span class="btn-arrow">→</span>
                     </button>
                 </div>
@@ -333,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <script src="js/api.js?v=2"></script>
     <script src="js/common.js?v=2"></script>
     <script src="js/subscriptions.js"></script>
-    <script src="js/checkout.js?v=4"></script>
+    <script src="js/checkout.js?v=7"></script>
     <script src="js/mobile.js?v=2"></script>
 </body>
 </html>

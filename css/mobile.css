@@ -496,6 +496,20 @@
     }
     .control-panel { gap: 0.5rem !important; padding: 0.5rem !important; }
 
+    /* Corner resize handles — bigger tap targets */
+    .corner-handle {
+        width: 28px !important;
+        height: 28px !important;
+        border-width: 3px !important;
+    }
+
+    /* Rotate handle — bigger tap target */
+    .rotate-handle {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 18px !important;
+    }
+
     /* Filter bar — readable font + larger color swatches */
     .category-filter-bar { padding: 8px 10px !important; gap: 8px !important; }
     .filter-sort-row { gap: 6px !important; }

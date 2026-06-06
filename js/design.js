@@ -1047,7 +1047,17 @@ function setupCategoryButtons() {
 function setupCanvasClick() {
     const canvas = document.getElementById('designCanvas');
     if (!canvas) return;
-    canvas.addEventListener('click', e => {
+    canvas.addEventListener('click', async e => {
+        // Tap-to-place mode (mobile)
+        if (_pendingPlaceData) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left - 40;
+            const y = e.clientY - rect.top  - 40;
+            const d = _pendingPlaceData;
+            window.cancelTapToPlace();
+            await addItemToCanvas(d, x, y);
+            return;
+        }
         if (handleCalibCanvasClick(e)) return;
         if (drawingMode) return;
         if (e.target.closest('.draggable-item') ||
@@ -1058,22 +1068,88 @@ function setupCanvasClick() {
     });
 }
 
-// ── Product click → add to canvas (paths enter drawing mode) ─────────────────
+// ── Pinch-to-resize (mobile two-finger gesture on selected item) ──────────────
+(function setupPinchResize() {
+    let pinching = false, pinchStartDist = 0, pinchStartW = 0, pinchStartH = 0;
+
+    function pinchDist(touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.hypot(dx, dy);
+    }
+
+    document.addEventListener('touchstart', e => {
+        if (e.touches.length !== 2 || !selectedItem) return;
+        pinching       = true;
+        pinchStartDist = pinchDist(e.touches);
+        pinchStartW    = selectedItem.offsetWidth;
+        pinchStartH    = selectedItem.offsetHeight;
+        pushHistory();
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchmove', e => {
+        if (!pinching || e.touches.length !== 2 || !selectedItem) return;
+        const scale = pinchDist(e.touches) / pinchStartDist;
+        const w = Math.max(10, Math.round(pinchStartW * scale));
+        const h = Math.max(10, Math.round(pinchStartH * scale));
+        selectedItem.style.width  = w + 'px';
+        selectedItem.style.height = h + 'px';
+        positionCornerHandles(selectedItem);
+        updateControlPanelPosition(selectedItem);
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchend', e => {
+        if (e.touches.length < 2) { pinching = false; updateMaterialsList(); }
+    });
+})();
+
+// ── Tap-to-place (mobile: select from sidebar → tap canvas to place) ──────────
+let _pendingPlaceData = null;
+
+function _enterTapToPlace(data) {
+    _pendingPlaceData = data;
+    // Close products sidebar on mobile
+    const sidebar = document.querySelector('.design-sidebar');
+    if (sidebar) sidebar.classList.remove('mobile-active');
+
+    let banner = document.getElementById('tapToPlaceBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'tapToPlaceBanner';
+        banner.style.cssText = 'position:absolute;bottom:60px;left:50%;transform:translateX(-50%);z-index:300;background:rgba(16,185,129,0.95);color:white;padding:10px 18px;border-radius:50px;font-size:14px;font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+        banner.innerHTML = `<span id="tapToPlaceLabel">📍 Tap to place</span><button onclick="cancelTapToPlace()" style="background:rgba(255,255,255,0.25);border:none;color:white;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;">✕</button>`;
+        document.getElementById('designCanvas')?.appendChild(banner);
+    }
+    document.getElementById('tapToPlaceLabel').textContent = `📍 Tap to place ${data.name}`;
+    banner.style.display = 'flex';
+}
+
+window.cancelTapToPlace = function() {
+    _pendingPlaceData = null;
+    const banner = document.getElementById('tapToPlaceBanner');
+    if (banner) banner.style.display = 'none';
+};
+
+// ── Product click → add to canvas ─────────────────────────────────────────────
 document.addEventListener('click', async e => {
-    if (e.target.closest('.product-info-btn')) return; // handled by notes popup handler
+    if (e.target.closest('.product-info-btn')) return;
     const item = e.target.closest('.product-item');
     if (!item) return;
     const pid = item.dataset.pid;
     const p = productRegistry[pid];
     if (!p) return;
 
+    const data = { name: p.name, image: p.image, type: p.type, category: p.category, price: parseFloat(p.price) };
+
+    if (isMobileDevice()) {
+        _enterTapToPlace(data);
+        return;
+    }
+
     const canvas = document.getElementById('designCanvas');
     const rect   = canvas.getBoundingClientRect();
-    const data   = {
-        name: p.name, image: p.image,
-        type: p.type, category: p.category,
-        price: parseFloat(p.price),
-    };
     await addItemToCanvas(data, rect.width / 2 - 40, rect.height / 2 - 40);
 });
 
@@ -1234,26 +1310,38 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
     selectItem(item);
 }
 
-// ── Drag ──────────────────────────────────────────────────────────────────────
+// ── Touch helpers ─────────────────────────────────────────────────────────────
+function isMobileDevice() { return window.matchMedia('(max-width: 768px)').matches; }
+function getEventCoords(e) {
+    if (e.touches      && e.touches.length)        return { clientX: e.touches[0].clientX,        clientY: e.touches[0].clientY };
+    if (e.changedTouches && e.changedTouches.length) return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+    return { clientX: e.clientX, clientY: e.clientY };
+}
+
+// ── Drag (mouse + touch) ──────────────────────────────────────────────────────
 function makeDraggable(item) {
     let dragging = false, sx, sy;
 
-    item.addEventListener('mousedown', e => {
+    function onStart(e) {
+        if (e.touches && e.touches.length > 1) return; // let pinch handle 2 fingers
         if (e.target.classList.contains('poly-dot')) return;
         if (e.target.classList.contains('mesh-dot')) return;
         if (e.target.classList.contains('rotate-handle')) return;
         if (isRotating) return;
         selectItem(item);
         pushHistory();
-        dragging = true; sx = e.clientX; sy = e.clientY;
+        const c = getEventCoords(e);
+        dragging = true; sx = c.clientX; sy = c.clientY;
         e.preventDefault();
-    });
+    }
 
-    document.addEventListener('mousemove', e => {
+    function onMove(e) {
         if (!dragging) return;
-        const dx = e.clientX - sx;
-        const dy = e.clientY - sy;
-        sx = e.clientX; sy = e.clientY;
+        if (e.touches && e.touches.length > 1) { dragging = false; return; } // pinch took over
+        const c  = getEventCoords(e);
+        const dx = c.clientX - sx;
+        const dy = c.clientY - sy;
+        sx = c.clientX; sy = c.clientY;
 
         if (item.dataset.polyPoints) {
             const points = JSON.parse(item.dataset.polyPoints).map(p => ({ ...p, x: p.x + dx, y: p.y + dy }));
@@ -1276,9 +1364,17 @@ function makeDraggable(item) {
             if (item === selectedItem) positionCornerHandles(item);
         }
         updateControlPanelPosition(item);
-    });
+        if (e.cancelable) e.preventDefault();
+    }
 
-    document.addEventListener('mouseup', () => { dragging = false; });
+    function onEnd() { dragging = false; }
+
+    item.addEventListener('mousedown', onStart);
+    item.addEventListener('touchstart', onStart, { passive: false });
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchend', onEnd);
 }
 
 // ── Select / deselect ─────────────────────────────────────────────────────────
@@ -1383,6 +1479,7 @@ function createCornerHandles(item) {
             box-shadow:0 2px 6px rgba(102,126,234,0.45); pointer-events:auto;
         `;
         h.addEventListener('mousedown', startCornerResize);
+        h.addEventListener('touchstart', startCornerResize, { passive: false });
         canvas.appendChild(h);
         cornerHandles.push(h);
     });
@@ -1410,12 +1507,14 @@ function removeCornerHandles() {
 
 function startCornerResize(e) {
     e.stopPropagation(); e.preventDefault();
+    const isTouch = e.type === 'touchstart';
     const pos  = e.currentTarget.dataset.pos;
     const item = document.querySelector(`[data-id="${e.currentTarget.dataset.itemId}"]`);
     if (!item) return;
     pushHistory();
 
-    const startX = e.clientX, startY = e.clientY;
+    const c0     = getEventCoords(e);
+    const startX = c0.clientX, startY = c0.clientY;
     const startL = parseInt(item.style.left) || 0;
     const startT = parseInt(item.style.top)  || 0;
     const startW = item.offsetWidth;
@@ -1423,8 +1522,10 @@ function startCornerResize(e) {
     const MIN    = 10;
 
     const onMove = mv => {
-        const dx = mv.clientX - startX;
-        const dy = mv.clientY - startY;
+        const c  = getEventCoords(mv);
+        const dx = c.clientX - startX;
+        const dy = c.clientY - startY;
+        if (mv.cancelable) mv.preventDefault();
         let l = startL, t = startT, w = startW, h = startH;
 
         if (pos === 'nw') {
@@ -1454,11 +1555,15 @@ function startCornerResize(e) {
 
     const onUp = () => {
         document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('touchmove', onMove);
         document.removeEventListener('mouseup', onUp);
+        document.removeEventListener('touchend', onUp);
         updateMaterialsList();
     };
     document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, { passive: false });
     document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchend', onUp);
 }
 
 function updatePolyDotPositions(item) {
@@ -1661,25 +1766,32 @@ function startRotation(e) {
     const cy     = rect.top  + rect.height / 2;
 
     // The initial offset angle so the item doesn't jump when you first grab
-    const startMouseAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI;
+    const ec = getEventCoords(e);
+    const startMouseAngle = Math.atan2(ec.clientY - cy, ec.clientX - cx) * 180 / Math.PI;
     const startItemAngle  = currentAngle;
 
     const onMove = mv => {
         if (!isRotating) return;
-        const mouseAngle = Math.atan2(mv.clientY - cy, mv.clientX - cx) * 180 / Math.PI;
+        const c = getEventCoords(mv);
+        const mouseAngle = Math.atan2(c.clientY - cy, c.clientX - cx) * 180 / Math.PI;
         const delta  = mouseAngle - startMouseAngle;
         const angle  = ((startItemAngle + delta) % 360 + 360) % 360;
         item.dataset.rotation = Math.round(angle);
         item.style.transform  = `rotate(${angle}deg)`;
+        if (mv.cancelable) mv.preventDefault();
     };
     const onUp = () => {
         isRotating = false;
         saveDesign();
         document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('touchmove', onMove);
         document.removeEventListener('mouseup', onUp);
+        document.removeEventListener('touchend', onUp);
     };
     document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, { passive: false });
     document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchend', onUp);
 }
 
 function addRotateHandle(item) {
@@ -1697,6 +1809,7 @@ function addRotateHandle(item) {
     wrapper.appendChild(handle);
     item.appendChild(wrapper);
     handle.addEventListener('mousedown', startRotation);
+    handle.addEventListener('touchstart', startRotation, { passive: false });
 }
 
 function removeRotateHandle(item) {
