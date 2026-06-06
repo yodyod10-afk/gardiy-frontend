@@ -1393,12 +1393,14 @@ function selectItem(item) {
     }
     createControlPanel(item);
     addRotateHandle(item);
+    addMobileDragHandle(item);
 }
 
 function deselectItem() {
     if (!selectedItem) return;
     selectedItem.classList.remove('selected');
     removeRotateHandle(selectedItem);
+    removeMobileDragHandle(selectedItem);
     selectedItem = null;
     removePolyDots();
     removeMeshDots();
@@ -1747,6 +1749,83 @@ function updateControlPanelPosition(item) {
 
 function removeControlPanel() {
     if (controlPanel) { controlPanel.remove(); controlPanel = null; }
+}
+
+// ── Mobile drag handle ────────────────────────────────────────────────────────
+// A small button on selected items — long-press activates drag so the finger
+// doesn't have to cover the item itself.
+function addMobileDragHandle(item) {
+    removeMobileDragHandle(item);
+    if (!isMobileDevice()) return;
+
+    const btn = document.createElement('div');
+    btn.className = 'mobile-drag-handle';
+    btn.innerHTML = '✥';
+    btn.setAttribute('title', 'Hold to move');
+    item.appendChild(btn);
+
+    let longPressTimer = null;
+    let dragging = false;
+    let lastX, lastY;
+
+    btn.addEventListener('touchstart', e => {
+        e.stopPropagation(); e.preventDefault();
+        const t = e.touches[0];
+        lastX = t.clientX; lastY = t.clientY;
+        btn.classList.add('pressing');
+        longPressTimer = setTimeout(() => {
+            dragging = true;
+            btn.classList.remove('pressing');
+            btn.classList.add('active-drag');
+            if (navigator.vibrate) navigator.vibrate(40);
+            pushHistory();
+        }, 200);
+    }, { passive: false });
+
+    btn.addEventListener('touchmove', e => {
+        e.stopPropagation();
+        if (!dragging) {
+            clearTimeout(longPressTimer);
+            btn.classList.remove('pressing');
+            return;
+        }
+        e.preventDefault();
+        const t  = e.touches[0];
+        const dx = t.clientX - lastX;
+        const dy = t.clientY - lastY;
+        lastX = t.clientX; lastY = t.clientY;
+
+        if (item.dataset.polyPoints) {
+            const pts = JSON.parse(item.dataset.polyPoints).map(p => ({ ...p, x: p.x + dx, y: p.y + dy }));
+            item.dataset.polyPoints = JSON.stringify(pts);
+            applyPolyShape(item);
+            updatePolyDotPositions(item);
+        } else if (item.dataset.pathPoints) {
+            const pts = JSON.parse(item.dataset.pathPoints).map(p => ({ ...p, x: p.x + dx, y: p.y + dy }));
+            item.dataset.pathPoints = JSON.stringify(pts);
+            applyPathShape(item);
+        } else {
+            item.style.left = (parseInt(item.style.left) || 0) + dx + 'px';
+            item.style.top  = (parseInt(item.style.top)  || 0) + dy + 'px';
+            positionCornerHandles(item);
+        }
+        updateControlPanelPosition(item);
+    }, { passive: false });
+
+    btn.addEventListener('touchend', e => {
+        e.stopPropagation();
+        clearTimeout(longPressTimer);
+        btn.classList.remove('pressing', 'active-drag');
+        if (dragging) {
+            dragging = false;
+            saveDesign();
+            updateMaterialsList();
+        }
+    });
+}
+
+function removeMobileDragHandle(item) {
+    if (item) item.querySelectorAll('.mobile-drag-handle').forEach(el => el.remove());
 }
 
 // ── Rotation ──────────────────────────────────────────────────────────────────
@@ -2983,6 +3062,7 @@ async function submitDesignForCheckout() {
     try {
         // Pass items + total to checkout page
         localStorage.setItem('gardiyCheckout', JSON.stringify({ items: checkoutItems, total }));
+        if (designScreenshot) localStorage.setItem('gardiyDesignScreenshot', designScreenshot);
 
         // Save submission to MongoDB (fire-and-forget — don't block redirect)
         const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
@@ -3051,7 +3131,7 @@ document.head.appendChild(Object.assign(document.createElement('style'), { textC
     .control-btn.delete-btn:hover { background:#fee; color:#e53e3e; }
 
     .rotate-handle-wrapper {
-        position:absolute; top:-52px; left:50%;
+        position:absolute; bottom:-52px; top:auto; left:50%;
         transform:translateX(-50%);
         display:flex; flex-direction:column; align-items:center;
         pointer-events:none; z-index:9999;
@@ -3070,6 +3150,40 @@ document.head.appendChild(Object.assign(document.createElement('style'), { textC
         pointer-events:auto; user-select:none;
     }
     .rotate-handle:active { cursor:grabbing; }
+
+    /* Mobile drag handle — hidden on desktop, shown on mobile via media query */
+    .mobile-drag-handle {
+        display: none;
+        position: absolute;
+        bottom: -14px;
+        left: -14px;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        font-size: 17px;
+        align-items: center;
+        justify-content: center;
+        z-index: 9998;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+        user-select: none;
+        touch-action: none;
+        cursor: grab;
+        transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+    .mobile-drag-handle.pressing {
+        transform: scale(1.25);
+        box-shadow: 0 0 0 5px rgba(245,158,11,0.3), 0 2px 10px rgba(0,0,0,0.35);
+    }
+    .mobile-drag-handle.active-drag {
+        background: linear-gradient(135deg, #10b981, #059669);
+        transform: scale(1.15);
+        box-shadow: 0 0 0 5px rgba(16,185,129,0.3), 0 4px 14px rgba(0,0,0,0.3);
+    }
+    @media (max-width: 768px) {
+        .mobile-drag-handle { display: flex; }
+    }
 ` }));
 
 // ── Plant recommendation color coding ─────────────────────────────────────────

@@ -623,6 +623,16 @@ async function sendInstallQuoteRequest() {
         } catch (e) {}
     }
 
+    // Aggregate items into quantities for a clean email
+    const aggregated = {};
+    items.forEach(i => {
+        const key = i.name;
+        if (!aggregated[key]) aggregated[key] = { name: i.name, unitPrice: parseFloat(i.price) || 0, qty: 0, total: 0, size: i.size || '' };
+        aggregated[key].qty++;
+        aggregated[key].total = parseFloat((aggregated[key].total + (parseFloat(i.price) || 0)).toFixed(2));
+    });
+    const aggregatedItems = Object.values(aggregated);
+
     const body = {
         customerName:    document.getElementById('fullName')?.value   || '',
         email:           document.getElementById('email')?.value      || '',
@@ -634,7 +644,7 @@ async function sendInstallQuoteRequest() {
         preferredDate:   document.getElementById('deliveryDate')?.value || '',
         installNotes:    document.getElementById('installNotes')?.value || '',
         deliveryNotes:   document.getElementById('notes')?.value      || '',
-        items,
+        items: aggregatedItems,
         subtotal,
         designScreenshot: localStorage.getItem('gardiyDesignScreenshot') || null,
     };
