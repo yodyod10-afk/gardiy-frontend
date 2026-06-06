@@ -702,7 +702,11 @@ function createProductModal(existingProduct = null) {
             
             if (imageFile) {
                 try {
-                    imageData = await compressImageToBase64(imageFile, 120, 0.70);
+                    // Tiling textures (grass, gravel, hardscapes) need higher resolution
+                    // so they don't look pixelated when stretched across the canvas
+                    const maxPx   = tilingEnabled ? 800 : 120;
+                    const quality = tilingEnabled ? 0.85 : 0.70;
+                    imageData = await compressImageToBase64(imageFile, maxPx, quality);
                     console.log('Image compressed, length:', imageData.length);
                 } catch (error) {
                     alert('Error reading image file. Please try again.');
