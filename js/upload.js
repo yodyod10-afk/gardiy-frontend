@@ -86,6 +86,11 @@ function setupEventListeners() {
             e.preventDefault();
             if (!previewImage?.src) { alert('⚠️ Please upload a photo first'); return; }
             try { window.GarDIYStorage.saveImage(previewImage.src); } catch (err) {}
+            // Clear active project so the design page shows the new photo
+            // instead of auto-loading an old project that would overwrite it
+            localStorage.removeItem('gardiyActiveProject');
+            localStorage.removeItem('gardiyActiveProjectName');
+            localStorage.removeItem('gardiyDesign');
             setTimeout(() => { window.location.href = 'design.html'; }, 100);
         });
     }
