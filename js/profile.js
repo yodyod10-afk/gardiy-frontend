@@ -46,6 +46,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 targetSection.style.display = 'block';
                 setTimeout(() => targetSection.classList.add('active'), 10);
             }
+
+            if (this.dataset.section === 'subscription') {
+                setTimeout(() => { if (typeof window.renderSubscription === 'function') window.renderSubscription(); }, 100);
+            }
         });
     });
 
@@ -71,6 +75,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load real projects from backend
     loadUserProjects(user);
+
+    // Pre-render subscription section in background so it's ready when clicked
+    setTimeout(() => { if (typeof window.renderSubscription === 'function') window.renderSubscription(); }, 500);
 
     // Settings forms
     setupSettingsForms();
