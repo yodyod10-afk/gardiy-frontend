@@ -1079,7 +1079,7 @@ function setupCanvasClick() {
     }
 
     document.addEventListener('touchstart', e => {
-        if (e.touches.length !== 2 || !selectedItem) return;
+        if (e.touches.length !== 2 || !selectedItem || isRotating) return;
         pinching       = true;
         pinchStartDist = pinchDist(e.touches);
         pinchStartW    = selectedItem.offsetWidth;
@@ -1846,12 +1846,21 @@ function startRotation(e) {
 
     // The initial offset angle so the item doesn't jump when you first grab
     const ec = getEventCoords(e);
+    // Track the specific touch finger so a second accidental touch doesn't cause erratic jumps
+    const touchId = e.touches ? e.touches[0].identifier : null;
     const startMouseAngle = Math.atan2(ec.clientY - cy, ec.clientX - cx) * 180 / Math.PI;
     const startItemAngle  = currentAngle;
 
     const onMove = mv => {
         if (!isRotating) return;
-        const c = getEventCoords(mv);
+        // Always follow the same finger that started the rotation
+        let c;
+        if (mv.touches && touchId !== null) {
+            const t = Array.from(mv.touches).find(t => t.identifier === touchId);
+            c = t ? { clientX: t.clientX, clientY: t.clientY } : getEventCoords(mv);
+        } else {
+            c = getEventCoords(mv);
+        }
         const mouseAngle = Math.atan2(c.clientY - cy, c.clientX - cx) * 180 / Math.PI;
         const delta  = mouseAngle - startMouseAngle;
         const angle  = ((startItemAngle + delta) % 360 + 360) % 360;
@@ -3155,8 +3164,9 @@ document.head.appendChild(Object.assign(document.createElement('style'), { textC
     .mobile-drag-handle {
         display: none;
         position: absolute;
-        bottom: -12px;
-        left: -12px;
+        bottom: -86px;
+        left: 50%;
+        transform: translateX(-50%);
         width: 26px;
         height: 26px;
         border-radius: 50%;
@@ -3173,11 +3183,11 @@ document.head.appendChild(Object.assign(document.createElement('style'), { textC
         transition: transform 0.15s, box-shadow 0.15s;
     }
     .mobile-drag-handle.pressing {
-        transform: scale(1.3);
+        transform: translateX(-50%) scale(1.3);
         box-shadow: 0 0 0 4px rgba(102,126,234,0.35), 0 2px 6px rgba(0,0,0,0.3);
     }
     .mobile-drag-handle.active-drag {
-        transform: scale(1.2);
+        transform: translateX(-50%) scale(1.2);
         box-shadow: 0 0 0 4px rgba(102,126,234,0.5), 0 4px 12px rgba(0,0,0,0.25);
     }
     @media (max-width: 768px) {
