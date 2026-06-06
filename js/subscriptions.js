@@ -1,10 +1,29 @@
 // Subscription plan limits and usage tracking
+// Client-side limits are a UX hint only — real enforcement is on the backend.
 
 const PLAN_LIMITS = {
     free:  { scans: 1,        ordersPerMonth: 1,        label: 'Free Trial' },
     basic: { scans: 20,       ordersPerMonth: 5,        label: 'Basic'      },
     pro:   { scans: Infinity, ordersPerMonth: Infinity, label: 'Pro'        },
 };
+
+// Sync plan from server so localStorage always reflects true DB state
+(async function syncPlanOnLoad() {
+    const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    if (!session.token || !session.loggedIn) return;
+    try {
+        const res  = await fetch('https://gardiy-backend-production.up.railway.app/api/subscription/status', {
+            headers: { 'Authorization': `Bearer ${session.token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+            session.plan                 = data.plan;
+            session.planStatus           = data.planStatus;
+            session.planCurrentPeriodEnd = data.planCurrentPeriodEnd;
+            localStorage.setItem('gardiyUser', JSON.stringify(session));
+        }
+    } catch (e) { /* non-fatal — fall back to localStorage */ }
+})();
 
 const UNRESTRICTED_EMAIL = 'yodyod10@gmail.com';
 

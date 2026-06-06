@@ -69,6 +69,10 @@
                             <span class="menu-icon"><i class="ph ph-truck"></i></span>
                             <span>My Orders</span>
                         </a>
+                        <a href="#" class="menu-item" data-section="subscription">
+                            <span class="menu-icon"><i class="ph ph-credit-card"></i></span>
+                            <span>Subscription</span>
+                        </a>
                         <a href="#" class="menu-item" data-section="settings">
                             <span class="menu-icon"><i class="ph ph-gear"></i></span>
                             <span>Settings</span>
@@ -217,6 +221,18 @@
                         </div>
                     </div>
 
+                    <!-- Subscription Section -->
+                    <div class="content-section" id="subscription-section" style="display: none;">
+                        <div class="section-header">
+                            <h2>Subscription</h2>
+                        </div>
+
+                        <div id="subscriptionContent" style="max-width:520px;">
+                            <!-- Populated by JS -->
+                            <div style="color:#6b7280;padding:2rem 0;">Loading plan info…</div>
+                        </div>
+                    </div>
+
                     <!-- Settings Section -->
                     <div class="content-section" id="settings-section" style="display: none;">
                         <div class="section-header">
@@ -349,25 +365,138 @@
     <script src="js/profile.js"></script>
     <script src="js/mobile.js"></script>
     <script>
-    // Activate plan after returning from Stripe checkout
+    const BACKEND = 'https://gardiy-backend-production.up.railway.app';
+
+    // Sync plan from server and update localStorage
+    async function syncPlanFromServer() {
+        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        if (!session.token) return null;
+        try {
+            const res  = await fetch(`${BACKEND}/api/subscription/status`, { headers: { 'Authorization': `Bearer ${session.token}` } });
+            const data = await res.json();
+            if (data.success) {
+                session.plan                 = data.plan;
+                session.planStatus           = data.planStatus;
+                session.planCurrentPeriodEnd = data.planCurrentPeriodEnd;
+                localStorage.setItem('gardiyUser', JSON.stringify(session));
+                return data;
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    // Render the subscription section
+    async function renderSubscription() {
+        const el = document.getElementById('subscriptionContent');
+        if (!el) return;
+        const data = await syncPlanFromServer();
+        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        const plan   = data?.plan || session.plan || 'free';
+        const status = data?.planStatus || 'active';
+        const periodEnd = data?.planCurrentPeriodEnd;
+
+        const PLAN_LABELS = { free: 'Free Trial', basic: 'Basic — $10/mo', pro: 'Pro — $65/mo' };
+        const PLAN_COLORS = { free: '#6b7280', basic: '#10b981', pro: '#667eea' };
+        const color = PLAN_COLORS[plan] || '#6b7280';
+        const label = PLAN_LABELS[plan] || plan;
+
+        const renewalStr = periodEnd
+            ? new Date(periodEnd).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+            : null;
+
+        const statusBadge = status === 'past_due'
+            ? `<span style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">⚠ Payment Past Due</span>`
+            : status === 'canceled'
+            ? `<span style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">Canceled</span>`
+            : `<span style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">✓ Active</span>`;
+
+        el.innerHTML = `
+            <div style="background:white;border:2px solid ${color};border-radius:16px;padding:24px;margin-bottom:20px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+                    <div>
+                        <div style="font-size:13px;color:#6b7280;margin-bottom:4px;">Current Plan</div>
+                        <div style="font-size:1.4rem;font-weight:700;color:${color};">${label}</div>
+                    </div>
+                    ${statusBadge}
+                </div>
+                ${renewalStr ? `<div style="font-size:13px;color:#6b7280;margin-bottom:16px;">Next renewal: <strong>${renewalStr}</strong></div>` : ''}
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    ${plan !== 'free'
+                        ? `<button onclick="openBillingPortal()" style="padding:10px 22px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:14px;">Manage / Cancel Subscription</button>`
+                        : `<a href="index.html#pricing" style="padding:10px 22px;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:10px;font-weight:600;text-decoration:none;font-size:14px;display:inline-block;">Upgrade Plan →</a>`
+                    }
+                </div>
+            </div>
+
+            ${plan === 'free' ? `
+            <div style="display:grid;gap:12px;">
+                <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:18px;">
+                    <div style="font-weight:700;color:#10b981;margin-bottom:4px;">Basic — $10/month</div>
+                    <ul style="margin:0;padding-left:18px;color:#374151;font-size:14px;line-height:1.9;">
+                        <li>20 photo scans/month</li>
+                        <li>5 orders/month</li>
+                        <li>Cloud project sync</li>
+                    </ul>
+                    <button onclick="startPlanCheckout('basic')" style="margin-top:12px;padding:9px 22px;background:#10b981;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px;">Get Basic</button>
+                </div>
+                <div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:12px;padding:18px;">
+                    <div style="font-weight:700;color:#667eea;margin-bottom:4px;">Pro — $65/month</div>
+                    <ul style="margin:0;padding-left:18px;color:#374151;font-size:14px;line-height:1.9;">
+                        <li>Unlimited scans</li>
+                        <li>Unlimited orders</li>
+                        <li>Priority support</li>
+                    </ul>
+                    <button onclick="startPlanCheckout('pro')" style="margin-top:12px;padding:9px 22px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px;">Go Pro</button>
+                </div>
+            </div>` : ''}
+        `;
+    }
+
+    async function openBillingPortal() {
+        const btn = event.currentTarget;
+        btn.textContent = 'Loading…'; btn.disabled = true;
+        try {
+            const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+            const res  = await fetch(`${BACKEND}/api/subscription/portal`, { method: 'POST', headers: { 'Authorization': `Bearer ${session.token}` } });
+            const data = await res.json();
+            if (data.success && data.url) { window.location.href = data.url; }
+            else { alert(data.message || 'Could not open billing portal.'); btn.textContent = 'Manage / Cancel Subscription'; btn.disabled = false; }
+        } catch (e) { alert('Error: ' + e.message); btn.textContent = 'Manage / Cancel Subscription'; btn.disabled = false; }
+    }
+
+    async function startPlanCheckout(plan) {
+        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        if (!session.token) { alert('Please sign in to upgrade.'); return; }
+        try {
+            const res  = await fetch(`${BACKEND}/api/create-checkout-session`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.token}` }, body: JSON.stringify({ plan }) });
+            const data = await res.json();
+            if (data.success && data.url) { window.location.href = data.url; }
+            else { alert(data.message || 'Could not start checkout.'); }
+        } catch (e) { alert('Error: ' + e.message); }
+    }
+
+    // Handle return from Stripe Checkout
     (function() {
         const params = new URLSearchParams(window.location.search);
         if (params.get('subscription_success') === '1') {
-            const plan = params.get('plan');
-            if (plan === 'basic' || plan === 'pro') {
-                try {
-                    const user = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
-                    if (user.loggedIn) {
-                        user.plan = plan;
-                        localStorage.setItem('gardiyUser', JSON.stringify(user));
-                        // Remove params from URL without reload
-                        history.replaceState({}, '', 'profile.html');
-                        setTimeout(() => alert('🎉 You\'re now on the ' + (plan === 'basic' ? 'Basic ($15/mo)' : 'Pro ($65/mo)') + ' plan!'), 300);
-                    }
-                } catch (e) {}
-            }
+            history.replaceState({}, '', 'profile.html');
+            // Sync plan from server (webhook may take a moment)
+            setTimeout(async () => {
+                await syncPlanFromServer();
+                const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+                const plan = session.plan || 'basic';
+                alert('🎉 You\'re now on the ' + (plan === 'pro' ? 'Pro ($65/mo)' : 'Basic ($10/mo)') + ' plan!');
+                renderSubscription();
+            }, 2000);
         }
     })();
+
+    // Render subscription when section is clicked
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.menu-item[data-section="subscription"]').forEach(el => {
+            el.addEventListener('click', renderSubscription);
+        });
+    });
     </script>
 </body>
 </html>
