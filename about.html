@@ -13,146 +13,141 @@
         .about-hero {
             background: linear-gradient(135deg, #065f46 0%, #10b981 100%);
             color: white;
-            padding: 6rem 2rem 5rem;
+            padding: 5rem 2rem 4rem;
             text-align: center;
         }
         .about-hero h1 {
-            font-size: 3rem;
+            font-size: 2.6rem;
             font-weight: 800;
-            margin: 0 0 1rem;
+            margin: 0 0 0.75rem;
+            line-height: 1.2;
         }
         .about-hero p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            max-width: 600px;
+            font-size: 1.1rem;
+            opacity: 0.88;
+            max-width: 520px;
             margin: 0 auto;
-            line-height: 1.7;
-        }
-        .about-section {
-            padding: 5rem 2rem;
-        }
-        .about-section.alt {
-            background: #f9fafb;
-        }
-        .about-container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        .about-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 3rem;
-            align-items: center;
-        }
-        .about-label {
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: #10b981;
-            margin-bottom: 0.75rem;
-        }
-        .about-section h2 {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #1a202c;
-            margin: 0 0 1.25rem;
-            line-height: 1.25;
-        }
-        .about-section p {
-            color: #4a5568;
-            font-size: 1.05rem;
-            line-height: 1.8;
-            margin: 0 0 1rem;
-        }
-        .values-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-            margin-top: 3rem;
-        }
-        .value-card {
-            background: white;
-            border: 1.5px solid #e5e7eb;
-            border-radius: 16px;
-            padding: 1.75rem 1.5rem;
-            text-align: center;
-        }
-        .value-icon {
-            font-size: 2.2rem;
-            margin-bottom: 0.75rem;
-        }
-        .value-card h3 {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin: 0 0 0.5rem;
-        }
-        .value-card p {
-            font-size: 0.9rem;
-            color: #6b7280;
-            margin: 0;
             line-height: 1.6;
         }
-        .stat-row {
+        .about-hero mark {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 4px;
+            padding: 0 4px;
+        }
+        .ab-section {
+            padding: 4rem 2rem;
+            max-width: 860px;
+            margin: 0 auto;
+        }
+        .ab-section.bg {
+            background: #f9fafb;
+            max-width: 100%;
+            padding: 4rem 2rem;
+        }
+        .ab-section.bg .ab-inner {
+            max-width: 860px;
+            margin: 0 auto;
+        }
+        .ab-section h2 {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: #1a202c;
+            margin: 0 0 1.5rem;
+        }
+        .ab-section h2 mark {
+            background: #d1fae5;
+            color: #065f46;
+            border-radius: 4px;
+            padding: 0 5px;
+        }
+        .ab-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .ab-list li {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            font-size: 1rem;
+            color: #374151;
+            line-height: 1.6;
+        }
+        .ab-list li .icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .ab-list li strong {
+            color: #065f46;
+        }
+        .card-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-            text-align: center;
-            margin-top: 3rem;
+            gap: 1.25rem;
         }
-        .stat-item .stat-number {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: #10b981;
-            display: block;
+        .ab-card {
+            background: white;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 1.4rem 1.25rem;
         }
-        .stat-item .stat-label {
-            font-size: 0.9rem;
+        .ab-card .icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
+        .ab-card h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin: 0 0 0.4rem;
+        }
+        .ab-card p {
+            font-size: 0.85rem;
             color: #6b7280;
-            margin-top: 4px;
+            margin: 0;
+            line-height: 1.5;
+        }
+        .ab-card p strong { color: #065f46; }
+        .quote-block {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            border-left: 4px solid #10b981;
+            border-radius: 0 12px 12px 0;
+            padding: 1.5rem 1.75rem;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #065f46;
+            line-height: 1.5;
+            margin: 0;
         }
         .cta-band {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
             text-align: center;
-            padding: 4rem 2rem;
+            padding: 3.5rem 2rem;
         }
-        .cta-band h2 {
-            font-size: 2rem;
-            font-weight: 800;
-            margin: 0 0 1rem;
-        }
-        .cta-band p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            margin: 0 0 2rem;
-        }
+        .cta-band h2 { font-size: 1.8rem; font-weight: 800; margin: 0 0 0.5rem; }
+        .cta-band p { opacity: 0.9; margin: 0 0 1.5rem; font-size: 1rem; }
         .cta-band a {
             background: white;
             color: #065f46;
-            padding: 0.9rem 2.5rem;
+            padding: 0.85rem 2.2rem;
             border-radius: 50px;
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 0.95rem;
             text-decoration: none;
             display: inline-block;
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        .cta-band a:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-        }
+        .cta-band a:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.18); }
         @media (max-width: 768px) {
-            .about-hero h1 { font-size: 2rem; }
-            .about-grid { grid-template-columns: 1fr; gap: 2rem; }
-            .values-grid { grid-template-columns: 1fr; }
-            .stat-row { grid-template-columns: 1fr; gap: 1.5rem; }
+            .about-hero h1 { font-size: 1.8rem; }
+            .card-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="logo" style="display:flex;align-items:center;"><img src="images/logo.png" alt="GarDIY" style="height:36px;width:auto;margin-right:8px;">GarDIY</a>
@@ -175,99 +170,61 @@
 
     <!-- Hero -->
     <section class="about-hero">
-        <h1>Transforming How People Design Their Outdoors</h1>
-        <p>GarDIY was built on a simple idea — everyone deserves a beautiful yard, and technology should make it effortless to get there.</p>
+        <h1>Your yard. <mark>Your vision.</mark><br>We make it happen.</h1>
+        <p>GarDIY puts AI-powered design, real product pricing, and direct ordering in one place — so you can go from idea to finished yard without the guesswork.</p>
     </section>
 
-    <!-- Mission -->
-    <section class="about-section">
-        <div class="about-container">
-            <div class="about-grid">
-                <div>
-                    <div class="about-label">Our Mission</div>
-                    <h2>Making Professional Landscaping Accessible to Everyone</h2>
-                    <p>We believe that transforming your outdoor space shouldn't require hiring an expensive designer or spending hours guessing what materials to buy. That's why we built GarDIY — a platform that combines AI-powered design with real product pricing and direct ordering.</p>
-                    <p>Upload a photo of your yard, get instant design suggestions, place items exactly where you want them, and order everything you need — all in one place.</p>
-                </div>
-                <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:20px;padding:2.5rem;text-align:center;">
-                    <div style="font-size:4rem;margin-bottom:1rem;">🌿</div>
-                    <p style="font-size:1.1rem;font-weight:600;color:#065f46;margin:0;line-height:1.6;">"From photo to finished yard — we handle the design, you enjoy the results."</p>
-                </div>
-            </div>
-
-            <div class="stat-row">
-                <div class="stat-item">
-                    <span class="stat-number">AI</span>
-                    <div class="stat-label">Powered photo analysis & design</div>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">1-Click</span>
-                    <div class="stat-label">From design to material order</div>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">Real</span>
-                    <div class="stat-label">Prices updated in real time</div>
-                </div>
-            </div>
-        </div>
+    <!-- What we do -->
+    <section class="ab-section">
+        <h2>What is <mark>GarDIY</mark>?</h2>
+        <ul class="ab-list">
+            <li><span class="icon">📸</span><span><strong>Upload a photo</strong> of your yard — our AI scans it and understands your space instantly.</span></li>
+            <li><span class="icon">🎨</span><span><strong>Design visually</strong> — drag real products onto your photo, resize, rotate, and see your yard come to life.</span></li>
+            <li><span class="icon">💰</span><span><strong>See real prices</strong> — your materials list and total update live as you add items.</span></li>
+            <li><span class="icon">🚚</span><span><strong>Order in one click</strong> — delivery to your door or self-pickup, no middlemen.</span></li>
+            <li><span class="icon">👷</span><span><strong>Need installation?</strong> — request a quote directly from your design.</span></li>
+        </ul>
     </section>
 
-    <!-- How we're different -->
-    <section class="about-section alt">
-        <div class="about-container">
-            <div style="text-align:center;margin-bottom:3rem;">
-                <div class="about-label">What Makes Us Different</div>
-                <h2>Not Just a Design Tool — a Full Landscaping Platform</h2>
-            </div>
-            <div class="values-grid">
-                <div class="value-card">
-                    <div class="value-icon">📸</div>
-                    <h3>AI Photo Analysis</h3>
-                    <p>Upload any yard photo and our AI instantly identifies your space, sunlight zones, and existing features.</p>
-                </div>
-                <div class="value-card">
-                    <div class="value-icon">🎨</div>
-                    <h3>Visual Design Canvas</h3>
-                    <p>Drag and drop real products onto your photo. Resize, rotate, and layer items to create your perfect layout.</p>
-                </div>
-                <div class="value-card">
-                    <div class="value-icon">💰</div>
-                    <h3>Real-Time Pricing</h3>
-                    <p>Every item shows live pricing. Your materials list and total cost update automatically as you design.</p>
-                </div>
-                <div class="value-card">
-                    <div class="value-icon">🚚</div>
-                    <h3>Direct Ordering</h3>
-                    <p>Order everything you need in one checkout. Choose delivery or self-pickup — no middlemen, no markup confusion.</p>
-                </div>
-                <div class="value-card">
-                    <div class="value-icon">👷</div>
-                    <h3>Professional Installation</h3>
-                    <p>Not a DIY person? Request a professional installation quote directly from your design with one click.</p>
-                </div>
-                <div class="value-card">
-                    <div class="value-icon">☁️</div>
-                    <h3>Cloud Sync</h3>
-                    <p>Your designs sync across all devices. Start on your phone, finish on your computer — everything stays in place.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+    <!-- Quote -->
+    <div style="max-width:860px;margin:0 auto;padding:0 2rem 3rem;">
+        <p class="quote-block">"From photo to finished yard — no designer needed, no guessing on quantities, no calls for pricing."</p>
+    </div>
 
-    <!-- Values -->
-    <section class="about-section">
-        <div class="about-container">
-            <div class="about-grid">
-                <div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-radius:20px;padding:2.5rem;">
-                    <div style="font-size:3rem;margin-bottom:1rem;">🌱</div>
-                    <h3 style="font-size:1.2rem;font-weight:700;color:#5b21b6;margin:0 0 0.75rem;">Built for Homeowners</h3>
-                    <p style="color:#4a5568;margin:0;line-height:1.7;">We designed GarDIY for real people — not landscape architects. Everything from the interface to the product catalog is built to be intuitive, practical, and genuinely useful on a Saturday morning.</p>
+    <!-- What makes us different -->
+    <section class="ab-section bg">
+        <div class="ab-inner">
+            <h2>Why <mark>GarDIY</mark> is different</h2>
+            <div class="card-grid">
+                <div class="ab-card">
+                    <div class="icon">🏠</div>
+                    <h3>Built for homeowners</h3>
+                    <p>Not for architects. <strong>No experience needed</strong> — if you can drag and drop, you can design.</p>
                 </div>
-                <div>
-                    <div class="about-label">Our Values</div>
-                    <h2>Transparency, Simplicity, Results</h2>
-                    <p>We don't hide pricing, lock features behind confusing paywalls, or make you call a salesperson. Everything you see is what you get — real prices, real products, real delivery.</p>
-                    <p>We're committed to making your outdoor project succeed from the first photo you upload to the day your materials arrive.</p>
+                <div class="ab-card">
+                    <div class="icon">🔍</div>
+                    <h3>No hidden costs</h3>
+                    <p><strong>Every price is real</strong> and live. What you see in the design is exactly what you pay.</p>
+                </div>
+                <div class="ab-card">
+                    <div class="icon">☁️</div>
+                    <h3>Works on any device</h3>
+                    <p>Start on your phone, finish on your computer. <strong>Everything syncs automatically.</strong></p>
+                </div>
+                <div class="ab-card">
+                    <div class="icon">✨</div>
+                    <h3>AI enhancement</h3>
+                    <p>See how your design looks <strong>rendered as a real photo</strong> before you order a thing.</p>
+                </div>
+                <div class="ab-card">
+                    <div class="icon">📐</div>
+                    <h3>Accurate quantities</h3>
+                    <p>Calibrate to your actual yard — <strong>no over-ordering</strong>, no running out of material.</p>
+                </div>
+                <div class="ab-card">
+                    <div class="icon">💬</div>
+                    <h3>Real support</h3>
+                    <p>Questions about your order? <strong>Talk to a real person</strong> — not a chatbot.</p>
                 </div>
             </div>
         </div>
@@ -275,9 +232,9 @@
 
     <!-- CTA -->
     <section class="cta-band">
-        <h2>Ready to Transform Your Yard?</h2>
-        <p>Join homeowners already designing smarter with GarDIY.</p>
-        <a href="upload.html">Start Designing Free →</a>
+        <h2>See it for yourself.</h2>
+        <p>Upload a photo and design your yard free — no account needed to start.</p>
+        <a href="upload.html">Try It Free →</a>
     </section>
 
     <!-- Footer -->
