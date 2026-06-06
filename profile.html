@@ -385,11 +385,19 @@
         return null;
     }
 
-    // Render the subscription section
-    async function renderSubscription() {
+    // Render the subscription section (global so profile.js can call it)
+    window.renderSubscription = async function renderSubscription() {
         const el = document.getElementById('subscriptionContent');
         if (!el) return;
-        const data = await syncPlanFromServer();
+
+        // Show cached data immediately while server responds
+        const sessionNow = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        const cachedPlan = sessionNow.plan || 'free';
+        el.innerHTML = `<div style="color:#6b7280;padding:1rem 0;font-size:14px;">Checking plan status…</div>`;
+
+        let data = null;
+        try { data = await syncPlanFromServer(); } catch (e) {}
+
         const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
         const plan   = data?.plan || session.plan || 'free';
         const status = data?.planStatus || 'active';
@@ -491,12 +499,6 @@
         }
     })();
 
-    // Render subscription when section is clicked
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.menu-item[data-section="subscription"]').forEach(el => {
-            el.addEventListener('click', renderSubscription);
-        });
-    });
     </script>
 </body>
 </html>

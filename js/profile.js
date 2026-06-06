@@ -787,6 +787,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (this.dataset.section === 'manager') {
                 setTimeout(loadMgrStats, 100);
             }
+            if (this.dataset.section === 'subscription') {
+                setTimeout(() => { if (typeof renderSubscription === 'function') renderSubscription(); }, 50);
+            }
         });
     });
 });
