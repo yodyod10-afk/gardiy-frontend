@@ -1255,9 +1255,9 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
 
         if (itemData.type === 'image') {
             item.style.backgroundImage    = `url(${itemData.imageUrl || itemData.image})`;
-            item.style.backgroundSize     = 'cover';
-            item.style.backgroundRepeat   = 'no-repeat';
-            item.style.backgroundPosition = 'center';
+            item.style.backgroundSize     = '200px 200px'; // tile at fixed size — never stretch
+            item.style.backgroundRepeat   = 'repeat';
+            item.style.backgroundPosition = '0 0';
         } else {
             item.style.backgroundColor = 'rgba(120,190,90,0.3)';
             item.innerHTML = `<span style="font-size:64px;opacity:0.7;pointer-events:none;">${itemData.image}</span>`;
