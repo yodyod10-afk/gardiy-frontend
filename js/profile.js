@@ -201,19 +201,87 @@ async function loadUserProjects(user) {
 }
 
 function setupProjectActions() {
-    // Order actions (project actions are handled dynamically in loadUserProjects)
-    document.querySelectorAll('.order-item .action-btn').forEach(btn => {
+    document.querySelectorAll('.order-item .contact-us-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            const action = this.textContent.trim();
-            if (action.includes('View') || action.includes('Track')) {
-                showMessage('Opening order details...', 'info');
-            } else if (action.includes('Reorder')) {
-                showMessage('Adding items to cart...', 'info');
-            } else if (action.includes('Contact')) {
-                showMessage('Opening support chat...', 'info');
-            }
+            const orderItem = this.closest('.order-item');
+            const orderNum  = orderItem?.querySelector('h3')?.textContent || '';
+            openContactModal(orderNum);
         });
     });
+}
+
+function openContactModal(orderRef) {
+    document.getElementById('contactModal')?.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'contactModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;';
+    modal.innerHTML = `
+        <div style="background:white;border-radius:20px;padding:2rem;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+                <h2 style="margin:0;font-size:1.2rem;color:#1a202c;">Contact Us</h2>
+                <button onclick="document.getElementById('contactModal').remove()" style="background:#f3f4f6;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px;color:#6b7280;">✕</button>
+            </div>
+            ${orderRef ? `<p style="margin:0 0 1rem;font-size:13px;color:#6b7280;">Regarding: <strong>${orderRef}</strong></p>` : ''}
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <div>
+                    <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Your Name *</label>
+                    <input id="contactName" type="text" placeholder="John Doe" style="width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Email *</label>
+                    <input id="contactEmail" type="email" placeholder="you@email.com" style="width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">How can we help? *</label>
+                    <textarea id="contactMessage" rows="4" placeholder="Describe your question or issue…" style="width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
+                </div>
+                <div id="contactError" style="display:none;color:#dc2626;font-size:13px;"></div>
+                <button id="contactSendBtn" onclick="sendContactMessage('${orderRef.replace(/'/g,"\\'")}')
+                " style="padding:12px;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;border-radius:10px;font-weight:600;font-size:15px;cursor:pointer;">Send Message</button>
+            </div>
+        </div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+
+    // Pre-fill from logged-in user
+    const user = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    if (user.name)  document.getElementById('contactName').value  = user.name;
+    if (user.email) document.getElementById('contactEmail').value = user.email;
+}
+
+async function sendContactMessage(orderRef) {
+    const name    = document.getElementById('contactName')?.value.trim();
+    const email   = document.getElementById('contactEmail')?.value.trim();
+    const message = document.getElementById('contactMessage')?.value.trim();
+    const errEl   = document.getElementById('contactError');
+    const sendBtn = document.getElementById('contactSendBtn');
+
+    if (!name || !email || !message) {
+        if (errEl) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; }
+        return;
+    }
+    if (errEl) errEl.style.display = 'none';
+
+    sendBtn.textContent = 'Sending…'; sendBtn.disabled = true;
+    try {
+        const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+        const res = await fetch(`${BACKEND}/api/contact`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(session.token ? { 'Authorization': `Bearer ${session.token}` } : {}) },
+            body: JSON.stringify({ name, email, message, orderRef }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('contactModal').remove();
+            showMessage('Message sent! We\'ll get back to you shortly.', 'success');
+        } else {
+            throw new Error(data.message || 'Failed to send');
+        }
+    } catch (err) {
+        sendBtn.textContent = 'Send Message'; sendBtn.disabled = false;
+        if (errEl) { errEl.textContent = 'Failed to send: ' + err.message; errEl.style.display = 'block'; }
+    }
 }
 
 function shareProject(projectTitle) {
