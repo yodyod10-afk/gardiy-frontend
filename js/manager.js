@@ -297,6 +297,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (logoutBtn) logoutBtn.style.display = 'inline-block';
 
     setupTabs();
+    setupProductFilters();
     loadProductsGrid();
     setupAddProductButton();
     if (typeof loadStats === 'function') loadStats();
@@ -325,86 +326,117 @@ function setupTabs() {
     });
 }
 
+let currentProductFilter = 'all';
+
+function renderProductCard(product, catDisplayName) {
+    const productId = product.id || product._id;
+    const displayImage = product.type === 'emoji'
+        ? `<div class="product-emoji">${product.image}</div>`
+        : `<img src="${product.image}" class="product-image" alt="${product.name}">`;
+    const tilingBadge = product.tiling ? '<span class="tiling-badge">🔄 Tiling</span>' : '';
+    return `
+        <div class="product-card" data-id="${productId}">
+            ${displayImage}
+            <div class="product-info">
+                <h4>${product.name}</h4>
+                <p class="product-price">$${product.price}</p>
+                <p class="product-category">${catDisplayName}</p>
+                <p class="product-type">${product.type === 'emoji' ? '🎨 Emoji' : '📷 Image'}</p>
+                ${tilingBadge}
+            </div>
+            <div class="product-actions">
+                <button class="edit-product-btn" data-id="${productId}">✏️ Edit</button>
+                <button class="delete-product-btn" data-id="${productId}">🗑️ Delete</button>
+            </div>
+        </div>`;
+}
+
+function setupProductFilters() {
+    const bar = document.getElementById('productFilterBar');
+    if (!bar) return;
+    bar.addEventListener('click', e => {
+        const btn = e.target.closest('.product-filter-btn');
+        if (!btn) return;
+        currentProductFilter = btn.dataset.filter;
+        bar.querySelectorAll('.product-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+        loadProductsGrid();
+    });
+}
+
 async function loadProductsGrid() {
     console.log('Loading products grid...');
     const productsGrid = document.getElementById('productsGrid');
-    
-    if (!productsGrid) {
-        console.error('Products grid not found!');
-        return;
-    }
-    
+    if (!productsGrid) { console.error('Products grid not found!'); return; }
+
     const products = await getProducts();
     console.log('Products to display:', products.length);
-    
-    if (products.length > 0) {
-        console.log('Sample product keys:', Object.keys(products[0]));
-        console.log('Sample product:', products[0]);
-    }
-    
+
     if (products.length === 0) {
         productsGrid.innerHTML = `
             <div class="empty-state">
                 <h3>No products yet</h3>
                 <p>Click "Add Product" to create your first product</p>
-            </div>
-        `;
+            </div>`;
         return;
     }
-    
-    const categories = {
-        'paths':        'Paths',
-        'grass':        'Grass',
-        'hardscapes':   'Hardscapes',
-        'rocks_pavers': 'Rocks & Pavers',
-        'shrubs':       'Shrubs',
-        'trees':        'Trees',
-        'flowers':      'Flowers',
-        'furniture':    'Furniture',
+
+    const CAT_NAMES = {
+        paths: 'Paths', grass: 'Grass', hardscapes: 'Hardscapes',
+        rocks_pavers: 'Rocks & Pavers', shrubs: 'Shrubs', trees: 'Trees',
+        flowers: 'Flowers', furniture: 'Furniture',
     };
-    
+
+    const RECENT_MS = 30 * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - RECENT_MS;
+    const isRecent = p => p.createdAt && new Date(p.createdAt).getTime() >= cutoff;
+
     let html = '';
 
-    for (const [catKey, catName] of Object.entries(categories)) {
-        const catProducts = products.filter(p => p.category === catKey);
-
-        html += `<div class="category-section">
-            <h3>${catName} (${catProducts.length})</h3>
-            <div class="products-list">`;
-
-        if (catProducts.length === 0) {
-            html += `<p style="color:#9ca3af;font-style:italic;padding:0.5rem 0;">No products yet — use Add Product to add one.</p>`;
-        } else {
-            catProducts.forEach(product => {
-                const productId = product.id || product._id;
-                const displayImage = product.type === 'emoji'
-                    ? `<div class="product-emoji">${product.image}</div>`
-                    : `<img src="${product.image}" class="product-image" alt="${product.name}">`;
-                const tilingBadge = product.tiling ? '<span class="tiling-badge">🔄 Tiling</span>' : '';
-                html += `
-                    <div class="product-card" data-id="${productId}">
-                        ${displayImage}
-                        <div class="product-info">
-                            <h4>${product.name}</h4>
-                            <p class="product-price">$${product.price}</p>
-                            <p class="product-category">${catName}</p>
-                            <p class="product-type">${product.type === 'emoji' ? '🎨 Emoji' : '📷 Image'}</p>
-                            ${tilingBadge}
-                        </div>
-                        <div class="product-actions">
-                            <button class="edit-product-btn" data-id="${productId}">✏️ Edit</button>
-                            <button class="delete-product-btn" data-id="${productId}">🗑️ Delete</button>
-                        </div>
-                    </div>`;
-            });
+    if (currentProductFilter === 'all') {
+        for (const [catKey, catName] of Object.entries(CAT_NAMES)) {
+            const catProducts = products.filter(p => p.category === catKey);
+            html += `<div class="category-section">
+                <h3>${catName} (${catProducts.length})</h3>
+                <div class="products-list">`;
+            if (catProducts.length === 0) {
+                html += `<p style="color:#9ca3af;font-style:italic;padding:0.5rem 0;">No products yet — use Add Product to add one.</p>`;
+            } else {
+                catProducts.forEach(p => { html += renderProductCard(p, catName); });
+            }
+            html += `</div></div>`;
         }
-
+    } else if (currentProductFilter === 'recent' || currentProductFilter === 'previous') {
+        const filtered = products
+            .filter(p => currentProductFilter === 'recent' ? isRecent(p) : !isRecent(p))
+            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        const label = currentProductFilter === 'recent'
+            ? `🕒 Recently Added — last 30 days (${filtered.length})`
+            : `📦 Previously Added (${filtered.length})`;
+        html += `<div class="category-section">
+            <h3>${label}</h3>
+            <div class="products-list">`;
+        if (filtered.length === 0) {
+            html += `<p style="color:#9ca3af;font-style:italic;padding:0.5rem 0;">No products match this filter.</p>`;
+        } else {
+            filtered.forEach(p => { html += renderProductCard(p, CAT_NAMES[p.category] || p.category); });
+        }
+        html += `</div></div>`;
+    } else {
+        const catName = CAT_NAMES[currentProductFilter] || currentProductFilter;
+        const filtered = products.filter(p => p.category === currentProductFilter);
+        html += `<div class="category-section">
+            <h3>${catName} (${filtered.length})</h3>
+            <div class="products-list">`;
+        if (filtered.length === 0) {
+            html += `<p style="color:#9ca3af;font-style:italic;padding:0.5rem 0;">No products in this category yet.</p>`;
+        } else {
+            filtered.forEach(p => { html += renderProductCard(p, catName); });
+        }
         html += `</div></div>`;
     }
-    
+
     productsGrid.innerHTML = html;
     console.log('Products grid loaded successfully');
-    
     setupProductActions();
 }
 

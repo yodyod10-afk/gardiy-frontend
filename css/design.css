@@ -917,6 +917,57 @@ body {
     transform: translateX(5px);
 }
 
+/* ── Tree sub-category sections ─────────────────────────────────────────────── */
+.tree-subcat-section {
+    margin-bottom: 4px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.tree-subcat-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.45rem 0.75rem;
+    background: #f8fafc;
+    border: none;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #374151;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.tree-subcat-btn:hover {
+    background: #f0fdf4;
+    color: #059669;
+}
+
+.subcat-count {
+    color: #9ca3af;
+    font-weight: 400;
+    font-size: 0.78rem;
+}
+
+.subcat-expand-icon {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: #9ca3af;
+    transition: transform 0.15s;
+}
+
+.tree-subcat-items {
+    padding: 0.4rem 0.4rem 0.2rem;
+    background: white;
+}
+
+.tree-subcat-items .product-item {
+    margin-bottom: 0.4rem;
+}
+
 /* ── Category product filter bar ───────────────────────────────────────────── */
 .category-filter-bar {
     position: sticky;

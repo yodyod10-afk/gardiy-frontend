@@ -541,9 +541,7 @@ function buildProductItemsHTML(products, esc) {
         const thumb = p.type === 'image'
             ? `<img src="${esc(p.imageUrl || p.image)}" style="width:40px;height:40px;object-fit:contain;border-radius:8px;">`
             : `<span style="font-size:32px;">${esc(p.image)}</span>`;
-        const infoBtn = p.notes
-            ? `<button class="product-info-btn" data-pid="${p._pid}" title="Plant info" aria-label="Plant info">?</button>`
-            : '';
+        const infoBtn = `<button class="product-info-btn" data-pid="${p._pid}" title="Product info" aria-label="Product info">?</button>`;
         return `<div class="product-item" data-pid="${p._pid}">
             ${thumb}
             <div class="product-info">
@@ -553,6 +551,42 @@ function buildProductItemsHTML(products, esc) {
             ${infoBtn}
         </div>`;
     }).join('');
+}
+
+const TREE_SUBCATS = [
+    { key: 'pines',   name: 'Pines',                icon: '🌲' },
+    { key: 'spruce',  name: 'Spruce',               icon: '🌲' },
+    { key: 'maples',  name: 'Maples',               icon: '🍁' },
+    { key: 'fruit',   name: 'Fruit & Ornamental',   icon: '🌸' },
+    { key: 'shade',   name: 'Shade & Street Trees', icon: '🌳' },
+    { key: 'juniper', name: 'Juniper & Arborvitae', icon: '🌿' },
+    { key: 'other',   name: 'Other',                icon: '🌳' },
+];
+
+function buildTreeSubcatHTML(products, esc) {
+    const grouped = {};
+    TREE_SUBCATS.forEach(s => { grouped[s.key] = []; });
+    products.forEach(p => {
+        const sc = (p.subcategory || '').toLowerCase().trim();
+        if (grouped[sc] !== undefined) grouped[sc].push(p);
+        else grouped['other'].push(p);
+    });
+    let html = '';
+    TREE_SUBCATS.forEach(s => {
+        const prods = grouped[s.key];
+        if (!prods.length) return;
+        html += `<div class="tree-subcat-section" data-subcat="${s.key}">
+            <button class="tree-subcat-btn">
+                <span>${s.icon} ${s.name}</span>
+                <span class="subcat-count">(${prods.length})</span>
+                <span class="subcat-expand-icon">▶</span>
+            </button>
+            <div class="tree-subcat-items" style="display:none;">
+                ${buildProductItemsHTML(prods, esc)}
+            </div>
+        </div>`;
+    });
+    return html || '<div class="filter-no-results">No trees found.</div>';
 }
 
 function applyProductFilter(catKey) {
@@ -566,7 +600,11 @@ function applyProductFilter(catKey) {
     const listEl = document.querySelector(`.category-product-list[data-category="${catKey}"]`);
     if (!listEl) return;
     const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    listEl.innerHTML = buildProductItemsHTML(prods, esc);
+    if (catKey === 'trees' && state.sort === 'default' && !state.color) {
+        listEl.innerHTML = buildTreeSubcatHTML(prods, esc);
+    } else {
+        listEl.innerHTML = buildProductItemsHTML(prods, esc);
+    }
     applyPlantRecommendationColors();
 }
 
@@ -615,10 +653,13 @@ function showProductNotes(product, anchorEl) {
         product.sun    ? `<div><strong>Sun:</strong> ${esc(product.sun)}</div>`        : '',
         product.color  ? `<div><strong>Color:</strong> ${esc(product.color)}</div>`   : '',
     ].filter(Boolean).join('');
+    const fallbackNote = !product.notes && !details
+        ? `<div class="pnp-notes" style="color:#9ca3af;font-style:italic;">No additional info available.</div>`
+        : '';
     popup.innerHTML = `
         <div class="pnp-header">${esc(product.name)}</div>
         ${details ? `<div class="pnp-details">${details}</div>` : ''}
-        ${product.notes ? `<div class="pnp-notes">${esc(product.notes)}</div>` : ''}
+        ${product.notes ? `<div class="pnp-notes">${esc(product.notes)}</div>` : fallbackNote}
     `;
     const rect = anchorEl.getBoundingClientRect();
     popup.style.display = 'block';
@@ -1024,7 +1065,7 @@ async function loadProductCategories() {
             <div class="category-items" style="display:none;">
                 ${filterBarHTML(key)}
                 <div class="category-product-list" data-category="${key}">`;
-        html += buildProductItemsHTML(cat.products, esc);
+        html += key === 'trees' ? buildTreeSubcatHTML(cat.products, esc) : buildProductItemsHTML(cat.products, esc);
         html += '</div></div></div>';
     });
     html += '</div>';
@@ -1041,6 +1082,17 @@ function setupCategoryButtons() {
         items.style.display = open ? 'none' : 'block';
         icon.textContent    = open ? '▼' : '▲';
         if (!open) applyPlantRecommendationColors();
+    });
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.tree-subcat-btn');
+        if (!btn) return;
+        e.stopPropagation();
+        const section = btn.closest('.tree-subcat-section');
+        const items   = section.querySelector('.tree-subcat-items');
+        const icon    = btn.querySelector('.subcat-expand-icon');
+        const open    = items.style.display !== 'none';
+        items.style.display = open ? 'none' : 'block';
+        if (icon) icon.textContent = open ? '▶' : '▼';
     });
 }
 
