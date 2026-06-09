@@ -81,6 +81,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Settings forms
     setupSettingsForms();
+
+    // Product filter bar in manager section
+    setupMgrProductFilters();
 });
 
 function loadUserData(user) {
@@ -604,6 +607,60 @@ const MGR_DEFAULT_PRODUCTS = [
 ];
 
 let mgrProductsCache = [];
+let mgrProductFilter = 'all';
+
+function renderMgrProductCard(p) {
+    const img = p.type === 'image' && p.image
+        ? `<img src="${p.image}" style="width:100%;height:100px;object-fit:cover;border-radius:8px 8px 0 0;">`
+        : `<div style="height:100px;background:#f0fdf4;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:2.5rem;">${p.image || '🌿'}</div>`;
+    const id = p._id || p.id;
+    const isDefault = !p._id;
+    return `<div style="background:white;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
+        ${img}
+        <div style="padding:0.75rem;">
+            <div style="font-weight:600;font-size:13px;color:#2d3748;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+            <div style="font-size:12px;color:#718096;margin:2px 0;">$${p.price} · ${p.category}</div>
+            <div style="display:flex;gap:6px;margin-top:6px;">
+                ${!isDefault ? `<button onclick="openEditProductModal('${id}')" style="flex:1;padding:4px;background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">Edit</button>` : ''}
+                ${!isDefault ? `<button onclick="deleteMgrProduct('${id}')" style="flex:1;padding:4px;background:#fff5f5;color:#e53e3e;border:1px solid #fed7d7;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">Delete</button>` : ''}
+                ${isDefault ? `<span style="font-size:11px;color:#9ca3af;font-style:italic;">Default — add to backend to edit</span>` : ''}
+            </div>
+        </div>
+    </div>`;
+}
+
+function renderMgrProductsGrid() {
+    const grid = document.getElementById('mgr-products-grid');
+    const countEl = document.getElementById('mgr-product-count');
+    if (!mgrProductsCache.length) { grid.innerHTML = '<p style="color:#718096;grid-column:1/-1;">No products yet.</p>'; return; }
+    const RECENT_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    let filtered;
+    if (mgrProductFilter === 'all') {
+        filtered = mgrProductsCache;
+    } else if (mgrProductFilter === 'recent') {
+        filtered = mgrProductsCache.filter(p => p.createdAt && (now - new Date(p.createdAt).getTime()) <= RECENT_MS);
+    } else if (mgrProductFilter === 'previous') {
+        filtered = mgrProductsCache.filter(p => !p.createdAt || (now - new Date(p.createdAt).getTime()) > RECENT_MS);
+    } else {
+        filtered = mgrProductsCache.filter(p => (p.category || '').toLowerCase() === mgrProductFilter);
+    }
+    countEl.textContent = `${filtered.length} product${filtered.length !== 1 ? 's' : ''}`;
+    if (!filtered.length) { grid.innerHTML = '<p style="color:#718096;grid-column:1/-1;">No products match this filter.</p>'; return; }
+    grid.innerHTML = filtered.map(renderMgrProductCard).join('');
+}
+
+function setupMgrProductFilters() {
+    const bar = document.getElementById('mgrProductFilterBar');
+    if (!bar) return;
+    bar.addEventListener('click', e => {
+        const btn = e.target.closest('.product-filter-btn');
+        if (!btn) return;
+        mgrProductFilter = btn.dataset.filter;
+        bar.querySelectorAll('.product-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+        renderMgrProductsGrid();
+    });
+}
 
 async function loadMgrProducts() {
     const grid = document.getElementById('mgr-products-grid');
@@ -619,27 +676,7 @@ async function loadMgrProducts() {
         const missing = MGR_DEFAULT_PRODUCTS.filter(p => !existingCats.has(p.category));
         if (missing.length) products = [...products, ...missing];
         mgrProductsCache = products;
-        countEl.textContent = `${products.length} products`;
-        if (!products.length) { grid.innerHTML = '<p style="color:#718096;grid-column:1/-1;">No products yet.</p>'; return; }
-        grid.innerHTML = products.map(p => {
-            const img = p.type === 'image' && p.image
-                ? `<img src="${p.image}" style="width:100%;height:100px;object-fit:cover;border-radius:8px 8px 0 0;">`
-                : `<div style="height:100px;background:#f0fdf4;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:2.5rem;">${p.image || '🌿'}</div>`;
-            const id = p._id || p.id;
-            const isDefault = !p._id;
-            return `<div style="background:white;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
-                ${img}
-                <div style="padding:0.75rem;">
-                    <div style="font-weight:600;font-size:13px;color:#2d3748;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
-                    <div style="font-size:12px;color:#718096;margin:2px 0;">$${p.price} · ${p.category}</div>
-                    <div style="display:flex;gap:6px;margin-top:6px;">
-                        ${!isDefault ? `<button onclick="openEditProductModal('${id}')" style="flex:1;padding:4px;background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">Edit</button>` : ''}
-                        ${!isDefault ? `<button onclick="deleteMgrProduct('${id}')" style="flex:1;padding:4px;background:#fff5f5;color:#e53e3e;border:1px solid #fed7d7;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">Delete</button>` : ''}
-                        ${isDefault ? `<span style="font-size:11px;color:#9ca3af;font-style:italic;">Default — add to backend to edit</span>` : ''}
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
+        renderMgrProductsGrid();
     } catch { grid.innerHTML = '<p style="color:#e53e3e;grid-column:1/-1;">Error loading products.</p>'; }
 }
 
