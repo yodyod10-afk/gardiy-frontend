@@ -18,13 +18,15 @@ function checkOAuthRedirect() {
             if (data.type === 'GOOGLE_AUTH' && data.token) {
                 saveSession(data);
                 history.replaceState(null, '', window.location.pathname + window.location.search);
-                // If this is a popup, close it — the opener window handles the redirect
-                if (window.opener && !window.opener.closed) {
-                    window.close();
-                    return true;
-                }
-                showMessage('Signed in with Google! Redirecting…', 'success');
-                setTimeout(() => { window.location.href = getNextUrl(); }, 1000);
+                // Always try to close the popup — cross-origin OAuth navigation nulls
+                // window.opener, but window.close() still works on script-opened windows
+                window.close();
+                // Fallback: if this window didn't close (opened directly, not as popup),
+                // redirect normally in the same tab
+                setTimeout(() => {
+                    showMessage('Signed in with Google! Redirecting…', 'success');
+                    setTimeout(() => { window.location.href = getNextUrl(); }, 1000);
+                }, 400);
                 return true;
             }
         } catch (e) { /* invalid token — fall through to normal login */ }
