@@ -18,15 +18,8 @@ function checkOAuthRedirect() {
             if (data.type === 'GOOGLE_AUTH' && data.token) {
                 saveSession(data);
                 history.replaceState(null, '', window.location.pathname + window.location.search);
-                // Always try to close the popup — cross-origin OAuth navigation nulls
-                // window.opener, but window.close() still works on script-opened windows
-                window.close();
-                // Fallback: if this window didn't close (opened directly, not as popup),
-                // redirect normally in the same tab
-                setTimeout(() => {
-                    showMessage('Signed in with Google! Redirecting…', 'success');
-                    setTimeout(() => { window.location.href = getNextUrl(); }, 1000);
-                }, 400);
+                showMessage('Signed in with Google! Redirecting…', 'success');
+                setTimeout(() => { window.location.href = getNextUrl(); }, 800);
                 return true;
             }
         } catch (e) { /* invalid token — fall through to normal login */ }
@@ -147,36 +140,9 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', e => {
             e.preventDefault();
             sessionStorage.setItem('loginNext', getNextUrl());
-            const popup = window.open(
-                'https://gardiy-backend-production.up.railway.app/api/auth/google',
-                'google-auth',
-                'width=520,height=620,left=' + (screen.width/2 - 260) + ',top=' + (screen.height/2 - 310)
-            );
-            if (!popup) { showMessage('Allow popups for this page to use Google sign-in.', 'error'); return; }
-            btn.textContent = 'Waiting for Google…';
+            btn.textContent = 'Redirecting to Google…';
             btn.disabled = true;
-
-            // When the popup saves the session to localStorage, this window detects it
-            // via the storage event and redirects itself (the popup only navigates itself)
-            function onStorage(e) {
-                if (e.key === 'gardiyUser' && e.newValue) {
-                    window.removeEventListener('storage', onStorage);
-                    clearInterval(pollTimer);
-                    const next = sessionStorage.getItem('loginNext') || 'profile.html';
-                    sessionStorage.removeItem('loginNext');
-                    window.location.href = next;
-                }
-            }
-            window.addEventListener('storage', onStorage);
-
-            const pollTimer = setInterval(() => {
-                if (popup.closed) {
-                    clearInterval(pollTimer);
-                    window.removeEventListener('storage', onStorage);
-                    btn.disabled = false;
-                    btn.innerHTML = '<img src="https://www.google.com/favicon.ico" width="18" style="vertical-align:middle;margin-right:8px">Continue with Google';
-                }
-            }, 500);
+            window.location.href = 'https://gardiy-backend-production.up.railway.app/api/auth/google';
         });
     });
 
