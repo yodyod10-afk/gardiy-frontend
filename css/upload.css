@@ -52,24 +52,27 @@
 /* Upload Section */
 .upload-section {
     min-height: 100vh;
-    padding-top: 120px;
-    padding-bottom: 4rem;
+    padding-top: 84px;
+    padding-bottom: 2rem;
     background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .upload-header {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 1.25rem;
 }
 
 .upload-header h1 {
-    font-size: 3rem;
+    font-size: 1.9rem;
     color: #92400e;
-    margin-bottom: 1rem;
+    margin-bottom: 0.4rem;
 }
 
 .upload-header p {
-    font-size: 1.3rem;
+    font-size: 1rem;
     color: #b45309;
 }
 
@@ -78,35 +81,35 @@
     background: white;
     border: 3px dashed #10b981;
     border-radius: 20px;
-    padding: 4rem 2rem;
+    padding: 2rem 2rem;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s;
-    max-width: 800px;
+    max-width: 600px;
     margin: 0 auto;
 }
 
 .upload-area:hover {
     border-color: #059669;
     background: #f0fdf4;
-    transform: translateY(-5px);
+    transform: translateY(-3px);
     box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
 }
 
 .upload-icon {
-    font-size: 5rem;
-    margin-bottom: 1rem;
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
 }
 
 .upload-area h3 {
-    font-size: 1.8rem;
+    font-size: 1.3rem;
     color: #065f46;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .upload-area > p {
     color: #6b7280;
-    margin-bottom: 2rem;
+    margin-bottom: 1.25rem;
 }
 
 .upload-btn {
@@ -169,9 +172,9 @@
 }
 
 .upload-tips {
-    margin-top: 3rem;
-    padding-top: 2rem;
-    border-top: 2px solid #e5e7eb;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #e5e7eb;
     text-align: left;
     max-width: 500px;
     margin-left: auto;
