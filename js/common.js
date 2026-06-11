@@ -1,5 +1,14 @@
 ﻿// Common JavaScript functions used across all pages
 
+// Strip .html from the browser URL bar (cosmetic clean URLs)
+(function () {
+    const p = window.location.pathname;
+    if (p.endsWith('.html')) {
+        const clean = p.slice(0, -5) || '/';
+        history.replaceState(null, '', clean + window.location.search + window.location.hash);
+    }
+})();
+
 // Smooth scroll to section
 function scrollToSection(sectionId) {
     const section = document.getElementById(sectionId);

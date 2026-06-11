@@ -57,13 +57,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const logoutBtn = document.getElementById('logoutBtn');
     logoutBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        if (confirm('Are you sure you want to logout?')) {
-            localStorage.removeItem('gardiyUser');
-            showMessage('Logged out successfully', 'success');
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1000);
-        }
+        localStorage.removeItem('gardiyUser');
+        showMessage('Logged out successfully', 'success');
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1000);
     });
 
     // Edit profile
