@@ -3,7 +3,7 @@
 /* Hero Section */
 .community-hero {
     padding: 100px 20px 60px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     text-align: center;
 }
 
@@ -49,12 +49,12 @@
 .search-bar input:focus {
     outline: none;
     background: white;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 .search-btn {
     padding: 14px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     border: none;
     border-radius: 12px;
     font-size: 20px;
@@ -94,7 +94,7 @@
 
 .filter-btn.active {
     background: white;
-    color: #667eea;
+    color: #10b981;
     border-color: white;
 }
 
@@ -173,7 +173,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(102, 126, 234, 0.9);
+    background: rgba(16, 185, 129, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -192,7 +192,7 @@
     border-radius: 25px;
     font-size: 15px;
     font-weight: 600;
-    color: #667eea;
+    color: #10b981;
     cursor: pointer;
     transition: all 0.3s ease;
 }
@@ -296,7 +296,7 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
     display: flex;
     align-items: center;
@@ -325,8 +325,8 @@
 .load-more-btn {
     padding: 14px 32px;
     background: white;
-    border: 2px solid #667eea;
-    color: #667eea;
+    border: 2px solid #10b981;
+    color: #10b981;
     border-radius: 25px;
     font-size: 15px;
     font-weight: 600;
@@ -335,18 +335,18 @@
 }
 
 .load-more-btn:hover {
-    background: #667eea;
+    background: #10b981;
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
 /* Share Button in Nav */
 .share-btn {
     padding: 10px 20px;
-    background: rgba(102, 126, 234, 0.1);
-    border: 2px solid #667eea;
-    color: #667eea;
+    background: rgba(16, 185, 129, 0.1);
+    border: 2px solid #10b981;
+    color: #10b981;
     border-radius: 12px;
     font-size: 14px;
     font-weight: 600;
@@ -356,7 +356,7 @@
 }
 
 .share-btn:hover {
-    background: #667eea;
+    background: #10b981;
     color: white;
     transform: translateY(-2px);
 }
@@ -453,7 +453,7 @@
 }
 
 .upload-zone:hover {
-    border-color: #667eea;
+    border-color: #10b981;
     background: #edf2f7;
 }
 

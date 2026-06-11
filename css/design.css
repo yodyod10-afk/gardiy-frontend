@@ -523,7 +523,7 @@ body {
 .design-canvas {
     position: sticky !important;
     top: 64px !important;
-    height: calc(100vh - 64px) !important;
+    height: calc(100vh - 130px) !important;
     background: #e5e7eb;
     overflow: hidden !important;
 }
