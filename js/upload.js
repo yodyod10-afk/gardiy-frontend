@@ -82,7 +82,7 @@ function setupEventListeners() {
     if (analyzeBtn) analyzeBtn.addEventListener('click', () => analyzeWithLocation());
 
     const demoBtn = document.getElementById('demoGardenBtn');
-    if (demoBtn) demoBtn.addEventListener('click', handleDemoGarden);
+    if (demoBtn) demoBtn.addEventListener('click', e => { e.stopPropagation(); handleDemoGarden(); });
 
     if (startDesignBtn) {
         startDesignBtn.addEventListener('click', e => {
