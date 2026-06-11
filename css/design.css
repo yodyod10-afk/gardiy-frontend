@@ -135,6 +135,20 @@
 }
 .share-project-btn:hover { background: #eff6ff; }
 .share-project-btn:disabled { opacity: 0.6; cursor: default; }
+.community-share-btn {
+    background: white;
+    color: #059669;
+    border: 1.5px solid #6ee7b7;
+    padding: 0.4rem 0.9rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+.community-share-btn:hover { background: #ecfdf5; }
+.community-share-btn:disabled { opacity: 0.6; cursor: default; }
 
 /* Help button */
 .help-btn {

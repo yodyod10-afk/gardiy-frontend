@@ -2522,6 +2522,7 @@ function setupProjectButtons() {
         document.getElementById('projectsModal').style.display = 'none';
     });
     document.getElementById('shareProjectBtn')?.addEventListener('click', handleShareClick);
+    document.getElementById('communityShareBtn')?.addEventListener('click', handleCommunityShareClick);
 }
 
 // ── Share feature ─────────────────────────────────────────────────────────────
@@ -2558,6 +2559,42 @@ async function handleShareClick() {
         console.error('Share failed:', e);
         if (btn) { btn.disabled = false; btn.textContent = '🔗 Share'; }
         alert('Could not generate share link. Please try again.');
+    }
+}
+
+// ── Community publish ──────────────────────────────────────────────────────────
+
+async function handleCommunityShareClick() {
+    const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    if (!session.token) {
+        if (confirm('Sign in to share your project with the community.\n\nGo to login page?')) window.location.href = 'login.html';
+        return;
+    }
+    if (!activeProjectId) {
+        const shouldSave = confirm('Save your project first to share it with the community.');
+        if (!shouldSave) return;
+        await handleSaveProjectClick();
+        if (!activeProjectId) return;
+    }
+    const btn = document.getElementById('communityShareBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sharing…'; }
+    try {
+        const imageData = window.GarDIYStorage?.getImage() || '';
+        const res = await fetch(`${BACKEND}/api/designs/${activeProjectId}/publish`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.token}` },
+            body: JSON.stringify({ landscapeImageData: imageData }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        if (btn) { btn.textContent = '✓ Shared!'; btn.style.background = '#d1fae5'; btn.style.color = '#065f46'; btn.style.borderColor = '#6ee7b7'; }
+        setTimeout(() => {
+            if (btn) { btn.disabled = false; btn.textContent = '🌿 Community'; btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }
+        }, 3000);
+    } catch (e) {
+        console.error('Community share failed:', e);
+        if (btn) { btn.disabled = false; btn.textContent = '🌿 Community'; }
+        alert('Could not share to community. Please try again.');
     }
 }
 
