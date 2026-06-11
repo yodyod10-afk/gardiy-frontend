@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ── Apple (placeholder) ────────────────────────────────────────────────
     document.querySelectorAll('.apple-btn').forEach(btn => {
-        btn.addEventListener('click', e => { e.preventDefault(); showMessage('Apple sign-in coming soon!', 'info'); });
+        btn.addEventListener('click', e => { e.preventDefault(); });
     });
 
     // ── Password toggles ───────────────────────────────────────────────────
