@@ -776,13 +776,10 @@ function _uApplyCalibration(feet) {
 }
 
 // ── Demo garden ───────────────────────────────────────────────────────────────
-function handleDemoGarden() {
+async function handleDemoGarden() {
     uploadSection.style.display   = 'none';
     analysisSection.style.display = 'block';
     window.scrollTo(0, 0);
-
-    const DEMO_IMG = 'images/demo-garden.png';
-    previewImage.src = DEMO_IMG;
 
     const demoData = {
         squareFeet:      1000,
@@ -805,18 +802,25 @@ function handleDemoGarden() {
         notRecommendedPlants: ['Tropical palms', 'High-water tropicals'],
     };
 
-    try { window.GarDIYStorage.saveImage(DEMO_IMG); }             catch(e) {}
+    // Fetch the demo image and convert to data URL so it works exactly like an upload
+    try {
+        const resp    = await fetch('images/demo-garden.png');
+        const blob    = await resp.blob();
+        const dataUrl = await new Promise(res => {
+            const reader = new FileReader();
+            reader.onload = e => res(e.target.result);
+            reader.readAsDataURL(blob);
+        });
+        previewImage.src = dataUrl;
+        try { window.GarDIYStorage.saveImage(dataUrl); } catch(e) {}
+    } catch(e) {
+        // Fallback: use path directly
+        previewImage.src = 'images/demo-garden.png';
+        try { window.GarDIYStorage.saveImage('images/demo-garden.png'); } catch(e2) {}
+    }
+
     try { window.GarDIYStorage.saveLocationContext({ zipCode: '80203', demo: true }); } catch(e) {}
-
-    function showDemo() {
-        showAnalysisResults(demoData, { zipCode: '80203' });
-    }
-
-    if (previewImage.complete && previewImage.naturalWidth > 0) {
-        showDemo();
-    } else {
-        previewImage.onload = showDemo;
-    }
+    showAnalysisResults(demoData, { zipCode: '80203' });
 }
 
 console.log('✅ Upload script loaded');
