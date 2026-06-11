@@ -81,6 +81,9 @@ function setupEventListeners() {
 
     if (analyzeBtn) analyzeBtn.addEventListener('click', () => analyzeWithLocation());
 
+    const demoBtn = document.getElementById('demoGardenBtn');
+    if (demoBtn) demoBtn.addEventListener('click', handleDemoGarden);
+
     if (startDesignBtn) {
         startDesignBtn.addEventListener('click', e => {
             e.preventDefault();
@@ -770,6 +773,50 @@ function _uApplyCalibration(feet) {
     const sqftVal = document.getElementById('sqftValue');
     if (sqftVal) sqftVal.textContent = groundSF + ' sq ft (calibrated)';
     console.log('[Calib] natPxPerFt:', natPxPerFt.toFixed(2), '| calibSqFtPerNatPx2:', calibSqFtPerNatPx2.toExponential(4), '| groundSF:', groundSF);
+}
+
+// ── Demo garden ───────────────────────────────────────────────────────────────
+function handleDemoGarden() {
+    uploadSection.style.display   = 'none';
+    analysisSection.style.display = 'block';
+    window.scrollTo(0, 0);
+
+    const DEMO_IMG = 'images/demo-garden.png';
+    previewImage.src = DEMO_IMG;
+
+    const demoData = {
+        squareFeet:      1000,
+        totalFrameSqFt:  1200,
+        groundFraction:  0.85,
+        dimensions:      '25 ft × 40 ft',
+        sunlight:        '6-8 hours (Full Sun)',
+        climate:         'Semi-arid Continental (Colorado), Zone 5-6',
+        soilType:        'Sandy Loam',
+        irrigation:      'Moderate',
+        temperature:     '20°F to 95°F',
+        confidence:      'Demo',
+        scaleReference:  'Demo garden (1,000 sq ft)',
+        recommendations: [
+            'Great blank-slate space for a full landscape design',
+            'Consider native Colorado plants for low water use',
+            'Open area suits a mix of hardscape and greenery',
+        ],
+        recommendedPlants:    ['Blue Grama Grass', 'Colorado Blue Spruce', 'Prairie Gold Aspen', 'Russian Sage', 'Penstemon', 'Salvia'],
+        notRecommendedPlants: ['Tropical palms', 'High-water tropicals'],
+    };
+
+    try { window.GarDIYStorage.saveImage(DEMO_IMG); }             catch(e) {}
+    try { window.GarDIYStorage.saveLocationContext({ zipCode: '80203', demo: true }); } catch(e) {}
+
+    function showDemo() {
+        showAnalysisResults(demoData, { zipCode: '80203' });
+    }
+
+    if (previewImage.complete && previewImage.naturalWidth > 0) {
+        showDemo();
+    } else {
+        previewImage.onload = showDemo;
+    }
 }
 
 console.log('✅ Upload script loaded');
