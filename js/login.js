@@ -235,8 +235,8 @@ function addPasswordToggle(inputId) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.innerHTML = '<img src="images/eye.png" style="width:20px;height:20px;object-fit:contain;display:block;">';
-    btn.style.cssText = 'position:absolute;right:14px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;opacity:0.5;transition:opacity 0.2s;line-height:0;';
-    input.style.paddingRight = '44px';
+    btn.style.cssText = 'position:absolute;right:4px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;opacity:0.5;transition:opacity 0.2s;line-height:0;';
+    input.style.paddingRight = '34px';
     wrapper.appendChild(btn);
     btn.addEventListener('click', () => {
         const show = input.type === 'password';
