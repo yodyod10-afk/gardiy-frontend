@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <a href="index.html" class="logo" style="display:flex;align-items:center;"><img src="images/logo.png" alt="GarDIY" style="height:36px;width:auto;margin-right:8px;">GarDIY</a>
         <ul class="nav-links">
             <li><a href="index.html">Home</a></li>
-            <li><a href="community.html">Community</a></li> <!-- ADD THIS LINE -->
+            <li style="display:none"><a href="community.html" style="display:none">Community</a></li> <!-- ADD THIS LINE -->
             <li><a href="#features">Features</a></li>
             <li><a href="#how-it-works">How It Works</a></li>
             <li><a href="#pricing">Pricing</a></li>
@@ -83,7 +83,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="photo-col">
                 <div class="photo-preview" id="photoPreview">
                     <img id="previewImage" alt="Uploaded landscape">
-                    
+                    <canvas id="polygonCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;"></canvas>
+
                     <!-- Scanning Animation Overlay -->
                     <div class="scan-overlay" id="scanOverlay" style="display: none;">
                         <div class="scan-bar"></div>
@@ -154,6 +155,22 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
 
                         <div id="zipError" style="display:none;color:#dc2626;font-size:13px;margin-top:6px;padding:8px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;"></div>
+
+                        <!-- Optional polygon area marker -->
+                        <div id="polygonSection" style="display:none;margin:12px 0 6px;">
+                            <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:4px;">📐 Mark Specific Area <span style="font-size:11px;color:#9ca3af;font-weight:400;">(optional)</span></div>
+                            <p style="font-size:12px;color:#6b7280;margin:0 0 8px;">Draw on the photo to focus analysis on a specific region only.</p>
+                            <button id="polyToggleBtn" style="width:100%;padding:8px;background:#fff;border:1px dashed #10b981;border-radius:8px;color:#065f46;font-size:12px;font-weight:600;cursor:pointer;">+ Draw Area on Photo</button>
+                            <div id="polyActiveControls" style="display:none;flex-direction:column;gap:6px;margin-top:8px;">
+                                <p id="polyInstructions" style="font-size:12px;color:#065f46;background:#f0fdf4;padding:8px 10px;border-radius:6px;margin:0;"></p>
+                                <div style="display:flex;gap:8px;">
+                                    <button id="polyClearBtn" style="flex:1;padding:6px;background:#f3f4f6;color:#374151;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500;">Clear</button>
+                                    <button id="polyCancelBtn" style="flex:1;padding:6px;background:#f3f4f6;color:#374151;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500;">Cancel</button>
+                                </div>
+                            </div>
+                            <div id="polyDoneMsg" style="display:none;font-size:12px;font-weight:600;color:#10b981;padding:6px 10px;background:#f0fdf4;border-radius:6px;margin-top:6px;">✓ Area marked — AI will focus on this region.</div>
+                            <button id="polyRedrawBtn" style="display:none;width:100%;padding:6px;background:#f0fdf4;border:1px solid #6ee7b7;border-radius:8px;color:#065f46;font-size:12px;cursor:pointer;margin-top:6px;">↺ Redraw Area</button>
+                        </div>
 
                         <div class="location-actions">
                             <button id="analyzeBtn" class="analyze-btn">🔍 Analyze My Landscape</button>

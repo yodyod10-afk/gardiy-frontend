@@ -10,6 +10,14 @@ let analyzeBtn;
 let exifStatusBanner, exifStatusText;
 let zipBadge;
 
+// ── Polygon tool state ────────────────────────────────────────────────────────
+let _polyPoints = [];    // [{x,y}] normalized 0–1 relative to rendered image
+let _polyActive = false; // drawing mode on
+let _polyClosed = false; // polygon completed
+let _polyCanvas = null;
+let _polyCtx    = null;
+let _polyMouse  = null;  // last mouse position in canvas internal pixels
+
 document.addEventListener('DOMContentLoaded', function () {
     console.log('✅ Upload page loaded');
 
@@ -83,6 +91,33 @@ function setupEventListeners() {
 
     const demoBtn = document.getElementById('demoGardenBtn');
     if (demoBtn) demoBtn.addEventListener('click', e => { e.stopPropagation(); handleDemoGarden(); });
+
+    // Polygon tool buttons
+    document.getElementById('polyToggleBtn')?.addEventListener('click', enablePolygonMode);
+    document.getElementById('polyCancelBtn')?.addEventListener('click', disablePolygonMode);
+    document.getElementById('polyClearBtn')?.addEventListener('click', () => {
+        _polyPoints = [];
+        _polyClosed = false;
+        _polyMouse  = null;
+        if (_polyCanvas) { _polyCanvas.style.pointerEvents = 'auto'; _polyCanvas.style.cursor = 'crosshair'; }
+        const inst = document.getElementById('polyInstructions');
+        if (inst) inst.textContent = 'Click on the photo to place points. Click the first point to close.';
+        document.getElementById('polyDoneMsg').style.display   = 'none';
+        document.getElementById('polyRedrawBtn').style.display = 'none';
+        drawPolyCanvas();
+    });
+    document.getElementById('polyRedrawBtn')?.addEventListener('click', () => {
+        _polyPoints = [];
+        _polyClosed = false;
+        _polyActive = true;
+        _polyMouse  = null;
+        if (_polyCanvas) { _polyCanvas.style.pointerEvents = 'auto'; _polyCanvas.style.cursor = 'crosshair'; }
+        document.getElementById('polyActiveControls').style.display = 'flex';
+        document.getElementById('polyInstructions').textContent     = 'Click on the photo to place points. Click the first point to close.';
+        document.getElementById('polyDoneMsg').style.display        = 'none';
+        document.getElementById('polyRedrawBtn').style.display      = 'none';
+        drawPolyCanvas();
+    });
 
     if (startDesignBtn) {
         startDesignBtn.addEventListener('click', e => {
@@ -293,6 +328,7 @@ function resetLocationForm() {
     if (zipCodeInput)     zipCodeInput.value             = '';
     if (exifStatusBanner) exifStatusBanner.style.display = 'none';
     if (zipBadge)         zipBadge.style.display         = 'none';
+    resetPolygon();
 }
 
 function resetLoadingSteps() {
@@ -308,6 +344,11 @@ function showLocationForm(prefilled = {}) {
     locationForm.style.display    = 'block';
     analysisLoading.style.display = 'none';
     analysisResults.style.display = 'none';
+
+    // Initialize polygon canvas and reveal polygon section
+    initPolygonCanvas();
+    const polygonSection = document.getElementById('polygonSection');
+    if (polygonSection) polygonSection.style.display = 'block';
 
     if (prefilled.zipCode) {
         zipCodeInput.value = prefilled.zipCode;
@@ -430,15 +471,24 @@ async function simulateAIAnalysis(locationData = {}) {
     ];
 
     try {
-        const imageData  = previewImage.src;
         const session    = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
         const authHeader = session.token ? { 'Authorization': `Bearer ${session.token}` } : {};
+
+        // If polygon is drawn, annotate the image so Claude sees the focus area visually
+        let imageData     = previewImage.src;
+        let polygonPoints = null;
+        if (_polyClosed && _polyPoints.length >= 3) {
+            const annotated = getAnnotatedImageData();
+            if (annotated) imageData = annotated;
+            polygonPoints = _polyPoints;
+        }
 
         const body = {
             imageData,
             imageWidth:  previewImage.naturalWidth  || 0,
             imageHeight: previewImage.naturalHeight || 0,
             ...(locationData.zipCode && { zipCode: locationData.zipCode }),
+            ...(polygonPoints        && { polygonPoints }),
         };
 
         const res  = await fetch('https://gardiy-backend-production.up.railway.app/api/analyze-image', {
@@ -628,6 +678,260 @@ function checkForSavedData() {
         if (locationForm) locationForm.style.display = 'none';
         showAnalysisResults(savedAnalysis);
     }
+}
+
+// ── Polygon drawing tool ──────────────────────────────────────────────────────
+function initPolygonCanvas() {
+    if (!_polyCanvas) {
+        _polyCanvas = document.getElementById('polygonCanvas');
+        if (!_polyCanvas) return;
+        _polyCtx = _polyCanvas.getContext('2d');
+        _polyCanvas.addEventListener('click',      _onPolyClick);
+        _polyCanvas.addEventListener('dblclick',   _onPolyDblClick);
+        _polyCanvas.addEventListener('mousemove',  _onPolyMouseMove);
+        _polyCanvas.addEventListener('mouseleave', () => { _polyMouse = null; drawPolyCanvas(); });
+    }
+    // Size canvas to match the container so 1 canvas px = 1 CSS px
+    _polyCanvas.width  = photoPreview.offsetWidth;
+    _polyCanvas.height = photoPreview.offsetHeight;
+    drawPolyCanvas();
+}
+
+function resetPolygon() {
+    _polyPoints = [];
+    _polyActive = false;
+    _polyClosed = false;
+    _polyMouse  = null;
+    if (_polyCanvas) {
+        _polyCanvas.style.pointerEvents = 'none';
+        _polyCanvas.style.cursor = 'default';
+        _polyCtx?.clearRect(0, 0, _polyCanvas.width, _polyCanvas.height);
+    }
+    document.getElementById('polygonSection')?.setAttribute('style', 'display:none;margin:12px 0 6px;');
+    document.getElementById('polyToggleBtn')?.setAttribute('style', 'width:100%;padding:8px;background:#fff;border:1px dashed #10b981;border-radius:8px;color:#065f46;font-size:12px;font-weight:600;cursor:pointer;');
+    const pac = document.getElementById('polyActiveControls');
+    if (pac) pac.style.display = 'none';
+    const pdm = document.getElementById('polyDoneMsg');
+    if (pdm) pdm.style.display = 'none';
+    const prb = document.getElementById('polyRedrawBtn');
+    if (prb) prb.style.display = 'none';
+}
+
+function enablePolygonMode() {
+    _polyActive = true;
+    _polyClosed = false;
+    _polyPoints = [];
+    _polyMouse  = null;
+    if (_polyCanvas) { _polyCanvas.style.pointerEvents = 'auto'; _polyCanvas.style.cursor = 'crosshair'; }
+    document.getElementById('polyToggleBtn').style.display      = 'none';
+    document.getElementById('polyActiveControls').style.display = 'flex';
+    document.getElementById('polyInstructions').textContent     = 'Click on the photo to place points. Click the first point to close.';
+    document.getElementById('polyDoneMsg').style.display        = 'none';
+    document.getElementById('polyRedrawBtn').style.display      = 'none';
+    drawPolyCanvas();
+}
+
+function disablePolygonMode() {
+    _polyActive = false;
+    _polyClosed = false;
+    _polyPoints = [];
+    _polyMouse  = null;
+    if (_polyCanvas) {
+        _polyCanvas.style.pointerEvents = 'none';
+        _polyCanvas.style.cursor = 'default';
+        _polyCtx?.clearRect(0, 0, _polyCanvas.width, _polyCanvas.height);
+    }
+    document.getElementById('polyToggleBtn').style.display      = 'block';
+    document.getElementById('polyActiveControls').style.display = 'none';
+    document.getElementById('polyDoneMsg').style.display        = 'none';
+    document.getElementById('polyRedrawBtn').style.display      = 'none';
+}
+
+function _onPolyClick(e) {
+    if (!_polyActive || _polyClosed) return;
+    const n = _canvasClickToNorm(e);
+    if (!n.valid) return;
+
+    // Close polygon when clicking near the first point (>= 3 points already)
+    if (_polyPoints.length >= 3) {
+        const fp = _normToCanvasXY(_polyPoints[0].x, _polyPoints[0].y);
+        const cp = _normToCanvasXY(n.x, n.y);
+        if (Math.hypot(cp.x - fp.x, cp.y - fp.y) < 18) { closePolygon(); return; }
+    }
+
+    _polyPoints.push({ x: n.x, y: n.y });
+    const inst = document.getElementById('polyInstructions');
+    if (inst && _polyPoints.length === 2) inst.textContent = 'Keep clicking to add more points. Double-click or click the first point to finish.';
+    drawPolyCanvas();
+}
+
+function _onPolyDblClick(e) {
+    if (!_polyActive || _polyClosed || _polyPoints.length < 3) return;
+    _polyPoints.pop(); // remove duplicate point added by the preceding click event
+    closePolygon();
+}
+
+function _onPolyMouseMove(e) {
+    if (!_polyActive || _polyClosed) return;
+    const rect = _polyCanvas.getBoundingClientRect();
+    _polyMouse = {
+        x: (e.clientX - rect.left) * (_polyCanvas.width  / rect.width),
+        y: (e.clientY - rect.top)  * (_polyCanvas.height / rect.height),
+    };
+    drawPolyCanvas();
+}
+
+function closePolygon() {
+    _polyClosed = true;
+    _polyMouse  = null;
+    if (_polyCanvas) { _polyCanvas.style.pointerEvents = 'none'; _polyCanvas.style.cursor = 'default'; }
+    document.getElementById('polyActiveControls').style.display = 'none';
+    document.getElementById('polyDoneMsg').style.display        = 'block';
+    document.getElementById('polyRedrawBtn').style.display      = 'block';
+    drawPolyCanvas();
+}
+
+// Maps a click event to normalized image coordinates (0–1)
+function _canvasClickToNorm(e) {
+    const imgRect = previewImage.getBoundingClientRect();
+    const nx = (e.clientX - imgRect.left) / imgRect.width;
+    const ny = (e.clientY - imgRect.top)  / imgRect.height;
+    return { x: nx, y: ny, valid: nx >= 0 && nx <= 1 && ny >= 0 && ny <= 1 };
+}
+
+// Maps normalized image coordinates to canvas internal pixels
+function _normToCanvasXY(nx, ny) {
+    const imgRect = previewImage.getBoundingClientRect();
+    const canRect = _polyCanvas.getBoundingClientRect();
+    const sx = _polyCanvas.width  / canRect.width;
+    const sy = _polyCanvas.height / canRect.height;
+    return {
+        x: (imgRect.left - canRect.left + nx * imgRect.width)  * sx,
+        y: (imgRect.top  - canRect.top  + ny * imgRect.height) * sy,
+    };
+}
+
+function drawPolyCanvas() {
+    if (!_polyCtx || !_polyCanvas) return;
+    _polyCtx.clearRect(0, 0, _polyCanvas.width, _polyCanvas.height);
+    if (_polyPoints.length === 0) return;
+
+    const pts = _polyPoints.map(p => _normToCanvasXY(p.x, p.y));
+
+    if (_polyClosed && pts.length >= 3) {
+        // Darken everything outside the polygon
+        _polyCtx.save();
+        _polyCtx.fillStyle = 'rgba(0,0,0,0.42)';
+        _polyCtx.fillRect(0, 0, _polyCanvas.width, _polyCanvas.height);
+        _polyCtx.globalCompositeOperation = 'destination-out';
+        _polyCtx.beginPath();
+        _polyCtx.moveTo(pts[0].x, pts[0].y);
+        pts.slice(1).forEach(p => _polyCtx.lineTo(p.x, p.y));
+        _polyCtx.closePath();
+        _polyCtx.fill();
+        _polyCtx.restore();
+
+        // Green polygon border
+        _polyCtx.save();
+        _polyCtx.strokeStyle = '#22c55e';
+        _polyCtx.lineWidth   = 2.5;
+        _polyCtx.lineJoin    = 'round';
+        _polyCtx.beginPath();
+        _polyCtx.moveTo(pts[0].x, pts[0].y);
+        pts.slice(1).forEach(p => _polyCtx.lineTo(p.x, p.y));
+        _polyCtx.closePath();
+        _polyCtx.stroke();
+        _polyCtx.restore();
+        return;
+    }
+
+    // Drawing in progress: dashed line + preview line to cursor
+    _polyCtx.save();
+    _polyCtx.strokeStyle = '#22c55e';
+    _polyCtx.lineWidth   = 2;
+    _polyCtx.lineJoin    = 'round';
+    _polyCtx.setLineDash([7, 4]);
+    _polyCtx.beginPath();
+    _polyCtx.moveTo(pts[0].x, pts[0].y);
+    pts.slice(1).forEach(p => _polyCtx.lineTo(p.x, p.y));
+    if (_polyMouse) _polyCtx.lineTo(_polyMouse.x, _polyMouse.y);
+    _polyCtx.stroke();
+    _polyCtx.restore();
+
+    // Dots on each placed point
+    pts.forEach((pt, i) => {
+        _polyCtx.save();
+        _polyCtx.beginPath();
+        _polyCtx.arc(pt.x, pt.y, i === 0 ? 7 : 5, 0, Math.PI * 2);
+        _polyCtx.fillStyle   = i === 0 ? '#15803d' : '#22c55e';
+        _polyCtx.fill();
+        _polyCtx.strokeStyle = '#fff';
+        _polyCtx.lineWidth   = 1.5;
+        _polyCtx.stroke();
+        _polyCtx.restore();
+    });
+
+    // Highlight first point when mouse is near (close-hint glow)
+    if (_polyPoints.length >= 3 && _polyMouse) {
+        const fp   = pts[0];
+        const dist = Math.hypot(_polyMouse.x - fp.x, _polyMouse.y - fp.y);
+        if (dist < 28) {
+            _polyCtx.save();
+            _polyCtx.beginPath();
+            _polyCtx.arc(fp.x, fp.y, 15, 0, Math.PI * 2);
+            _polyCtx.fillStyle = 'rgba(34,197,94,0.28)';
+            _polyCtx.fill();
+            _polyCtx.restore();
+        }
+    }
+}
+
+// Returns annotated image data URL: original image with dark overlay outside polygon + green border
+function getAnnotatedImageData() {
+    if (!_polyClosed || _polyPoints.length < 3) return null;
+    const img  = previewImage;
+    const natW = img.naturalWidth;
+    const natH = img.naturalHeight;
+    if (!natW || !natH) return null;
+
+    // Draw original image onto off-screen canvas
+    const off = document.createElement('canvas');
+    off.width = natW; off.height = natH;
+    const ctx = off.getContext('2d');
+    ctx.drawImage(img, 0, 0, natW, natH);
+
+    // Scale polygon from normalized → natural image pixels
+    const pts = _polyPoints.map(p => ({ x: p.x * natW, y: p.y * natH }));
+
+    // Overlay canvas: semi-transparent dark fill with polygon area cut out
+    const ov    = document.createElement('canvas');
+    ov.width = natW; ov.height = natH;
+    const ovCtx = ov.getContext('2d');
+    ovCtx.fillStyle = 'rgba(0,0,0,0.52)';
+    ovCtx.fillRect(0, 0, natW, natH);
+    ovCtx.globalCompositeOperation = 'destination-out';
+    ovCtx.beginPath();
+    ovCtx.moveTo(pts[0].x, pts[0].y);
+    pts.slice(1).forEach(p => ovCtx.lineTo(p.x, p.y));
+    ovCtx.closePath();
+    ovCtx.fillStyle = 'rgba(0,0,0,1)';
+    ovCtx.fill();
+
+    // Composite the overlay onto the original image
+    ctx.drawImage(ov, 0, 0);
+
+    // Draw green polygon border
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth   = Math.max(3, natW / 280);
+    ctx.lineJoin    = 'round';
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.closePath();
+    ctx.stroke();
+
+    return off.toDataURL('image/jpeg', 0.88);
 }
 
 // ── Sign-in gate ──────────────────────────────────────────────────────────────

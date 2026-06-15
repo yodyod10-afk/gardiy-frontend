@@ -545,13 +545,35 @@ function buildProductItemsHTML(products, esc) {
         return `<div class="product-item" data-pid="${p._pid}">
             ${thumb}
             <div class="product-info">
-                <div class="product-name">${esc(p.name)}${sunBadgeHTML(p.name, p.category, p.sun)}</div>
+                <div class="product-name">${esc(p.name)}${sunBadgeHTML(p.name, p.category, p.sun)}${LARGE_TREES.has(p.name) && (p.category||'').toLowerCase()==='trees' ? '<span class="large-tree-badge" title="Large tree (40 ft+)">XL</span>' : ''}</div>
                 <div class="product-price">$${p.price}</div>
             </div>
             ${infoBtn}
         </div>`;
     }).join('');
 }
+
+const LARGE_TREES = new Set([
+    'Birch, Heritage',
+    'Honey Locust, Shademaster',
+    'Honey Locust, Skyline',
+    'Kentucky Coffeetree, Espresso',
+    'Ginkgo, Autumn Gold',
+    'Oak, Bur',
+    'Oak, Heritage',
+    'Oak, Crimson Spire®',
+    'Linden, Greenspire',
+    'Pine, Ponderosa',
+    'Thuja, Green Giant',
+    'Austrian Pine',
+    'Colorado Spruce',
+    'Columnar Norway Spruce',
+    'Fastigiata Spruce',
+    'Maple, Autumn Blaze',
+    'Accolade Elm',
+    'Prairie Gold Aspen',
+    'Ginkgo Sky Tower',
+]);
 
 const TREE_SUBCATS = [
     { key: 'pines',   name: 'Pines',                icon: '🌲' },
@@ -797,9 +819,9 @@ function sunBadgeHTML(name, category, sunField) {
         req = getSunRequirement(name, category);
     }
     if (!req) return '';
-    if (req === 'full_sun') return `<svg class="sun-badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" title="Full sun" aria-label="Full sun"><path fill="#FFAC33" d="M16 2h4v5h-4zm0 27h4v5h-4zM2 16h5v4H2zm27 0h5v4h-5zM6.1 6.1l2.8-2.8 3.5 3.5-2.8 2.8zm17.4 17.4l2.8-2.8 3.5 3.5-2.8 2.8zm-17.4 0l3.5-3.5-2.8-2.8-3.5 3.5zm17.4-17.4l3.5-3.5-2.8-2.8-3.5 3.5z"/><circle fill="#FFAC33" cx="18" cy="18" r="10"/><circle fill="#FFD983" cx="18" cy="18" r="7"/></svg>`;
-    if (req === 'both')     return `<svg class="sun-badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" title="Partial sun" aria-label="Partial sun"><circle fill="#FFAC33" cx="12" cy="12" r="9"/><circle fill="#FFD983" cx="12" cy="12" r="6"/><path fill="#CCD6DD" d="M26 28H13A8 8 0 0 1 13 12a8 8 0 0 1 3 .6A10 10 0 0 1 34 22a6 6 0 0 1-6 6z"/></svg>`;
-    if (req === 'shade')    return `<svg class="sun-badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" title="Shade" aria-label="Shade"><path fill="#CCD6DD" d="M30 23a7 7 0 0 0-7-7c-.4 0-.9 0-1.3.1A6 6 0 0 0 7 18a6 6 0 0 0 0 12h22a5 5 0 0 0 5-5z"/><path fill="#E1E8ED" d="M23 18a6 6 0 0 1 5.9 5A5 5 0 0 1 24 33H10a6 6 0 0 1-1-11.9A7 7 0 0 1 23 18z"/></svg>`;
+    if (req === 'full_sun') return `<svg class="sun-badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" title="Full sun" aria-label="Full sun"><path fill="#FF9800" d="M17 1.5h2v5h-2zm0 28h2v5h-2zM1.5 17h5v2h-5zm28 0h5v2h-5zM6.9 5.5l1.4-1.4 3.5 3.5-1.4 1.4zm17 17l1.4-1.4 3.5 3.5-1.4 1.4zM5.5 29.1l3.5-3.5 1.4 1.4-3.5 3.5zm17-17l3.5-3.5 1.4 1.4-3.5 3.5z"/><circle fill="#FFD600" cx="18" cy="18" r="9.5"/><circle fill="#FFF176" cx="15.5" cy="15.5" r="3.5"/></svg>`;
+    if (req === 'both')     return `<svg class="sun-badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" title="Partial sun" aria-label="Partial sun"><circle fill="#FFD600" cx="13" cy="13" r="8"/><circle fill="#FFF176" cx="11" cy="11" r="3"/><path fill="#E3F2FD" d="M28 30H15A8 8 0 0 1 15 14a8 8 0 0 1 3 .6A9 9 0 0 1 34 23a5 5 0 0 1-6 7z"/><path fill="#fff" d="M27 28.5H16a6.5 6.5 0 0 1 0-13 6.5 6.5 0 0 1 2 .3A7.5 7.5 0 0 1 32.5 23a4.5 4.5 0 0 1-5.5 5.5z"/></svg>`;
+    if (req === 'shade')    return `<svg class="sun-badge" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" title="Shade" aria-label="Shade"><path fill="#64B5F6" d="M29 28H9A9 9 0 0 1 9 10a9 9 0 0 1 3.5.7A10 10 0 0 1 34 20a6 6 0 0 1-5 8z"/><path fill="#BBDEFB" d="M28 26.5H10a7.5 7.5 0 0 1 0-15 7.5 7.5 0 0 1 3 .6A8.5 8.5 0 0 1 32.5 20a5.5 5.5 0 0 1-4.5 6.5z"/></svg>`;
     return '';
 }
 
@@ -990,14 +1012,16 @@ async function loadProductCategories() {
     products.forEach((p, i) => { productRegistry[i] = p; });
 
     const categories = {
-        paths:        { name: 'Paths',           icon: '🚶', iconImg: 'images/categories/paths.png',     products: [] },
-        grass:        { name: 'Grass',           icon: '🌿', iconImg: 'images/categories/grass.png',     products: [] },
-        hardscapes:   { name: 'Hardscapes',      icon: '🛻', iconImg: 'images/categories/hardscape.png', products: [] },
-        rocks_pavers: { name: 'Rocks & Pavers',  icon: '🪨', iconImg: 'images/categories/rocks.png',     products: [] },
-        shrubs:       { name: 'Shrubs',          icon: '🌱', iconImg: 'images/categories/plants.png',    products: [] },
-        trees:        { name: 'Trees',           icon: '🌳', iconImg: 'images/categories/trees.png',     products: [] },
-        flowers:      { name: 'Flowers',         icon: '🌸', iconImg: 'images/categories/flowers.png',   products: [] },
-        furniture:    { name: 'Furniture',       icon: '🪑', iconImg: 'images/categories/furniture.png', products: [] },
+        paths:        { name: 'Paths',              icon: '🚶', iconImg: 'images/categories/paths.png',     products: [] },
+        grass:        { name: 'Grass',              icon: '🌿', iconImg: 'images/categories/grass.png',     products: [] },
+        ornamental:   { name: 'Ornamental Grasses', icon: '🌾',                                              products: [] },
+        hardscapes:   { name: 'Hardscapes',         icon: '🛻', iconImg: 'images/categories/hardscape.png', products: [] },
+        rocks_pavers: { name: 'Rocks & Pavers',     icon: '🪨', iconImg: 'images/categories/rocks.png',     products: [] },
+        shrubs:       { name: 'Shrubs',             icon: '🌱', iconImg: 'images/categories/plants.png',    products: [] },
+        trees:        { name: 'Trees',              icon: '🌳', iconImg: 'images/categories/trees.png',     products: [] },
+        flowers:      { name: 'Flowers',            icon: '🌸', iconImg: 'images/categories/flowers.png',   products: [] },
+        groundcovers: { name: 'Ground Covers',      icon: '🍀',                                              products: [] },
+        furniture:    { name: 'Furniture',          icon: '🪑', iconImg: 'images/categories/furniture.png', products: [] },
     };
 
     products.forEach((p, i) => {
@@ -1015,7 +1039,7 @@ async function loadProductCategories() {
 
     const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-    const PLANT_CATS = new Set(['shrubs', 'trees', 'flowers']);
+    const PLANT_CATS = new Set(['shrubs', 'trees', 'flowers', 'ornamental', 'groundcovers']);
     const filterBarHTML = key => `
         <div class="category-filter-bar">
             <div class="filter-sort-row">
@@ -1271,7 +1295,9 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
         h = Math.max(80, Math.round(dims.h * scale));
         if (noPos) { x = canvas.offsetWidth / 2 - w / 2; y = canvas.offsetHeight / 2 - h / 2; }
     } else {
-        w = 80; h = 80;
+        const isLargeTree = LARGE_TREES.has(itemData.name) && (itemData.category || '').toLowerCase() === 'trees';
+        w = isLargeTree ? 130 : 80;
+        h = w;
         if (noPos) { x = canvas.offsetWidth / 2 - w / 2; y = canvas.offsetHeight / 2 - h / 2; }
     }
 
@@ -2393,11 +2419,14 @@ async function autoLoadLastProject() {
         if (!data.success) return false;
         const project = data.designs.find(d => d._id === activeProjectId && d.isDraft);
         if (!project?.canvasState) { activeProjectId = null; localStorage.removeItem('gardiyActiveProject'); return false; }
-        activeProjectName = project.designName || 'My Project';
+        activeProjectName     = project.designName || 'My Project';
+        _communityIsPublished = !!project.isPublished;
+        _communityCaption     = project.communityCaption || '';
         localStorage.setItem('gardiyActiveProjectName', activeProjectName);
         restoreProjectPhoto(project.landscapeImageData);
         await restoreCanvasFromState(project.canvasState);
         updateProjectNameDisplay();
+        updateCommunityBtn();
         return true;
     } catch (e) { return false; }
 }
@@ -2443,10 +2472,12 @@ async function refreshProjectsList() {
             listEl.innerHTML = '<p style="color:#6b7280;text-align:center;padding:24px;">No saved projects yet.<br>Click <strong>Save</strong> to save your current work.</p>';
             return;
         }
-        // Cache states and photos — avoids storing large data in DOM attributes
+        // Cache states, photos, and publish info — avoids storing large data in DOM attributes
+        const projectMetaCache = {};
         projects.forEach(p => {
             if (p.canvasState)        projectStateCache[p._id] = p.canvasState;
             if (p.landscapeImageData) projectImageCache[p._id] = p.landscapeImageData;
+            projectMetaCache[p._id] = { isPublished: !!p.isPublished, communityCaption: p.communityCaption || '' };
         });
         listEl.innerHTML = projects.map(p => {
             const isActive = p._id === activeProjectId;
@@ -2469,11 +2500,14 @@ async function refreshProjectsList() {
                 const state = projectStateCache[id];
                 if (!state) { alert('This project has no saved canvas data.'); return; }
                 if (activeProjectId && activeProjectId !== id && !confirm(`Load "${name}"? Unsaved changes will be lost.`)) return;
-                activeProjectId = id; activeProjectName = name;
+                activeProjectId       = id; activeProjectName = name;
+                _communityIsPublished = projectMetaCache[id]?.isPublished  || false;
+                _communityCaption     = projectMetaCache[id]?.communityCaption || '';
                 localStorage.setItem('gardiyActiveProject', id);
                 localStorage.setItem('gardiyActiveProjectName', name);
                 document.getElementById('projectsModal').style.display = 'none';
                 updateProjectNameDisplay();
+                updateCommunityBtn();
                 restoreProjectPhoto(projectImageCache[id]);
                 await restoreCanvasFromState(state);
             });
@@ -2564,6 +2598,71 @@ async function handleShareClick() {
 
 // ── Community publish ──────────────────────────────────────────────────────────
 
+let _communityIsPublished = false;
+let _communityCaption     = '';
+
+function _escCap(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function updateCommunityBtn() {
+    const btn = document.getElementById('communityShareBtn');
+    if (!btn) return;
+    if (_communityIsPublished) {
+        btn.textContent   = '✓ Live';
+        btn.style.background   = '#d1fae5';
+        btn.style.color        = '#065f46';
+        btn.style.borderColor  = '#6ee7b7';
+    } else {
+        btn.textContent   = '🌿 Community';
+        btn.style.background   = '';
+        btn.style.color        = '';
+        btn.style.borderColor  = '';
+    }
+    btn.disabled = false;
+}
+
+function showCommunityModal(isEdit, existingCaption) {
+    document.getElementById('communityModal')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'communityModal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    overlay.innerHTML = `
+        <div style="background:#fff;border-radius:16px;width:100%;max-width:420px;padding:1.5rem;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <h3 style="margin:0 0 0.4rem;font-size:1.1rem;font-weight:700;color:#1a202c;">${isEdit ? 'Edit Post' : 'Share to Community'}</h3>
+            <p style="margin:0 0 1rem;font-size:0.85rem;color:#6b7280;">${isEdit ? 'Update your caption or remove the post.' : 'Your design will appear in the community feed.'}</p>
+            <textarea id="commCapTextarea" maxlength="500" placeholder="Write something about your design… (optional)"
+                style="width:100%;box-sizing:border-box;height:96px;padding:0.7rem 0.8rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:0.875rem;font-family:inherit;resize:vertical;outline:none;transition:border-color 0.15s;"
+                onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e2e8f0'">${_escCap(existingCaption)}</textarea>
+            <div style="font-size:0.72rem;color:#9ca3af;text-align:right;margin:4px 0 1rem;"><span id="commCapCount">${existingCaption.length}</span>/500</div>
+            <div style="display:flex;gap:0.6rem;">
+                <button id="commCancel" style="flex:1;padding:0.65rem;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:0.875rem;font-weight:600;color:#6b7280;">Cancel</button>
+                ${isEdit ? '<button id="commDelete" style="padding:0.65rem 1rem;border:none;border-radius:8px;background:#fee2e2;color:#dc2626;cursor:pointer;font-size:0.875rem;font-weight:600;">Remove</button>' : ''}
+                <button id="commPublish" style="flex:2;padding:0.65rem;border:none;border-radius:8px;background:#10b981;color:#fff;cursor:pointer;font-size:0.875rem;font-weight:700;">${isEdit ? 'Save Changes' : 'Publish'}</button>
+            </div>
+        </div>`;
+    document.body.appendChild(overlay);
+
+    const ta    = overlay.querySelector('#commCapTextarea');
+    const count = overlay.querySelector('#commCapCount');
+    ta.addEventListener('input', () => { count.textContent = ta.value.length; });
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+
+    overlay.querySelector('#commCancel').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    overlay.querySelector('#commPublish').addEventListener('click', async () => {
+        const caption = ta.value.trim();
+        overlay.remove();
+        if (isEdit) await _updateCommunityCaption(caption);
+        else        await _publishToCommunity(caption);
+    });
+    overlay.querySelector('#commDelete')?.addEventListener('click', async () => {
+        overlay.remove();
+        await _deleteFromCommunity();
+    });
+}
+
 async function handleCommunityShareClick() {
     const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
     if (!session.token) {
@@ -2571,30 +2670,71 @@ async function handleCommunityShareClick() {
         return;
     }
     if (!activeProjectId) {
-        const shouldSave = confirm('Save your project first to share it with the community.');
-        if (!shouldSave) return;
+        if (!confirm('Save your project first to share it with the community.')) return;
         await handleSaveProjectClick();
         if (!activeProjectId) return;
     }
+    showCommunityModal(_communityIsPublished, _communityCaption);
+}
+
+async function _publishToCommunity(caption) {
+    const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
     const btn = document.getElementById('communityShareBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Sharing…'; }
     try {
         const imageData = window.GarDIYStorage?.getImage() || '';
-        const res = await fetch(`${BACKEND}/api/designs/${activeProjectId}/publish`, {
+        const res  = await fetch(`${BACKEND}/api/designs/${activeProjectId}/publish`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.token}` },
-            body: JSON.stringify({ landscapeImageData: imageData }),
+            body: JSON.stringify({ landscapeImageData: imageData, communityCaption: caption }),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
-        if (btn) { btn.textContent = '✓ Shared!'; btn.style.background = '#d1fae5'; btn.style.color = '#065f46'; btn.style.borderColor = '#6ee7b7'; }
-        setTimeout(() => {
-            if (btn) { btn.disabled = false; btn.textContent = '🌿 Community'; btn.style.background = ''; btn.style.color = ''; btn.style.borderColor = ''; }
-        }, 3000);
+        _communityIsPublished = true;
+        _communityCaption     = caption;
+        updateCommunityBtn();
     } catch (e) {
         console.error('Community share failed:', e);
-        if (btn) { btn.disabled = false; btn.textContent = '🌿 Community'; }
+        if (btn) { btn.disabled = false; }
+        updateCommunityBtn();
         alert('Could not share to community. Please try again.');
+    }
+}
+
+async function _updateCommunityCaption(caption) {
+    const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    try {
+        const res  = await fetch(`${BACKEND}/api/designs/${activeProjectId}/publish`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.token}` },
+            body: JSON.stringify({ communityCaption: caption }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        _communityCaption = caption;
+        const btn = document.getElementById('communityShareBtn');
+        if (btn) { btn.textContent = '✓ Updated!'; setTimeout(updateCommunityBtn, 2000); }
+    } catch (e) {
+        console.error('Caption update failed:', e);
+        alert('Could not update post. Please try again.');
+    }
+}
+
+async function _deleteFromCommunity() {
+    const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
+    try {
+        const res  = await fetch(`${BACKEND}/api/designs/${activeProjectId}/publish`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${session.token}` },
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        _communityIsPublished = false;
+        _communityCaption     = '';
+        updateCommunityBtn();
+    } catch (e) {
+        console.error('Unpublish failed:', e);
+        alert('Could not remove from community. Please try again.');
     }
 }
 
@@ -3354,7 +3494,7 @@ function applyPlantRecommendationColors() {
             legend.innerHTML = `
                 <span class="legend-item"><span class="legend-dot rec-dot"></span>Recommended</span>
                 <span class="legend-item"><span class="legend-dot notrec-dot"></span>Not recommended</span>
-                <span class="legend-item sun-legend">☀️ Full sun &nbsp; ⛅ Both &nbsp; ☁️ Shade</span>
+                <span class="legend-item sun-legend"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" style="width:13px;height:13px;vertical-align:middle;margin-right:2px;"><path fill="#FF9800" d="M17 1.5h2v5h-2zm0 28h2v5h-2zM1.5 17h5v2h-5zm28 0h5v2h-5zM6.9 5.5l1.4-1.4 3.5 3.5-1.4 1.4zm17 17l1.4-1.4 3.5 3.5-1.4 1.4zM5.5 29.1l3.5-3.5 1.4 1.4-3.5 3.5zm17-17l3.5-3.5 1.4 1.4-3.5 3.5z"/><circle fill="#FFD600" cx="18" cy="18" r="9.5"/><circle fill="#FFF176" cx="15.5" cy="15.5" r="3.5"/></svg> Full sun &nbsp;<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" style="width:13px;height:13px;vertical-align:middle;margin-right:2px;"><circle fill="#FFD600" cx="13" cy="13" r="8"/><circle fill="#FFF176" cx="11" cy="11" r="3"/><path fill="#E3F2FD" d="M28 30H15A8 8 0 0 1 15 14a8 8 0 0 1 3 .6A9 9 0 0 1 34 23a5 5 0 0 1-6 7z"/><path fill="#fff" d="M27 28.5H16a6.5 6.5 0 0 1 0-13 6.5 6.5 0 0 1 2 .3A7.5 7.5 0 0 1 32.5 23a4.5 4.5 0 0 1-5.5 5.5z"/></svg> Both &nbsp;<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" style="width:13px;height:13px;vertical-align:middle;margin-right:2px;"><path fill="#64B5F6" d="M29 28H9A9 9 0 0 1 9 10a9 9 0 0 1 3.5.7A10 10 0 0 1 34 20a6 6 0 0 1-5 8z"/><path fill="#BBDEFB" d="M28 26.5H10a7.5 7.5 0 0 1 0-15 7.5 7.5 0 0 1 3 .6A8.5 8.5 0 0 1 32.5 20a5.5 5.5 0 0 1-4.5 6.5z"/></svg> Shade</span>
             `;
             h3.insertAdjacentElement('afterend', legend);
         }
