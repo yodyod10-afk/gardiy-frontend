@@ -161,7 +161,8 @@
     'woodward columnar juniper':        'juniper',
   };
 
-  const allProds = await fetch(API).then(r => r.json()).catch(() => ({ products: [] }));
+  const PRODUCTS_API = 'https://gardiy-backend-production.up.railway.app/api/products';
+  const allProds = await fetch(PRODUCTS_API).then(r => r.json()).catch(() => ({ products: [] }));
   const allArr = allProds.products || allProds || [];
   let updated = 0;
   for (const p of allArr) {
@@ -170,7 +171,7 @@
     const subcat = existingSubcatMap[nameKey];
     if (!subcat || p.subcategory === subcat) continue;
     try {
-      const r = await fetch(`${API}/${p._id || p.id}`, {
+      const r = await fetch(`${PRODUCTS_API}/${p._id || p.id}`, {
         method: 'PUT', headers,
         body: JSON.stringify({ subcategory: subcat })
       });
