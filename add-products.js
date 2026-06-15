@@ -1,20 +1,13 @@
 // Paste this entire script into the browser console while logged in as admin on the Gardiy site.
-// It will add all new plant products to the database, skipping any that already exist.
+// It replaces ALL products in the database with the list below (bulk upsert).
 
 (async () => {
   const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
   const token = session.token;
   if (!token) { console.error('❌ Not logged in. Open the site, log in as admin, then run this script.'); return; }
 
-  const API = 'https://gardiy-backend-production.up.railway.app/api/products';
+  const BULK_API = 'https://gardiy-backend-production.up.railway.app/api/products/bulk';
   const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-
-  // Fetch existing product names to avoid duplicates
-  const existing = await fetch(API).then(r => r.json()).catch(() => ({ products: [] }));
-  const existingNames = new Set(
-    ((existing.products || existing) || []).map(p => (p.name || '').toLowerCase().trim())
-  );
-  console.log(`📋 Found ${existingNames.size} existing products`);
 
   const newProducts = [
     // ── Deciduous Trees ───────────────────────────────────────────────────────
@@ -133,23 +126,15 @@
     { name: 'Sherwood Purple Creeping Phlox', category: 'groundcovers', price: 11.90, type: 'emoji', image: '🌸', size: "#1 Cont.",          height: '3–6"',    spread: '18–30"',  sun: 'Full sun',                  color: 'Rich purple',                   notes: 'Dense mat of rich purple flowers in spring, semi-evergreen foliage, excellent for slopes and rock gardens.' },
   ];
 
-  // Filter out any that already exist in the DB
-  const toAdd = newProducts.filter(p => !existingNames.has(p.name.toLowerCase().trim()));
-  console.log(`\n➕ Adding ${toAdd.length} new products (${newProducts.length - toAdd.length} already exist, skipped)\n`);
-
-  let added = 0, failed = 0;
-  for (const p of toAdd) {
-    try {
-      const r = await fetch(API, { method: 'POST', headers, body: JSON.stringify(p) });
-      const d = await r.json();
-      if (d.success) { added++; console.log(`✅ ${p.name}`); }
-      else { failed++; console.error(`❌ ${p.name} —`, d.message); }
-    } catch (e) {
-      failed++; console.error(`❌ ${p.name} —`, e.message);
-    }
+  console.log(`📦 Sending ${newProducts.length} products to bulk endpoint...`);
+  try {
+    const r = await fetch(BULK_API, { method: 'POST', headers, body: JSON.stringify(newProducts) });
+    const d = await r.json();
+    if (d.success) console.log(`✅ Done: ${d.count} products synced to database`);
+    else console.error('❌ Bulk import failed:', d.message);
+  } catch (e) {
+    console.error('❌ Error:', e.message);
   }
-
-  console.log(`\n🌿 Done: ${added} added, ${failed} failed`);
 
   // ── Set subcategories on existing tree products ───────────────────────────
   console.log('\n🌲 Updating subcategories on existing tree products...');
