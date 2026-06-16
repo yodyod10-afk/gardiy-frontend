@@ -1014,13 +1014,13 @@ async function loadProductCategories() {
     const categories = {
         paths:        { name: 'Paths',              icon: '🚶', iconImg: 'images/categories/paths.png',     products: [] },
         grass:        { name: 'Grass',              icon: '🌿', iconImg: 'images/categories/grass.png',     products: [] },
-        ornamental:   { name: 'Ornamental Grasses', icon: '🌾',                                              products: [] },
+        ornamental:   { name: 'Ornamental Grasses', icon: '🌾', iconImg: 'images/categories/ornamental.png',  products: [] },
         hardscapes:   { name: 'Hardscapes',         icon: '🛻', iconImg: 'images/categories/hardscape.png', products: [] },
         rocks_pavers: { name: 'Rocks & Pavers',     icon: '🪨', iconImg: 'images/categories/rocks.png',     products: [] },
         shrubs:       { name: 'Shrubs',             icon: '🌱', iconImg: 'images/categories/plants.png',    products: [] },
         trees:        { name: 'Trees',              icon: '🌳', iconImg: 'images/categories/trees.png',     products: [] },
         flowers:      { name: 'Flowers',            icon: '🌸', iconImg: 'images/categories/flowers.png',   products: [] },
-        groundcovers: { name: 'Ground Covers',      icon: '🍀',                                              products: [] },
+        groundcovers: { name: 'Ground Covers',      icon: '🍀', iconImg: 'images/categories/groundcovers.png', products: [] },
         furniture:    { name: 'Furniture',          icon: '🪑', iconImg: 'images/categories/furniture.png', products: [] },
     };
 

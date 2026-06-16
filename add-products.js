@@ -1,13 +1,18 @@
 // Paste this entire script into the browser console while logged in as admin on the Gardiy site.
-// It replaces ALL products in the database with the list below (bulk upsert).
+// Adds missing products only — never deletes existing data.
 
 (async () => {
   const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
   const token = session.token;
   if (!token) { console.error('❌ Not logged in. Open the site, log in as admin, then run this script.'); return; }
 
-  const BULK_API = 'https://gardiy-backend-production.up.railway.app/api/products/bulk';
+  const API = 'https://gardiy-backend-production.up.railway.app/api/products';
   const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+
+  // Fetch existing product names to avoid duplicates
+  const existingRes = await fetch(API);
+  const existingData = await existingRes.json();
+  const existingNames = new Set((Array.isArray(existingData) ? existingData : existingData.products || []).map(p => p.name));
 
   const newProducts = [
     // ── Deciduous Trees ───────────────────────────────────────────────────────
@@ -126,15 +131,17 @@
     { name: 'Sherwood Purple Creeping Phlox', category: 'groundcovers', price: 11.90, type: 'emoji', image: '🌸', size: "#1 Cont.",          height: '3–6"',    spread: '18–30"',  sun: 'Full sun',                  color: 'Rich purple',                   notes: 'Dense mat of rich purple flowers in spring, semi-evergreen foliage, excellent for slopes and rock gardens.' },
   ];
 
-  console.log(`📦 Sending ${newProducts.length} products to bulk endpoint...`);
-  try {
-    const r = await fetch(BULK_API, { method: 'POST', headers, body: JSON.stringify(newProducts) });
-    const d = await r.json();
-    if (d.success) console.log(`✅ Done: ${d.count} products synced to database`);
-    else console.error('❌ Bulk import failed:', d.message);
-  } catch (e) {
-    console.error('❌ Error:', e.message);
+  let added = 0, skipped = 0, failed = 0;
+  for (const product of newProducts) {
+    if (existingNames.has(product.name)) { skipped++; continue; }
+    try {
+      const r = await fetch(API, { method: 'POST', headers, body: JSON.stringify(product) });
+      const d = await r.json();
+      if (r.ok) { added++; console.log(`✅ Added: ${product.name}`); }
+      else { failed++; console.warn(`⚠️ Failed: ${product.name}:`, d.message); }
+    } catch (e) { failed++; console.warn(`⚠️ Error: ${product.name}:`, e.message); }
   }
+  console.log(`\n📦 Done: ${added} added, ${skipped} skipped (already exist), ${failed} failed`);
 
   // ── Set subcategories on existing tree products ───────────────────────────
   console.log('\n🌲 Updating subcategories on existing tree products...');
