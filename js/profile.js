@@ -803,7 +803,7 @@ function compressImageForUpload(file) {
         const img = new Image();
         const url = URL.createObjectURL(file);
         img.onload = () => {
-            const maxPx = file.type === 'image/png' ? 300 : 200;
+            const maxPx = 1200;
             const scale = Math.min(maxPx / img.width, maxPx / img.height, 1);
             const canvas = document.createElement('canvas');
             canvas.width  = Math.round(img.width  * scale);
@@ -816,7 +816,7 @@ function compressImageForUpload(file) {
             }
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             URL.revokeObjectURL(url);
-            resolve(isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.75));
+            resolve(isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.92));
         };
         img.onerror = () => { URL.revokeObjectURL(url); reject(); };
         img.src = url;
