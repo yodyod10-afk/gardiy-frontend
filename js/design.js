@@ -542,10 +542,11 @@ function buildProductItemsHTML(products, esc) {
             ? `<img src="${esc(p.imageUrl || p.image)}" style="width:40px;height:40px;object-fit:contain;border-radius:8px;">`
             : `<span style="font-size:32px;">${esc(p.image)}</span>`;
         const infoBtn = `<button class="product-info-btn" data-pid="${p._pid}" title="Product info" aria-label="Product info">?</button>`;
-        return `<div class="product-item" data-pid="${p._pid}">
+        const outOfSeasonClass = isOutOfSeason(p) ? ' out-of-season' : '';
+        return `<div class="product-item${outOfSeasonClass}" data-pid="${p._pid}">
             ${thumb}
             <div class="product-info">
-                <div class="product-name">${esc(p.name)}${sunBadgeHTML(p.name, p.category, p.sun)}${LARGE_TREES.has(p.name) && (p.category||'').toLowerCase()==='trees' ? '<span class="large-tree-badge" title="Large tree (40 ft+)">XL</span>' : ''}</div>
+                <div class="product-name">${esc(p.name)}${sunBadgeHTML(p.name, p.category, p.sun)}${LARGE_TREES.has(p.name) && (p.category||'').toLowerCase()==='trees' ? '<span class="large-tree-badge" title="Large tree (40 ft+)">XL</span>' : ''}${outOfSeasonBadgeHTML(p)}</div>
                 <div class="product-price">$${p.price}</div>
             </div>
             ${infoBtn}
@@ -805,6 +806,28 @@ function getSunRequirement(name, category) {
     if (/fern|hosta|impatiens|astilbe|begonia|caladium|shade/.test(n)) return 'shade';
 
     return 'both';
+}
+
+// ── Seasonal planting indicator ────────────────────────────────────────────────
+// US/Colorado planting calendar: Mar-May spring, Jun-Aug summer, Sep-Nov fall, Dec-Feb winter.
+function getCurrentSeason(date) {
+    const month = (date || new Date()).getMonth(); // 0-11
+    if (month >= 2  && month <= 4) return 'spring';
+    if (month >= 5  && month <= 7) return 'summer';
+    if (month >= 8  && month <= 10) return 'fall';
+    return 'winter';
+}
+
+function isOutOfSeason(product) {
+    const seasons = product && product.seasons;
+    if (!Array.isArray(seasons) || !seasons.length) return false; // year-round item (evergreen, hardscape, etc.)
+    return !seasons.includes(getCurrentSeason());
+}
+
+function outOfSeasonBadgeHTML(product) {
+    if (!isOutOfSeason(product)) return '';
+    const seasons = product.seasons.join('/');
+    return `<span class="out-of-season-badge" title="Best planted in: ${seasons}">Out of season</span>`;
 }
 
 function sunBadgeHTML(name, category, sunField) {
@@ -1373,6 +1396,14 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
     canvas.appendChild(item);
     if (isMesh) applyPolyShape(item); // apply clip-path immediately on placement
 
+    if (isOutOfSeason(itemData)) {
+        const seasonBadge = document.createElement('span');
+        seasonBadge.className = 'canvas-season-badge';
+        seasonBadge.title = `Out of season — best planted in: ${itemData.seasons.join('/')}`;
+        seasonBadge.textContent = '!';
+        item.appendChild(seasonBadge);
+    }
+
     // _price bypasses the getItemPrices() network call (used by auto-design batch)
     const priceVal = itemData._price !== undefined
         ? itemData._price
@@ -1380,7 +1411,7 @@ async function addItemToCanvas(itemData, x, y, customW, customH) {
     placedItems.push({
         id: item.dataset.id, element: item,
         name: itemData.name, category: itemData.category,
-        type: itemData.type, price: priceVal,
+        type: itemData.type, price: priceVal, seasons: itemData.seasons || [],
     });
 
     makeDraggable(item);
@@ -3494,6 +3525,7 @@ function applyPlantRecommendationColors() {
             legend.innerHTML = `
                 <span class="legend-item"><span class="legend-dot rec-dot"></span>Recommended</span>
                 <span class="legend-item"><span class="legend-dot notrec-dot"></span>Not recommended</span>
+                <span class="legend-item"><span class="legend-dot season-dot"></span>Out of season</span>
                 <span class="legend-item sun-legend"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" style="width:13px;height:13px;vertical-align:middle;margin-right:2px;"><path fill="#FF9800" d="M17 1.5h2v5h-2zm0 28h2v5h-2zM1.5 17h5v2h-5zm28 0h5v2h-5zM6.9 5.5l1.4-1.4 3.5 3.5-1.4 1.4zm17 17l1.4-1.4 3.5 3.5-1.4 1.4zM5.5 29.1l3.5-3.5 1.4 1.4-3.5 3.5zm17-17l3.5-3.5 1.4 1.4-3.5 3.5z"/><circle fill="#FFD600" cx="18" cy="18" r="9.5"/><circle fill="#FFF176" cx="15.5" cy="15.5" r="3.5"/></svg> Full sun &nbsp;<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" style="width:13px;height:13px;vertical-align:middle;margin-right:2px;"><circle fill="#FFD600" cx="13" cy="13" r="8"/><circle fill="#FFF176" cx="11" cy="11" r="3"/><path fill="#E3F2FD" d="M28 30H15A8 8 0 0 1 15 14a8 8 0 0 1 3 .6A9 9 0 0 1 34 23a5 5 0 0 1-6 7z"/><path fill="#fff" d="M27 28.5H16a6.5 6.5 0 0 1 0-13 6.5 6.5 0 0 1 2 .3A7.5 7.5 0 0 1 32.5 23a4.5 4.5 0 0 1-5.5 5.5z"/></svg> Both &nbsp;<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" style="width:13px;height:13px;vertical-align:middle;margin-right:2px;"><path fill="#64B5F6" d="M29 28H9A9 9 0 0 1 9 10a9 9 0 0 1 3.5.7A10 10 0 0 1 34 20a6 6 0 0 1-5 8z"/><path fill="#BBDEFB" d="M28 26.5H10a7.5 7.5 0 0 1 0-15 7.5 7.5 0 0 1 3 .6A8.5 8.5 0 0 1 32.5 20a5.5 5.5 0 0 1-4.5 6.5z"/></svg> Shade</span>
             `;
             h3.insertAdjacentElement('afterend', legend);

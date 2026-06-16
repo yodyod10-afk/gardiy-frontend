@@ -1206,6 +1206,45 @@ body {
     line-height: 1.6;
 }
 
+/* ── Out-of-season indicator ──────────────────────────────────────────────── */
+.product-item.out-of-season {
+    border-left: 4px solid #f97316;
+}
+
+.out-of-season-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: #f97316;
+    color: #fff;
+    border-radius: 3px;
+    padding: 1px 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+    line-height: 1.6;
+}
+
+.canvas-season-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #f97316;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    pointer-events: none;
+    z-index: 5;
+}
+
 .sun-legend {
     font-size: 0.78rem;
     color: #4b5563;
