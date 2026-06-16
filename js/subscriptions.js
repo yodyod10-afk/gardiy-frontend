@@ -2,7 +2,7 @@
 // Client-side limits are a UX hint only — real enforcement is on the backend.
 
 const PLAN_LIMITS = {
-    free:  { scans: 1,        ordersPerMonth: 1,        label: 'Free Trial' },
+    free:  { scans: 3,        ordersPerMonth: 1,        label: 'Free Trial' },
     basic: { scans: 20,       ordersPerMonth: 5,        label: 'Basic'      },
     pro:   { scans: Infinity, ordersPerMonth: Infinity, label: 'Pro'        },
 };
