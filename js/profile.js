@@ -803,7 +803,7 @@ function compressImageForUpload(file) {
         const img = new Image();
         const url = URL.createObjectURL(file);
         img.onload = () => {
-            const maxPx = 1200;
+            const maxPx = 800;
             const scale = Math.min(maxPx / img.width, maxPx / img.height, 1);
             const canvas = document.createElement('canvas');
             canvas.width  = Math.round(img.width  * scale);
