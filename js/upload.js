@@ -430,8 +430,8 @@ function analyzeWithLocation() {
     if (window.GarDIYSubscriptions) {
         const check = GarDIYSubscriptions.checkScanLimit();
         if (!check.allowed) {
-            GarDIYSubscriptions.showUpgradeModal(
-                `You've used all ${check.limit} scan${check.limit === 1 ? '' : 's'} on your <strong>${check.planLabel}</strong> plan. Upgrade to keep scanning your yard.`
+            GarDIYSubscriptions.showUnlockModal(
+                `You've used all ${check.limit} free scan${check.limit === 1 ? '' : 's'}. Unlock unlimited scans for a one-time $10 payment.`
             );
             return;
         }
@@ -503,6 +503,11 @@ async function simulateAIAnalysis(locationData = {}) {
         if (photoPreview && scanOverlay) {
             photoPreview.classList.remove('scanning');
             scanOverlay.style.display = 'none';
+        }
+
+        if (!data.success && data.limitReached === 'scans') {
+            if (window.GarDIYSubscriptions) GarDIYSubscriptions.showUnlockModal(data.message);
+            return;
         }
 
         if (!data.success) throw new Error(data.message || 'Analysis failed');
