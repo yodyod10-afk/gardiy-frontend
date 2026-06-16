@@ -1248,6 +1248,21 @@ body {
 .sun-legend {
     font-size: 0.78rem;
     color: #4b5563;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sun-legend-pair {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sun-legend-pair svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
 }
 
 /* ── Auto Design button ────────────────────────────────────────────────────── */
