@@ -809,11 +809,11 @@ function getSunRequirement(name, category) {
 }
 
 // ── Seasonal planting indicator ────────────────────────────────────────────────
-// US/Colorado planting calendar: Mar-May spring, Jun-Aug summer, Sep-Nov fall, Dec-Feb winter.
+// US/Colorado planting calendar: Mar-Jun spring, Jul-Aug summer, Sep-Nov fall, Dec-Feb winter.
 function getCurrentSeason(date) {
     const month = (date || new Date()).getMonth(); // 0-11
-    if (month >= 2  && month <= 4) return 'spring';
-    if (month >= 5  && month <= 7) return 'summer';
+    if (month >= 2  && month <= 5) return 'spring';
+    if (month >= 6  && month <= 7) return 'summer';
     if (month >= 8  && month <= 10) return 'fall';
     return 'winter';
 }
