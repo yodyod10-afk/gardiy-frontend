@@ -6,7 +6,7 @@ function getNextUrl() {
     const params = new URLSearchParams(window.location.search);
     const next = params.get('next') || sessionStorage.getItem('loginNext');
     sessionStorage.removeItem('loginNext');
-    return next ? decodeURIComponent(next) : 'profile.html';
+    return next ? decodeURIComponent(next) : 'index.html';
 }
 
 // Check if this page load is a Google OAuth redirect (token in URL fragment)
