@@ -890,6 +890,19 @@ async function loadMgrSubmissions() {
     } catch { list.innerHTML = '<p style="color:#e53e3e;grid-column:1/-1;">Error loading submissions.</p>'; }
 }
 
+async function clearAllSubmissions() {
+    if (!confirm('Delete every submission currently shown here? This cannot be undone.')) return;
+    try {
+        const r = await fetch(`${MGR_API}/manager/submissions`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${mgrToken()}` }
+        });
+        const d = await r.json();
+        if (!d.success) { alert(d.message || 'Failed to delete submissions.'); return; }
+        loadMgrSubmissions();
+    } catch { alert('Error deleting submissions.'); }
+}
+
 // Load stats when manager section first activates
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.menu-item[data-section]').forEach(item => {

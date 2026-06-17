@@ -228,6 +228,9 @@
 
                         <!-- Submissions tab -->
                         <div id="mgr-submissions" style="display:none;">
+                            <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+                                <button onclick="clearAllSubmissions()" style="padding:8px 16px;background:#fff;color:#e53e3e;border:1px solid #fecaca;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;">Clear All Submissions</button>
+                            </div>
                             <div id="mgr-submissions-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;"></div>
                         </div>
                     </div>
@@ -363,7 +366,7 @@
     <script src="js/common.js"></script>
     <script src="js/api.js"></script>
     <script src="js/subscriptions.js"></script>
-    <script src="js/profile.js?v=3"></script>
+    <script src="js/profile.js?v=4"></script>
     <script src="js/mobile.js"></script>
 </body>
 </html>
