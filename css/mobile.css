@@ -307,12 +307,13 @@
     /* ── PROFILE ───────────────────────────────────── */
     .profile-section { padding: 80px 12px 40px !important; }
     .profile-layout  { grid-template-columns: 1fr !important; }
-    .profile-sidebar { flex-direction: column !important; }
+    .profile-sidebar { flex-direction: column !important; min-width: 0 !important; width: 100% !important; }
+    .profile-card, .menu-card { min-width: 0 !important; width: 100% !important; box-sizing: border-box !important; }
     .profile-stats   { grid-template-columns: repeat(3, 1fr) !important; gap: 6px; }
-    .stat-card { padding: 10px 6px !important; }
-    .stat-card .stat-value { font-size: 1.1rem !important; }
-    .menu-card { overflow-x: visible !important; }
-    .profile-main { padding: 20px 0 !important; }
+    .stat-item { padding: 10px 6px !important; min-width: 0 !important; }
+    .stat-item .stat-number { font-size: 1.1rem !important; }
+    .menu-card { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+    .profile-main { padding: 20px 0 !important; min-width: 0 !important; width: 100% !important; box-sizing: border-box !important; }
     .section-header { flex-direction: column; gap: 8px; align-items: flex-start; }
     .projects-grid { grid-template-columns: 1fr !important; }
     /* manager stats inside profile */
