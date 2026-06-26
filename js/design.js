@@ -431,10 +431,11 @@ async function _applyHistoryState(canvasStateJson) {
     const sX = cW / (data.canvasW || cW);
     const sY = cH / (data.canvasH || cH);
 
-    const isV2  = (data.v || 1) >= 2;
-    const imgEl = document.getElementById('canvasImage');
-    const ir    = getImageRenderedRect(canvas, imgEl);
-    const origIr = isV2 ? ir : getImageRenderedRect({ offsetWidth: savedW, offsetHeight: savedH }, imgEl);
+    const imgEl     = document.getElementById('canvasImage');
+    const ir        = getImageRenderedRect(canvas, imgEl);
+    const isV2Clean   = (data.v || 1) >= 2 && (data.canvasW || 800) > 600;
+    const isV2Corrupt = (data.v || 1) >= 2 && !isV2Clean;
+    const origIr    = isV2Clean ? ir : getImageRenderedRect({ offsetWidth: savedW, offsetHeight: savedH }, imgEl);
     const oW = origIr.width  || savedW;
     const oH = origIr.height || savedH;
 
@@ -448,12 +449,12 @@ async function _applyHistoryState(canvasStateJson) {
         if (!product) continue;
 
         let x, y, w, h;
-        if (isV2 && d.xPct !== undefined) {
+        if (isV2Clean && d.xPct !== undefined) {
             x = Math.round(d.xPct * ir.width  + ir.left);
             y = Math.round(d.yPct * ir.height + ir.top);
             w = Math.round(d.wPct * ir.width);
             h = Math.round(d.hPct * ir.height);
-        } else if (d.xPct !== undefined) {
+        } else if (!isV2Corrupt && d.xPct !== undefined) {
             x = v1x(d.xPct); y = v1y(d.yPct);
             w = v1w(d.wPct); h = v1h(d.hPct);
         } else {
@@ -477,30 +478,29 @@ async function _applyHistoryState(canvasStateJson) {
 
         if (d.polyPtsFrac || d.polyPoints) {
             let pts;
-            if (isV2 && d.polyPtsFrac) {
+            if (isV2Clean && d.polyPtsFrac) {
                 pts = d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
-            } else if (d.polyPtsFrac) {
+            } else if (!isV2Corrupt && d.polyPtsFrac) {
                 pts = d.polyPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
-            } else {
+            } else if (d.polyPoints) {
                 pts = JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
             }
-            item.dataset.polyPoints = JSON.stringify(pts);
-            applyPolyShape(item);
+            if (pts) { item.dataset.polyPoints = JSON.stringify(pts); applyPolyShape(item); }
         }
 
         if (d.pathPoints) {
             let pts;
-            if (isV2 && d.pathPtsFrac) {
+            if (isV2Clean && d.pathPtsFrac) {
                 pts = d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
-            } else if (d.pathPtsFrac) {
+            } else if (!isV2Corrupt && d.pathPtsFrac) {
                 pts = d.pathPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else {
                 pts = JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
             }
             item.dataset.pathPoints = JSON.stringify(pts);
-            const pw = isV2 && d.pathWidthPct !== undefined
+            const pw = isV2Clean && d.pathWidthPct !== undefined
                 ? Math.round(d.pathWidthPct * ir.width)
-                : d.pathWidthPct !== undefined
+                : d.pathWidthPct !== undefined && !isV2Corrupt
                     ? Math.round(d.pathWidthPct * savedW / oW * ir.width)
                     : Math.round(parseInt(d.pathWidth || 40) * sX);
             item.dataset.pathWidth = pw;
@@ -2418,6 +2418,7 @@ async function saveProjectCloud(nameOverride) {
 }
 
 function scheduleCloudSave() {
+    if (isSharedView) return; // never overwrite the original project from a read-only view
     if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
     cloudSaveTimer = setTimeout(async () => {
         const session = JSON.parse(localStorage.getItem('gardiyUser') || '{}');
@@ -2451,16 +2452,22 @@ async function restoreCanvasFromState(canvasStateJson) {
     const sX     = cW / savedW;
     const sY     = cH / savedH;
 
-    const isV2  = (data.v || 1) >= 2;
     const imgEl = document.getElementById('canvasImage');
     const ir    = getImageRenderedRect(canvas, imgEl);
-    // For v1: reconstruct the image rect as it was on the saving device so we
-    // can convert canvas-relative fractions into true image-relative fractions.
-    const origIr = isV2 ? ir : getImageRenderedRect({ offsetWidth: savedW, offsetHeight: savedH }, imgEl);
+
+    // v2 saves made on a narrow canvas (≤600px) are likely corrupted by the
+    // auto-save bug where a shared-view mobile load re-saved with wrong positions.
+    // For those, fall back to raw pixel + canvas-ratio scaling which correctly
+    // round-trips through the v1 math and recovers the original positions.
+    const isV2Clean   = (data.v || 1) >= 2 && (data.canvasW || 800) > 600;
+    const isV2Corrupt = (data.v || 1) >= 2 && !isV2Clean;
+
+    // For v1 (or non-corrupt v2 treated as v1): reconstruct the original image
+    // rect from the saving device so canvas-relative fracs convert correctly.
+    const origIr = isV2Clean ? ir : getImageRenderedRect({ offsetWidth: savedW, offsetHeight: savedH }, imgEl);
     const oW = origIr.width  || savedW;
     const oH = origIr.height || savedH;
 
-    // Convert a v1 canvas-relative fraction pair to current-device pixel coords.
     function v1x(xF) { return Math.round((xF * savedW - origIr.left) / oW * ir.width  + ir.left); }
     function v1y(yF) { return Math.round((yF * savedH - origIr.top)  / oH * ir.height + ir.top);  }
     function v1w(wF) { return Math.round(wF * savedW / oW * ir.width);  }
@@ -2471,16 +2478,18 @@ async function restoreCanvasFromState(canvasStateJson) {
         if (!product) continue;
 
         let x, y, w, h;
-        if (isV2 && d.xPct !== undefined) {
+        if (isV2Clean && d.xPct !== undefined) {
+            // Clean v2: image-relative fracs
             x = Math.round(d.xPct * ir.width  + ir.left);
             y = Math.round(d.yPct * ir.height + ir.top);
             w = Math.round(d.wPct * ir.width);
             h = Math.round(d.hPct * ir.height);
-        } else if (d.xPct !== undefined) {
-            // v1: canvas-relative → migrate via original image rect
+        } else if (!isV2Corrupt && d.xPct !== undefined) {
+            // v1: canvas-relative fracs → migrate via original image rect
             x = v1x(d.xPct); y = v1y(d.yPct);
             w = v1w(d.wPct); h = v1h(d.hPct);
         } else {
+            // Corrupted v2 or legacy: raw pixels scale correctly via canvas ratio
             x = Math.round((d.x || 0) * sX);
             y = Math.round((d.y || 0) * sY);
             w = Math.round((d.width  || 80) * sX);
@@ -2500,30 +2509,29 @@ async function restoreCanvasFromState(canvasStateJson) {
 
         if (d.polyPtsFrac || d.polyPoints) {
             let pts;
-            if (isV2 && d.polyPtsFrac) {
+            if (isV2Clean && d.polyPtsFrac) {
                 pts = d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
-            } else if (d.polyPtsFrac) {
+            } else if (!isV2Corrupt && d.polyPtsFrac) {
                 pts = d.polyPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
-            } else {
+            } else if (d.polyPoints) {
                 pts = JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
             }
-            item.dataset.polyPoints = JSON.stringify(pts);
-            applyPolyShape(item);
+            if (pts) { item.dataset.polyPoints = JSON.stringify(pts); applyPolyShape(item); }
         }
 
         if (d.pathPoints) {
             let pts;
-            if (isV2 && d.pathPtsFrac) {
+            if (isV2Clean && d.pathPtsFrac) {
                 pts = d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
-            } else if (d.pathPtsFrac) {
+            } else if (!isV2Corrupt && d.pathPtsFrac) {
                 pts = d.pathPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else {
                 pts = JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
             }
             item.dataset.pathPoints = JSON.stringify(pts);
-            const pw = isV2 && d.pathWidthPct !== undefined
+            const pw = isV2Clean && d.pathWidthPct !== undefined
                 ? Math.round(d.pathWidthPct * ir.width)
-                : d.pathWidthPct !== undefined
+                : d.pathWidthPct !== undefined && !isV2Corrupt
                     ? Math.round(d.pathWidthPct * savedW / oW * ir.width)
                     : Math.round(parseInt(d.pathWidth || 40) * sX);
             item.dataset.pathWidth = pw;
