@@ -431,14 +431,31 @@ async function _applyHistoryState(canvasStateJson) {
     const sX = cW / (data.canvasW || cW);
     const sY = cH / (data.canvasH || cH);
 
+    const isV2  = (data.v || 1) >= 2;
+    const imgEl = document.getElementById('canvasImage');
+    const ir    = getImageRenderedRect(canvas, imgEl);
+
     for (const d of data.items) {
         const product = byName[d.name];
         if (!product) continue;
 
-        const x = d.xPct !== undefined ? Math.round(d.xPct * cW) : Math.round((d.x || 0) * sX);
-        const y = d.yPct !== undefined ? Math.round(d.yPct * cH) : Math.round((d.y || 0) * sY);
-        const w = d.wPct !== undefined ? Math.round(d.wPct * cW) : Math.round((d.width  || 80) * sX);
-        const h = d.hPct !== undefined ? Math.round(d.hPct * cH) : Math.round((d.height || 80) * sY);
+        let x, y, w, h;
+        if (isV2 && d.xPct !== undefined) {
+            x = Math.round(d.xPct * ir.width  + ir.left);
+            y = Math.round(d.yPct * ir.height + ir.top);
+            w = Math.round(d.wPct * ir.width);
+            h = Math.round(d.hPct * ir.height);
+        } else if (d.xPct !== undefined) {
+            x = Math.round(d.xPct * cW);
+            y = Math.round(d.yPct * cH);
+            w = Math.round(d.wPct * cW);
+            h = Math.round(d.hPct * cH);
+        } else {
+            x = Math.round((d.x || 0) * sX);
+            y = Math.round((d.y || 0) * sY);
+            w = Math.round((d.width  || 80) * sX);
+            h = Math.round((d.height || 80) * sY);
+        }
 
         await addItemToCanvas({ ...product, _skipHistory: true, _price: d.price ?? product.price ?? 0 }, x, y);
         const item = document.querySelector(`[data-id="${itemIdCounter - 1}"]`);
@@ -453,21 +470,33 @@ async function _applyHistoryState(canvasStateJson) {
         item.style.zIndex    = d.zIndex || 1;
 
         if (d.polyPtsFrac || d.polyPoints) {
-            const pts = d.polyPtsFrac
-                ? d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }))
-                : JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
+            let pts;
+            if (isV2 && d.polyPtsFrac) {
+                pts = d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
+            } else if (d.polyPtsFrac) {
+                pts = d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }));
+            } else {
+                pts = JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
+            }
             item.dataset.polyPoints = JSON.stringify(pts);
             applyPolyShape(item);
         }
 
         if (d.pathPoints) {
-            const pts = d.pathPtsFrac
-                ? d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }))
-                : JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
+            let pts;
+            if (isV2 && d.pathPtsFrac) {
+                pts = d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
+            } else if (d.pathPtsFrac) {
+                pts = d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }));
+            } else {
+                pts = JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
+            }
             item.dataset.pathPoints = JSON.stringify(pts);
-            const pw = d.pathWidthPct !== undefined
-                ? Math.round(d.pathWidthPct * cW)
-                : Math.round(parseInt(d.pathWidth || 40) * sX);
+            const pw = isV2 && d.pathWidthPct !== undefined
+                ? Math.round(d.pathWidthPct * ir.width)
+                : d.pathWidthPct !== undefined
+                    ? Math.round(d.pathWidthPct * cW)
+                    : Math.round(parseInt(d.pathWidth || 40) * sX);
             item.dataset.pathWidth = pw;
             if (d.pathFill) item.dataset.pathFill = d.pathFill;
             applyPathShape(item);
@@ -1807,6 +1836,9 @@ function createControlPanel(item) {
     if (isMesh) {
         html += `<button class="control-btn" onclick="resetSize('${item.dataset.id}')" title="Reset shape">↻</button>`;
         html += `<span style="font-size:11px;color:#718096;padding:0 4px;" id="dotCountBadge"></span>`;
+        if (isMobileDevice()) {
+            html += `<button class="control-btn" onclick="addPolyDotAtCenter('${item.dataset.id}')" title="Add corner dot" style="font-size:11px;padding:4px 7px;">＋Dot</button>`;
+        }
     }
 
     const isPathEl = isPathItem(item.dataset.name, item.dataset.category);
@@ -1835,8 +1867,18 @@ function updateDotCount() {
     const badge = document.getElementById('dotCountBadge');
     if (badge) {
         const n = JSON.parse(selectedItem.dataset.polyPoints).length;
-        badge.textContent = `${n} pts · right-click to add/remove`;
+        const hint = isMobileDevice() ? 'tap ＋Dot to add' : 'right-click to add/remove';
+        badge.textContent = `${n} pts · ${hint}`;
     }
+}
+
+function addPolyDotAtCenter(itemId) {
+    const entry = placedItems.find(p => p.id === itemId);
+    if (!entry) return;
+    const item = entry.element;
+    const cx = item.offsetLeft + item.offsetWidth  / 2;
+    const cy = item.offsetTop  + item.offsetHeight / 2;
+    addPolyDot(cx, cy, item);
 }
 
 function updateControlPanelPosition(item) {
@@ -2260,15 +2302,33 @@ function waitForCanvasImage() {
     return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
 }
 
+// Returns the pixel rect where object-fit:contain renders the photo inside the canvas.
+// Falls back to the full canvas rect when no image is loaded.
+function getImageRenderedRect(canvas, img) {
+    const cW = canvas.offsetWidth;
+    const cH = canvas.offsetHeight;
+    const nW = img?.naturalWidth;
+    const nH = img?.naturalHeight;
+    if (!nW || !nH) return { left: 0, top: 0, width: cW, height: cH };
+    const scale = Math.min(cW / nW, cH / nH);
+    const rW = nW * scale;
+    const rH = nH * scale;
+    return { left: (cW - rW) / 2, top: (cH - rH) / 2, width: rW, height: rH };
+}
+
 function getCanvasState() {
     const canvas  = document.getElementById('designCanvas');
+    const imgEl   = document.getElementById('canvasImage');
     const canvasW = canvas?.offsetWidth  || 800;
-    // Derive height from natural image ratio if CSS hasn't resolved it yet
-    const img     = document.getElementById('canvasImage');
     const rawH    = canvas?.offsetHeight || 0;
     const canvasH = rawH > 0 ? rawH
-        : (img?.naturalWidth ? Math.round(canvasW * img.naturalHeight / img.naturalWidth) : 600);
+        : (imgEl?.naturalWidth ? Math.round(canvasW * imgEl.naturalHeight / imgEl.naturalWidth) : 600);
+    // v2: save fractions relative to the rendered image rect so positions are
+    // device-independent even when the canvas height differs across screen sizes.
+    const ir = getImageRenderedRect(canvas, imgEl);
+    const iL = ir.left, iT = ir.top, iW = ir.width, iH = ir.height;
     return JSON.stringify({
+        v: 2,
         canvasW, canvasH,
         items: placedItems.map(i => {
             const x  = parseInt(i.element.style.left)   || 0;
@@ -2276,28 +2336,27 @@ function getCanvasState() {
             const w  = parseInt(i.element.style.width)  || 80;
             const h  = parseInt(i.element.style.height) || 80;
             const pw = parseInt(i.element.dataset.pathWidth || 40);
-            // Fractional coords (0-1) for device-independent restore
             let polyPtsFrac, pathPtsFrac;
             if (i.element.dataset.polyPoints) {
                 const pts = JSON.parse(i.element.dataset.polyPoints);
-                polyPtsFrac = pts.map(p => ({ id: p.id, xF: p.x / canvasW, yF: p.y / canvasH }));
+                polyPtsFrac = pts.map(p => ({ id: p.id, xF: (p.x - iL) / iW, yF: (p.y - iT) / iH }));
             }
             if (i.element.dataset.pathPoints) {
                 const pts = JSON.parse(i.element.dataset.pathPoints);
-                pathPtsFrac = pts.map(p => ({ id: p.id, xF: p.x / canvasW, yF: p.y / canvasH }));
+                pathPtsFrac = pts.map(p => ({ id: p.id, xF: (p.x - iL) / iW, yF: (p.y - iT) / iH }));
             }
             return {
                 name: i.name, category: i.category, type: i.type,
-                x, y, width: w, height: h,           // raw px — kept for legacy
-                xPct: x / canvasW, yPct: y / canvasH,
-                wPct: w / canvasW, hPct: h / canvasH,
+                x, y, width: w, height: h,
+                xPct: (x - iL) / iW, yPct: (y - iT) / iH,
+                wPct: w / iW,         hPct: h / iH,
                 rotation: parseInt(i.element.dataset.rotation || 0),
                 zIndex:   parseInt(i.element.style.zIndex) || 1,
                 price:    i.price,
                 polyPoints: i.element.dataset.polyPoints, polyPtsFrac,
                 pathPoints: i.element.dataset.pathPoints, pathPtsFrac,
                 pathWidth:  i.element.dataset.pathWidth,
-                pathWidthPct: pw / canvasW,
+                pathWidthPct: pw / iW,
                 pathFill:     i.element.dataset.pathFill,
                 borderRadius: i.element.dataset.borderRadius,
             };
@@ -2378,29 +2437,45 @@ async function restoreCanvasFromState(canvasStateJson) {
     [...placedItems].forEach(pi => pi.element.remove());
     placedItems = [];
 
-    // Scale all coords from the saved canvas size to the current canvas size
     const canvas = document.getElementById('designCanvas');
     const cW     = canvas?.offsetWidth  || 800;
     const cH     = canvas?.offsetHeight || 600;
-    const savedW = data.canvasW || cW;   // if no canvasW, assume same size (no scale)
+    const savedW = data.canvasW || cW;
     const savedH = data.canvasH || cH;
-    const sX     = cW / savedW;          // horizontal scale factor
-    const sY     = cH / savedH;          // vertical scale factor
+    const sX     = cW / savedW;
+    const sY     = cH / savedH;
+
+    // v2: fractions are image-relative (account for object-fit:contain letterboxing)
+    const isV2  = (data.v || 1) >= 2;
+    const imgEl = document.getElementById('canvasImage');
+    const ir    = getImageRenderedRect(canvas, imgEl);
 
     for (const d of data.items) {
         const product = products.find(p => p.name === d.name);
         if (!product) continue;
 
-        // Prefer fractional coords (new format); fall back to raw × scale factor
-        const x = d.xPct !== undefined ? Math.round(d.xPct * cW) : Math.round((d.x || 0) * sX);
-        const y = d.yPct !== undefined ? Math.round(d.yPct * cH) : Math.round((d.y || 0) * sY);
-        const w = d.wPct !== undefined ? Math.round(d.wPct * cW) : Math.round((d.width  || 80) * sX);
-        const h = d.hPct !== undefined ? Math.round(d.hPct * cH) : Math.round((d.height || 80) * sY);
+        let x, y, w, h;
+        if (isV2 && d.xPct !== undefined) {
+            x = Math.round(d.xPct * ir.width  + ir.left);
+            y = Math.round(d.yPct * ir.height + ir.top);
+            w = Math.round(d.wPct * ir.width);
+            h = Math.round(d.hPct * ir.height);
+        } else if (d.xPct !== undefined) {
+            // v1: canvas-relative fractions
+            x = Math.round(d.xPct * cW);
+            y = Math.round(d.yPct * cH);
+            w = Math.round(d.wPct * cW);
+            h = Math.round(d.hPct * cH);
+        } else {
+            x = Math.round((d.x || 0) * sX);
+            y = Math.round((d.y || 0) * sY);
+            w = Math.round((d.width  || 80) * sX);
+            h = Math.round((d.height || 80) * sY);
+        }
 
         await addItemToCanvas({ ...product, _skipHistory: true }, x, y);
         const item = document.querySelector(`[data-id="${itemIdCounter - 1}"]`);
         if (!item) continue;
-        // Force position — addItemToCanvas may have centered the item internally
         item.style.left   = x + 'px';
         item.style.top    = y + 'px';
         item.style.width  = w + 'px';
@@ -2410,21 +2485,33 @@ async function restoreCanvasFromState(canvasStateJson) {
         item.style.zIndex     = d.zIndex || 1;
 
         if (d.polyPtsFrac || d.polyPoints) {
-            const pts = d.polyPtsFrac
-                ? d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }))
-                : JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
+            let pts;
+            if (isV2 && d.polyPtsFrac) {
+                pts = d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
+            } else if (d.polyPtsFrac) {
+                pts = d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }));
+            } else {
+                pts = JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
+            }
             item.dataset.polyPoints = JSON.stringify(pts);
             applyPolyShape(item);
         }
 
         if (d.pathPoints) {
-            const pts = d.pathPtsFrac
-                ? d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }))
-                : JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
+            let pts;
+            if (isV2 && d.pathPtsFrac) {
+                pts = d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
+            } else if (d.pathPtsFrac) {
+                pts = d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }));
+            } else {
+                pts = JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
+            }
             item.dataset.pathPoints = JSON.stringify(pts);
-            const pw = d.pathWidthPct !== undefined
-                ? Math.round(d.pathWidthPct * cW)
-                : Math.round(parseInt(d.pathWidth || 40) * sX);
+            const pw = isV2 && d.pathWidthPct !== undefined
+                ? Math.round(d.pathWidthPct * ir.width)
+                : d.pathWidthPct !== undefined
+                    ? Math.round(d.pathWidthPct * cW)
+                    : Math.round(parseInt(d.pathWidth || 40) * sX);
             item.dataset.pathWidth = pw;
             if (d.pathFill) item.dataset.pathFill = d.pathFill;
             applyPathShape(item);
