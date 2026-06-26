@@ -434,6 +434,14 @@ async function _applyHistoryState(canvasStateJson) {
     const isV2  = (data.v || 1) >= 2;
     const imgEl = document.getElementById('canvasImage');
     const ir    = getImageRenderedRect(canvas, imgEl);
+    const origIr = isV2 ? ir : getImageRenderedRect({ offsetWidth: savedW, offsetHeight: savedH }, imgEl);
+    const oW = origIr.width  || savedW;
+    const oH = origIr.height || savedH;
+
+    function v1x(xF) { return Math.round((xF * savedW - origIr.left) / oW * ir.width  + ir.left); }
+    function v1y(yF) { return Math.round((yF * savedH - origIr.top)  / oH * ir.height + ir.top);  }
+    function v1w(wF) { return Math.round(wF * savedW / oW * ir.width);  }
+    function v1h(hF) { return Math.round(hF * savedH / oH * ir.height); }
 
     for (const d of data.items) {
         const product = byName[d.name];
@@ -446,10 +454,8 @@ async function _applyHistoryState(canvasStateJson) {
             w = Math.round(d.wPct * ir.width);
             h = Math.round(d.hPct * ir.height);
         } else if (d.xPct !== undefined) {
-            x = Math.round(d.xPct * cW);
-            y = Math.round(d.yPct * cH);
-            w = Math.round(d.wPct * cW);
-            h = Math.round(d.hPct * cH);
+            x = v1x(d.xPct); y = v1y(d.yPct);
+            w = v1w(d.wPct); h = v1h(d.hPct);
         } else {
             x = Math.round((d.x || 0) * sX);
             y = Math.round((d.y || 0) * sY);
@@ -474,7 +480,7 @@ async function _applyHistoryState(canvasStateJson) {
             if (isV2 && d.polyPtsFrac) {
                 pts = d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
             } else if (d.polyPtsFrac) {
-                pts = d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }));
+                pts = d.polyPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else {
                 pts = JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
             }
@@ -487,7 +493,7 @@ async function _applyHistoryState(canvasStateJson) {
             if (isV2 && d.pathPtsFrac) {
                 pts = d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
             } else if (d.pathPtsFrac) {
-                pts = d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }));
+                pts = d.pathPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else {
                 pts = JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
             }
@@ -495,7 +501,7 @@ async function _applyHistoryState(canvasStateJson) {
             const pw = isV2 && d.pathWidthPct !== undefined
                 ? Math.round(d.pathWidthPct * ir.width)
                 : d.pathWidthPct !== undefined
-                    ? Math.round(d.pathWidthPct * cW)
+                    ? Math.round(d.pathWidthPct * savedW / oW * ir.width)
                     : Math.round(parseInt(d.pathWidth || 40) * sX);
             item.dataset.pathWidth = pw;
             if (d.pathFill) item.dataset.pathFill = d.pathFill;
@@ -2445,10 +2451,20 @@ async function restoreCanvasFromState(canvasStateJson) {
     const sX     = cW / savedW;
     const sY     = cH / savedH;
 
-    // v2: fractions are image-relative (account for object-fit:contain letterboxing)
     const isV2  = (data.v || 1) >= 2;
     const imgEl = document.getElementById('canvasImage');
     const ir    = getImageRenderedRect(canvas, imgEl);
+    // For v1: reconstruct the image rect as it was on the saving device so we
+    // can convert canvas-relative fractions into true image-relative fractions.
+    const origIr = isV2 ? ir : getImageRenderedRect({ offsetWidth: savedW, offsetHeight: savedH }, imgEl);
+    const oW = origIr.width  || savedW;
+    const oH = origIr.height || savedH;
+
+    // Convert a v1 canvas-relative fraction pair to current-device pixel coords.
+    function v1x(xF) { return Math.round((xF * savedW - origIr.left) / oW * ir.width  + ir.left); }
+    function v1y(yF) { return Math.round((yF * savedH - origIr.top)  / oH * ir.height + ir.top);  }
+    function v1w(wF) { return Math.round(wF * savedW / oW * ir.width);  }
+    function v1h(hF) { return Math.round(hF * savedH / oH * ir.height); }
 
     for (const d of data.items) {
         const product = products.find(p => p.name === d.name);
@@ -2461,11 +2477,9 @@ async function restoreCanvasFromState(canvasStateJson) {
             w = Math.round(d.wPct * ir.width);
             h = Math.round(d.hPct * ir.height);
         } else if (d.xPct !== undefined) {
-            // v1: canvas-relative fractions
-            x = Math.round(d.xPct * cW);
-            y = Math.round(d.yPct * cH);
-            w = Math.round(d.wPct * cW);
-            h = Math.round(d.hPct * cH);
+            // v1: canvas-relative → migrate via original image rect
+            x = v1x(d.xPct); y = v1y(d.yPct);
+            w = v1w(d.wPct); h = v1h(d.hPct);
         } else {
             x = Math.round((d.x || 0) * sX);
             y = Math.round((d.y || 0) * sY);
@@ -2489,7 +2503,7 @@ async function restoreCanvasFromState(canvasStateJson) {
             if (isV2 && d.polyPtsFrac) {
                 pts = d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
             } else if (d.polyPtsFrac) {
-                pts = d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }));
+                pts = d.polyPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else {
                 pts = JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
             }
@@ -2502,7 +2516,7 @@ async function restoreCanvasFromState(canvasStateJson) {
             if (isV2 && d.pathPtsFrac) {
                 pts = d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
             } else if (d.pathPtsFrac) {
-                pts = d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * cW), y: Math.round(p.yF * cH) }));
+                pts = d.pathPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else {
                 pts = JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
             }
@@ -2510,7 +2524,7 @@ async function restoreCanvasFromState(canvasStateJson) {
             const pw = isV2 && d.pathWidthPct !== undefined
                 ? Math.round(d.pathWidthPct * ir.width)
                 : d.pathWidthPct !== undefined
-                    ? Math.round(d.pathWidthPct * cW)
+                    ? Math.round(d.pathWidthPct * savedW / oW * ir.width)
                     : Math.round(parseInt(d.pathWidth || 40) * sX);
             item.dataset.pathWidth = pw;
             if (d.pathFill) item.dataset.pathFill = d.pathFill;
