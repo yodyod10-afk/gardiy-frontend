@@ -425,19 +425,20 @@ async function _applyHistoryState(canvasStateJson) {
     [...placedItems].forEach(pi => pi.element.remove());
     placedItems = [];
 
-    const canvas = document.getElementById('designCanvas');
-    const cW = canvas?.offsetWidth  || 800;
-    const cH = canvas?.offsetHeight || 600;
-    const sX = cW / (data.canvasW || cW);
-    const sY = cH / (data.canvasH || cH);
+    const canvas  = document.getElementById('designCanvas');
+    const cW      = canvas?.offsetWidth  || 800;
+    const cH      = canvas?.offsetHeight || 600;
+    const savedW  = data.canvasW || cW;
+    const savedH  = data.canvasH || cH;
+    const sX      = cW / savedW;
+    const sY      = cH / savedH;
 
-    const imgEl     = document.getElementById('canvasImage');
-    const ir        = getImageRenderedRect(canvas, imgEl);
-    const isV2Clean   = (data.v || 1) >= 2 && (data.canvasW || 800) > 600;
-    const isV2Corrupt = (data.v || 1) >= 2 && !isV2Clean;
-    const origIr    = isV2Clean ? ir : getImageRenderedRect({ offsetWidth: savedW, offsetHeight: savedH }, imgEl);
-    const oW = origIr.width  || savedW;
-    const oH = origIr.height || savedH;
+    const imgEl  = document.getElementById('canvasImage');
+    const ir     = getImageRenderedRect(canvas, imgEl);
+    const isV2   = (data.v || 1) >= 2;
+    const origIr = getImageRenderedRect({ offsetWidth: savedW, offsetHeight: savedH }, imgEl);
+    const oW     = origIr.width  || savedW;
+    const oH     = origIr.height || savedH;
 
     function v1x(xF) { return Math.round((xF * savedW - origIr.left) / oW * ir.width  + ir.left); }
     function v1y(yF) { return Math.round((yF * savedH - origIr.top)  / oH * ir.height + ir.top);  }
@@ -449,12 +450,7 @@ async function _applyHistoryState(canvasStateJson) {
         if (!product) continue;
 
         let x, y, w, h;
-        if (isV2Clean && d.xPct !== undefined) {
-            x = Math.round(d.xPct * ir.width  + ir.left);
-            y = Math.round(d.yPct * ir.height + ir.top);
-            w = Math.round(d.wPct * ir.width);
-            h = Math.round(d.hPct * ir.height);
-        } else if (!isV2Corrupt && d.xPct !== undefined) {
+        if (!isV2 && d.xPct !== undefined) {
             x = v1x(d.xPct); y = v1y(d.yPct);
             w = v1w(d.wPct); h = v1h(d.hPct);
         } else {
@@ -478,9 +474,7 @@ async function _applyHistoryState(canvasStateJson) {
 
         if (d.polyPtsFrac || d.polyPoints) {
             let pts;
-            if (isV2Clean && d.polyPtsFrac) {
-                pts = d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
-            } else if (!isV2Corrupt && d.polyPtsFrac) {
+            if (!isV2 && d.polyPtsFrac) {
                 pts = d.polyPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else if (d.polyPoints) {
                 pts = JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
@@ -490,19 +484,15 @@ async function _applyHistoryState(canvasStateJson) {
 
         if (d.pathPoints) {
             let pts;
-            if (isV2Clean && d.pathPtsFrac) {
-                pts = d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
-            } else if (!isV2Corrupt && d.pathPtsFrac) {
+            if (!isV2 && d.pathPtsFrac) {
                 pts = d.pathPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else {
                 pts = JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
             }
             item.dataset.pathPoints = JSON.stringify(pts);
-            const pw = isV2Clean && d.pathWidthPct !== undefined
-                ? Math.round(d.pathWidthPct * ir.width)
-                : d.pathWidthPct !== undefined && !isV2Corrupt
-                    ? Math.round(d.pathWidthPct * savedW / oW * ir.width)
-                    : Math.round(parseInt(d.pathWidth || 40) * sX);
+            const pw = !isV2 && d.pathWidthPct !== undefined
+                ? Math.round(d.pathWidthPct * savedW / oW * ir.width)
+                : Math.round(parseInt(d.pathWidth || 40) * sX);
             item.dataset.pathWidth = pw;
             if (d.pathFill) item.dataset.pathFill = d.pathFill;
             applyPathShape(item);
@@ -2329,12 +2319,7 @@ function getCanvasState() {
     const rawH    = canvas?.offsetHeight || 0;
     const canvasH = rawH > 0 ? rawH
         : (imgEl?.naturalWidth ? Math.round(canvasW * imgEl.naturalHeight / imgEl.naturalWidth) : 600);
-    // v2: save fractions relative to the rendered image rect so positions are
-    // device-independent even when the canvas height differs across screen sizes.
-    const ir = getImageRenderedRect(canvas, imgEl);
-    const iL = ir.left, iT = ir.top, iW = ir.width, iH = ir.height;
     return JSON.stringify({
-        v: 2,
         canvasW, canvasH,
         items: placedItems.map(i => {
             const x  = parseInt(i.element.style.left)   || 0;
@@ -2345,24 +2330,24 @@ function getCanvasState() {
             let polyPtsFrac, pathPtsFrac;
             if (i.element.dataset.polyPoints) {
                 const pts = JSON.parse(i.element.dataset.polyPoints);
-                polyPtsFrac = pts.map(p => ({ id: p.id, xF: (p.x - iL) / iW, yF: (p.y - iT) / iH }));
+                polyPtsFrac = pts.map(p => ({ id: p.id, xF: p.x / canvasW, yF: p.y / canvasH }));
             }
             if (i.element.dataset.pathPoints) {
                 const pts = JSON.parse(i.element.dataset.pathPoints);
-                pathPtsFrac = pts.map(p => ({ id: p.id, xF: (p.x - iL) / iW, yF: (p.y - iT) / iH }));
+                pathPtsFrac = pts.map(p => ({ id: p.id, xF: p.x / canvasW, yF: p.y / canvasH }));
             }
             return {
                 name: i.name, category: i.category, type: i.type,
                 x, y, width: w, height: h,
-                xPct: (x - iL) / iW, yPct: (y - iT) / iH,
-                wPct: w / iW,         hPct: h / iH,
+                xPct: x / canvasW, yPct: y / canvasH,
+                wPct: w / canvasW, hPct: h / canvasH,
                 rotation: parseInt(i.element.dataset.rotation || 0),
                 zIndex:   parseInt(i.element.style.zIndex) || 1,
                 price:    i.price,
                 polyPoints: i.element.dataset.polyPoints, polyPtsFrac,
                 pathPoints: i.element.dataset.pathPoints, pathPtsFrac,
                 pathWidth:  i.element.dataset.pathWidth,
-                pathWidthPct: pw / iW,
+                pathWidthPct: pw / canvasW,
                 pathFill:     i.element.dataset.pathFill,
                 borderRadius: i.element.dataset.borderRadius,
             };
@@ -2456,15 +2441,12 @@ async function restoreCanvasFromState(canvasStateJson) {
     const ir    = getImageRenderedRect(canvas, imgEl);
 
     // v2 saves made on a narrow canvas (≤600px) are likely corrupted by the
-    // auto-save bug where a shared-view mobile load re-saved with wrong positions.
-    // For those, fall back to raw pixel + canvas-ratio scaling which correctly
-    // round-trips through the v1 math and recovers the original positions.
-    const isV2Clean   = (data.v || 1) >= 2 && (data.canvasW || 800) > 600;
-    const isV2Corrupt = (data.v || 1) >= 2 && !isV2Clean;
+    // v2 saves are corrupted artifacts from a buggy auto-save chain; recover them
+    // via raw pixel + canvas-ratio scaling (best effort).
+    // v1 saves use canvas-relative fracs; migrate via origIr for accurate cross-device positions.
+    const isV2 = (data.v || 1) >= 2;
 
-    // For v1 (or non-corrupt v2 treated as v1): reconstruct the original image
-    // rect from the saving device so canvas-relative fracs convert correctly.
-    const origIr = isV2Clean ? ir : getImageRenderedRect({ offsetWidth: savedW, offsetHeight: savedH }, imgEl);
+    const origIr = getImageRenderedRect({ offsetWidth: savedW, offsetHeight: savedH }, imgEl);
     const oW = origIr.width  || savedW;
     const oH = origIr.height || savedH;
 
@@ -2478,18 +2460,12 @@ async function restoreCanvasFromState(canvasStateJson) {
         if (!product) continue;
 
         let x, y, w, h;
-        if (isV2Clean && d.xPct !== undefined) {
-            // Clean v2: image-relative fracs
-            x = Math.round(d.xPct * ir.width  + ir.left);
-            y = Math.round(d.yPct * ir.height + ir.top);
-            w = Math.round(d.wPct * ir.width);
-            h = Math.round(d.hPct * ir.height);
-        } else if (!isV2Corrupt && d.xPct !== undefined) {
-            // v1: canvas-relative fracs → migrate via original image rect
+        if (!isV2 && d.xPct !== undefined) {
+            // v1: canvas-relative fracs → migrate via original image rect for device-accurate positions
             x = v1x(d.xPct); y = v1y(d.yPct);
             w = v1w(d.wPct); h = v1h(d.hPct);
         } else {
-            // Corrupted v2 or legacy: raw pixels scale correctly via canvas ratio
+            // v2 (corrupted) or raw legacy: scale by canvas ratio
             x = Math.round((d.x || 0) * sX);
             y = Math.round((d.y || 0) * sY);
             w = Math.round((d.width  || 80) * sX);
@@ -2509,9 +2485,7 @@ async function restoreCanvasFromState(canvasStateJson) {
 
         if (d.polyPtsFrac || d.polyPoints) {
             let pts;
-            if (isV2Clean && d.polyPtsFrac) {
-                pts = d.polyPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
-            } else if (!isV2Corrupt && d.polyPtsFrac) {
+            if (!isV2 && d.polyPtsFrac) {
                 pts = d.polyPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else if (d.polyPoints) {
                 pts = JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
@@ -2521,19 +2495,15 @@ async function restoreCanvasFromState(canvasStateJson) {
 
         if (d.pathPoints) {
             let pts;
-            if (isV2Clean && d.pathPtsFrac) {
-                pts = d.pathPtsFrac.map(p => ({ id: p.id, x: Math.round(p.xF * ir.width + ir.left), y: Math.round(p.yF * ir.height + ir.top) }));
-            } else if (!isV2Corrupt && d.pathPtsFrac) {
+            if (!isV2 && d.pathPtsFrac) {
                 pts = d.pathPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else {
                 pts = JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
             }
             item.dataset.pathPoints = JSON.stringify(pts);
-            const pw = isV2Clean && d.pathWidthPct !== undefined
-                ? Math.round(d.pathWidthPct * ir.width)
-                : d.pathWidthPct !== undefined && !isV2Corrupt
-                    ? Math.round(d.pathWidthPct * savedW / oW * ir.width)
-                    : Math.round(parseInt(d.pathWidth || 40) * sX);
+            const pw = !isV2 && d.pathWidthPct !== undefined
+                ? Math.round(d.pathWidthPct * savedW / oW * ir.width)
+                : Math.round(parseInt(d.pathWidth || 40) * sX);
             item.dataset.pathWidth = pw;
             if (d.pathFill) item.dataset.pathFill = d.pathFill;
             applyPathShape(item);
@@ -2542,7 +2512,9 @@ async function restoreCanvasFromState(canvasStateJson) {
         if (d.borderRadius !== undefined) { item.dataset.borderRadius = d.borderRadius; item.style.borderRadius = d.borderRadius + 'px'; }
     }
     deselectItem();
-    saveDesign();
+    // Only update localStorage — never cloud-save during a restore.
+    // Every wrong load triggering saveDesign() was cascading corruption into the cloud.
+    try { localStorage.setItem('gardiyDesign', getCanvasState()); } catch (e) {}
     updateMaterialsList();
 }
 
