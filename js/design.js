@@ -450,7 +450,7 @@ async function _applyHistoryState(canvasStateJson) {
         if (!product) continue;
 
         let x, y, w, h;
-        if (!isV2 && d.xPct !== undefined) {
+        if (d.xPct !== undefined) {
             x = v1x(d.xPct); y = v1y(d.yPct);
             w = v1w(d.wPct); h = v1h(d.hPct);
         } else {
@@ -474,7 +474,7 @@ async function _applyHistoryState(canvasStateJson) {
 
         if (d.polyPtsFrac || d.polyPoints) {
             let pts;
-            if (!isV2 && d.polyPtsFrac) {
+            if (d.polyPtsFrac) {
                 pts = d.polyPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else if (d.polyPoints) {
                 pts = JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
@@ -484,13 +484,13 @@ async function _applyHistoryState(canvasStateJson) {
 
         if (d.pathPoints) {
             let pts;
-            if (!isV2 && d.pathPtsFrac) {
+            if (d.pathPtsFrac) {
                 pts = d.pathPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else {
                 pts = JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
             }
             item.dataset.pathPoints = JSON.stringify(pts);
-            const pw = !isV2 && d.pathWidthPct !== undefined
+            const pw = d.pathWidthPct !== undefined
                 ? Math.round(d.pathWidthPct * savedW / oW * ir.width)
                 : Math.round(parseInt(d.pathWidth || 40) * sX);
             item.dataset.pathWidth = pw;
@@ -2440,10 +2440,6 @@ async function restoreCanvasFromState(canvasStateJson) {
     const imgEl = document.getElementById('canvasImage');
     const ir    = getImageRenderedRect(canvas, imgEl);
 
-    // v2 saves made on a narrow canvas (≤600px) are likely corrupted by the
-    // v2 saves are corrupted artifacts from a buggy auto-save chain; recover them
-    // via raw pixel + canvas-ratio scaling (best effort).
-    // v1 saves use canvas-relative fracs; migrate via origIr for accurate cross-device positions.
     const isV2 = (data.v || 1) >= 2;
 
     const origIr = getImageRenderedRect({ offsetWidth: savedW, offsetHeight: savedH }, imgEl);
@@ -2460,12 +2456,10 @@ async function restoreCanvasFromState(canvasStateJson) {
         if (!product) continue;
 
         let x, y, w, h;
-        if (!isV2 && d.xPct !== undefined) {
-            // v1: canvas-relative fracs → migrate via original image rect for device-accurate positions
+        if (d.xPct !== undefined) {
             x = v1x(d.xPct); y = v1y(d.yPct);
             w = v1w(d.wPct); h = v1h(d.hPct);
         } else {
-            // v2 (corrupted) or raw legacy: scale by canvas ratio
             x = Math.round((d.x || 0) * sX);
             y = Math.round((d.y || 0) * sY);
             w = Math.round((d.width  || 80) * sX);
@@ -2485,7 +2479,7 @@ async function restoreCanvasFromState(canvasStateJson) {
 
         if (d.polyPtsFrac || d.polyPoints) {
             let pts;
-            if (!isV2 && d.polyPtsFrac) {
+            if (d.polyPtsFrac) {
                 pts = d.polyPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else if (d.polyPoints) {
                 pts = JSON.parse(d.polyPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
@@ -2495,13 +2489,13 @@ async function restoreCanvasFromState(canvasStateJson) {
 
         if (d.pathPoints) {
             let pts;
-            if (!isV2 && d.pathPtsFrac) {
+            if (d.pathPtsFrac) {
                 pts = d.pathPtsFrac.map(p => ({ id: p.id, x: v1x(p.xF), y: v1y(p.yF) }));
             } else {
                 pts = JSON.parse(d.pathPoints).map(p => ({ ...p, x: Math.round(p.x * sX), y: Math.round(p.y * sY) }));
             }
             item.dataset.pathPoints = JSON.stringify(pts);
-            const pw = !isV2 && d.pathWidthPct !== undefined
+            const pw = d.pathWidthPct !== undefined
                 ? Math.round(d.pathWidthPct * savedW / oW * ir.width)
                 : Math.round(parseInt(d.pathWidth || 40) * sX);
             item.dataset.pathWidth = pw;
