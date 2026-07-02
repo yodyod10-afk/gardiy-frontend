@@ -3375,7 +3375,7 @@ async function submitDesignForCheckout() {
             const itemCost = (info && !info.noScale && info.cost) ? info.cost : (item.price || 0);
             const bricks   = (info && !info.noScale && info.brickCount) ? info.brickCount : 1;
             const brickProd = Object.values(productRegistry).find(p => p.name === item.name);
-            checkoutItems.push({ name: `${item.name} (${bricks.toLocaleString()} bricks)`, price: parseFloat(itemCost.toFixed(2)), size: brickProd?.size || '' });
+            checkoutItems.push({ name: `${item.name} (${bricks.toLocaleString()} bricks)`, productName: item.name, units: bricks, price: parseFloat(itemCost.toFixed(2)), size: brickProd?.size || '' });
         } else {
             if (!regularGroups[item.name]) {
                 const prod = Object.values(productRegistry).find(p => p.name === item.name);
@@ -3392,17 +3392,17 @@ async function submitDesignForCheckout() {
         const isTonBased = g.sfPerUnit > 1; // grass=1 sqft/unit; hardscapes=70-130 sqft/ton
         if (g.sfPerUnit > 0 && g.totalSqFt > 0) {
             const units = g.totalSqFt / g.sfPerUnit;
-            checkoutItems.push({ name: g.name, price: parseFloat((units * g.basePricePerUnit).toFixed(2)), size: coverSize, tons: isTonBased ? parseFloat(units.toFixed(3)) : 0 });
+            checkoutItems.push({ name: g.name, productName: g.name, units: parseFloat(units.toFixed(4)), price: parseFloat((units * g.basePricePerUnit).toFixed(2)), size: coverSize, tons: isTonBased ? parseFloat(units.toFixed(3)) : 0 });
         } else {
             const count = placedItems.filter(i => i.name === g.name).length;
             const unitPrice = parseFloat(g.basePricePerUnit) || 0;
-            for (let c = 0; c < count; c++) checkoutItems.push({ name: g.name, price: unitPrice, size: coverSize, tons: 0 });
+            for (let c = 0; c < count; c++) checkoutItems.push({ name: g.name, productName: g.name, units: 1, price: unitPrice, size: coverSize, tons: 0 });
         }
     });
     // Regular items: individual entries so checkout can display qty × unit price
     Object.values(regularGroups).forEach(g => {
         const unitPrice = parseFloat(g.price) || 0;
-        for (let c = 0; c < g.count; c++) checkoutItems.push({ name: g.name, price: unitPrice, size: g.size || '' });
+        for (let c = 0; c < g.count; c++) checkoutItems.push({ name: g.name, productName: g.name, units: 1, price: unitPrice, size: g.size || '' });
     });
     // Compute total directly from checkoutItems so it's always consistent with actual prices
     const total = parseFloat(checkoutItems.reduce((s, i) => s + (parseFloat(i.price) || 0), 0).toFixed(2));

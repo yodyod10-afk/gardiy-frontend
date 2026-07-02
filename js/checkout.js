@@ -168,11 +168,25 @@ async function initStripePaymentElement() {
     try {
         stripeInstance = Stripe(STRIPE_PK);
 
+        // Send the itemized cart + fulfillment method. The backend recomputes the
+        // charge from authoritative catalog prices — it does not trust any amount
+        // sent from the client.
+        const savedDesignStr = localStorage.getItem('gardiyCheckout') || localStorage.getItem('gardiyDesign');
+        let items = [];
+        try {
+            const d = JSON.parse(savedDesignStr);
+            items = d.items && Array.isArray(d.items) ? d.items : Array.isArray(d) ? d : [];
+        } catch (e) { items = []; }
+
         // Ask backend to create a PaymentIntent and return the client secret
         const res = await fetch('https://gardiy-backend-production.up.railway.app/api/create-payment-intent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-            body: JSON.stringify({ amount: amountCents, currency: 'usd' }),
+            body: JSON.stringify({
+                items,
+                fulfillment: isPickup() ? 'pickup' : 'delivery',
+                currency: 'usd',
+            }),
         });
 
         if (!res.ok) throw new Error('Backend error: ' + res.status);
