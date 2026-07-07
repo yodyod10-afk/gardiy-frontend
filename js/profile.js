@@ -327,7 +327,7 @@ function shareProject(projectTitle) {
             </div>
 
             <div style="margin-bottom: 20px;">
-                <input type="text" value="https://gardiy.com/project/${Math.random().toString(36).substr(2, 9)}" readonly style="
+                <input type="text" value="https://gardiy.org/project/${Math.random().toString(36).substr(2, 9)}" readonly style="
                     width: 100%;
                     padding: 12px;
                     border: 2px solid #e2e8f0;

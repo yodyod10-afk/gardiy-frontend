@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /manager.html
+Disallow: /migrate.html
+Disallow: /checkout.html
+Disallow: /profile.html
+Disallow: /missing-prices-email.html
+Disallow: /garden-layout.html
+Disallow: /images/pink-petunia.html
+Disallow: /images/texture-grass.html
+Disallow: /images/texture-grass-hd.html
+Disallow: /images/categories/ornamental.html
+Disallow: /images/categories/groundcovers.html
+
+Sitemap: https://gardiy.org/sitemap.xml
